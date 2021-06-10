@@ -1,17 +1,106 @@
-TRIPLEXATOR_PARAM=-l 10 -L -1 -e 20 -E -1
+###########################
+#
+#      gencode param
+#
 
-ssRNA.fa: /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/gencode.v32.transcripts.fa.gz ../../local/share/data/selected_lncRNA
+GENCODE_SPECIES?=hsapiens
+GENCODE_VERSION?=32
+GENCODE_GENOME?=GRCh38.primary_assembly
+GENCODE_DIR=$(BIOINFO_ROOT)/task/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE_VERSION)
+
+GENCODE_ANNOTATION?=basic.annotation
+COUNT_REF_GTF?=$(GENCODE_DIR)/$(GENCODE_ANNOTATION).gtf
+COUNT_REF_GTF_COMP?=$(GENCODE_DIR)/primary_assembly.annotation.gtf
+COUNT_REF_BED=$(GENCODE_DIR)/$(GENCODE_ANNOTATION).bed
+
+###########################
+#
+#   triplex param
+#
+
+TRIPLEXATOR_PARAM?=-l 10 -L -1 -e 20 -E -1
+TDF_PARAM?=I -ccf 1 -l 10 -e 20 -par L_-1_-E_-1
+
+cCRE?=$(BIOINFO_REFERENCE_ROOT)/encode-screen/dataset/v13/hg38-NPC.bed
+#cCRE?=$(BIOINFO_REFERENCE_ROOT)/encode-screen/dataset/v13/GRCh38-ccREs.bed
+
+
+# file fasta unico con tutti i lncs selezionati (da usare come input per triplexator):
+ssRNA.fa: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE_VERSION)/gencode.v32.transcripts.fa.gz ../../local/share/data/selected_lncRNA
 	zcat $< | fasta2oneline | tr "|" "\t" | filter_1col 6 <(cut -f 1 $^2) | bawk '$$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > $@
-ssRNA.fa: /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/gencode.v32.transcripts.fa.gz ../../local/share/data/selected_lncRNA
-	zcat $< | fasta2oneline | tr "|" "\t" | filter_1col 6 <(cut -f 1 $^2) | bawk '$$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > $@
 
-peak.fa: /sto1/epigen/Fatemeh_hESC/dataset/PARCLIP_P300_v1/Fatemeh-v2-P300_merged_reps.gencode_exon_annotation.seq.header_added.gz ../../local/share/data/selected_lncRNA
-	bawk 'NR>1 {print $$exon_geneID, $$peak_seq}' $< | filter_1col 1 $^2 | id2count -b 1 | bawk '{print ">"$$1; print $$2}' > $@
+# ciclo che itera in lista di gene id dei lncRNA selezionati per creare un file fasta separato per ciascuno (da usare come inpute per TDF)
+single_fasta_done: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE_VERSION)/gencode.v32.transcripts.fa.gz selected_lncRNA
+	while read i; do zcat $< | fasta2oneline | tr "|" "\t" | grep $$i  | bawk '$$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > TDF/$$i.fa; done < $<; touch $@
 
-%.fa.tfo: ssRNA.fa
-	ssh epigen \
-	sudo su - edoardo \
-	/home/edoardo/src/triplexator/bin/triplexator $(TRIPLEXATOR_PARAM) -fm 0 -of 0 -o $@ -rm 2 -p 24 -ss $<
+############################
+#
+#       region definition
+#
+
+cCRE.bed: $(cCRE)
+	bawk '$$10=="PLS" || $$10=="dELS" || $$10=="pELS"' $< > $@
+%.bed.fa: $(GENCODE_DIR)/GRCh38.primary_assembly.genome.clean_id.fa %.bed
+	bedtools getfasta -name -fi $< -bed $^2 -fo $@
+
+#peak.fa: /sto1/epigen/Fatemeh_hESC/dataset/PARCLIP_P300_v1/Fatemeh-v2-P300_merged_reps.gencode_exon_annotation.seq.header_aded.gz ../../local/share/data/selected_lncRNA
+#	bawk 'NR>1 {print $$exon_geneID, $$peak_seq}' $< | filter_1col 1 $^2 | id2count -b 1 | bawk '{print ">"$$1; print $$2}' > $@
+
+###########################
+#       triplexator       #
+###########################
+
+%fa.tfo: %fa
+	docker run -u `id -u`:$(DOCKER_GROUP) --rm -v $(DOCKER_DATA_DIR):$(DOCKER_DATA_DIR) -v $(SCRATCH):$(SCRATCH) triplexator:v0.02 bash -c "cd $(PWD); triplexator $(TRIPLEXATOR_PARAM) -fm 0 -of 0     -o $@ -rm 2 -p $(CORES) -ss $<"
+
+%fa.tts: %fa
+	docker run -u `id -u`:$(DOCKER_GROUP) --rm -v $(DOCKER_DATA_DIR):$(DOCKER_DATA_DIR) -v $(SCRATCH):$(SCRATCH) triplexator:v0.02 bash -c "cd $(PWD); triplexator $(TRIPLEXATOR_PARAM) -fm 0 -of 0     -o $@ -rm 2 -p $(CORES) -ds $<" 
+
+%fa.tpx: ssRNA.fa %fa
+	docker run -u `id -u`:$(DOCKER_GROUP) --rm -v $(DOCKER_DATA_DIR):$(DOCKER_DATA_DIR) -v $(SCRATCH):$(SCRATCH) triplexator:v0.02 bash -c "cd $(PWD); triplexator $(TRIPLEXATOR_PARAM) -fm 0 -of 0     -o $@ -rm 2 -p $(CORES) -ss $< -ds $^2" 
+%fa.tpx_aln: ssRNA.fa %fa
+	docker run -u `id -u`:$(DOCKER_GROUP) --rm -v $(DOCKER_DATA_DIR):$(DOCKER_DATA_DIR) -v $(SCRATCH):$(SCRATCH) triplexator:v0.02 bash -c "cd $(PWD); triplexator $(TRIPLEXATOR_PARAM) -fm 0 -of 1 -po -o $@ -rm 2 -p $(CORES) -ss $< -ds $^2" 
+
+.META: *fa.tpx
+	1	sequence_id
+	2	TFO_start
+	3	TFO_end
+	4	Duplex_ID
+	5	TTS_start
+	6	TTS_end
+	7	Score
+	8	Error_rate
+	9	Errors
+	10	Motif
+	11	Strand
+	12	Orientation
+	13	Guanine_rate
+
+%.fa.tpx.around_validated_tfo: %.fa.tpx
+	bawk '{named_tfo="no_tpx"; \
+                if($$Duplex_ID!="no_tpx"){ \
+                        named_tfo="no_name";\
+                        if ($$TFO_start>=83 && $$TFO_start<=89) {named_tfo="86"} \
+                        if($$TFO_start>=45 && $$TFO_start<=51)  {named_tfo="48"} \
+                } \
+                print $$0,named_tfo} \
+        ' $< > $@
+
+.META: *fa.around_validated_tfo
+	1	sequence_id
+	2	TFO_start
+	3	TFO_end
+	4	Duplex_ID
+	5	TTS_start
+	6	TTS_end
+	7	Score
+	8	Error_rate
+	9	Errors
+	10	Motif
+	11	Strand
+	12	Orientation
+	13	Guanine_rate
+	14	tfo_name
 
 %.xlsx: %.gz
 	zcat $< | tab2xlsx > $@
@@ -37,3 +126,48 @@ ssRNA.len: /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/gencode.v32.tr
 	zcat $< | fasta2oneline | tr "|" "\t" | filter_1col 6 <(cut -f 1 $^2) | bawk '$$8!="retained_intron"' | find_best 6 7 | cut -f 6,7 > $@
 ssRNA.fa.tfo.coverage.norm: ssRNA.len ssRNA.fa.tfo.coverage
 	translate -a -r $< 1 < $^2 | bawk '{print $$0,$$2/$$3}' > $@
+
+###################
+#  	TDF       #
+###################
+
+CORES=10
+RGTDATA_DIR=/sto1/ref/bioinfotree/task/rgtdata/0.13.1
+DOCKER_GROUP=1000
+
+TSS?=/sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/primary_assembly.annotation.tss.bed
+CHROM_SIZE?=/sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/chrom.info
+REGIONS?=GeneIDs_NPC_TD-up.tss2kb.bed
+
+
+%/index.html: GeneIDs_NPC_TD-up.txt TDF/%.fa
+	docker run -u `id -u`:$(DOCKER_GROUP) --rm -v $$PWD:$$PWD -v $(RGTDATA_DIR):/opt/rgtdata -e RGTDATA=/opt/rgtdata rgt:0.13.1 bash -c "cd $$PWD; rgt-TDF promotertest -r $^2 -de $< -rn $* -organism hg38 -o TDF/promoter_test/$*_l10e20E1 $(TDF_PARAM)" 
+
+NPC-edger.toptable.gz: ../../../RNAseq/dataset/v1/DGE_H9_NPC/edger.toptable_clean.ALL_contrast.mark_seqc.gz
+	ln -s $< $@
+
+TD-edger.toptable.gz: ../../../RNAseq/dataset/v1/DGE_H9_TD/edger.toptable_clean.ALL_contrast.mark_seqc.gz
+	link_install $< $@
+
+GeneIDs_%-up: %-edger.toptable.gz
+	bawk '$$6==1 {print $$2}' $< > $@
+GeneIDs_NPC_TD-up: GeneIDs_NPC-up GeneIDs_TD-up
+	cat $< $^2 | symbol_count | cut -f 1 > $@
+
+GeneIDs_NPC_TD-up.tss2kb.bed: GeneIDs_NPC_TD-up $(TSS) $(CHROM_SIZE)
+	filter_1col 4 $< < $^2 | bedtools slop -b 1000 -i stdin -g $^3 | bedtools sort -i stdin | bedtools merge -i stdin -c 4 -o distinct | bawk '{print $$1~3,$$4"_"i++}' > $@
+
+%.bed.fa: /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/GRCh38.primary_assembly.genome.clean_id.fa %.bed
+	bedtools getfasta -name -fi $< -bed $^2 -fo $@
+
+
+################################
+#	genes association      #
+################################
+
+tss.slop: $(GENCODE_DIR)/primary_assembly.annotation.tss
+	bedtools sort -i $< | bedtools slop -l $(REGREGION_DISTANCE) -r $(REGREGION_DISTANCE) -i stdin -g $(GENCODE_DIR)/chrom.info | bedtools sort -i stdin > $@
+
+%.regulated_genes.bed: %.bed tss.slop
+	bedtools intersect -a $< -b $^2 -loj > $@
+

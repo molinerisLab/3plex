@@ -1,0 +1,25 @@
+NCPUS=28
+REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
+CONDA_ACTIVATE="set +u; source %s/miniconda3/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
+#CONDA_ACTIVATE="conda activate"
+
+#%fa.tpx: ssRNA.fa %fa
+#	docker run -u `id -u`:$(DOCKER_GROUP) --rm -v $(DOCKER_DATA_DIR):$(DOCKER_DATA_DIR) -v $(SCRATCH):$(SCRATCH) triplexator:v0.02 bash -c "cd $(PWD); triplexator $(TRIPLEXATOR_PARAM) -fm 0 -of 0     -o $@ -rm 2 -p $(CORES) -ss $< -ds $^2" 
+#%fa.tpx_aln: ssRNA.fa %fa
+#	docker run -u `id -u`:$(DOCKER_GROUP) --rm -v $(DOCKER_DATA_DIR):$(DOCKER_DATA_DIR) -v $(SCRATCH):$(SCRATCH) triplexator:v0.02 bash -c "cd $(PWD); triplexator $(TRIPLEXATOR_PARAM) -fm 0 -of 1 -po -o $@ -rm 2 -p $(CORES) -ss $< -ds $^2" 
+
+#exploratory-analysis/control_regions.%.scale-regions.computeMatrix.gz
+#reference-point
+rule deeptol_heatmap_no_negative:
+    input:
+        positive_contol="../../local/share/data/positive_control_regions.{type}.bed",
+    output:
+        "exploratory-analysis/control_regions_no_neg.{type}.{regions_or_point}.{width}.computeMatrix.gz"
+    shell: """
+        {CONDA_ACTIVATE} epigengs_0.1; \
+        computeMatrix {wildcards.regions_or_point} -b {wildcards.width} -a {wildcards.width} --regionsFileName {input} -p  {NCPUS}\
+        -S                   signal/*.pooled*fc*bigwig \
+        --samplesLabel $(ls signal/*.pooled*fc*bigwig| sed -e 's/signal\//fc/g' -e 's/\..*//g';) \
+        --referencePoint center\
+        -o {output}
+        """
