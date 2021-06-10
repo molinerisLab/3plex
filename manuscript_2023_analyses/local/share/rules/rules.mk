@@ -171,3 +171,12 @@ tss.slop: $(GENCODE_DIR)/primary_assembly.annotation.tss
 %.regulated_genes.bed: %.bed tss.slop
 	bedtools intersect -a $< -b $^2 -loj > $@
 
+
+################################
+#     genhancer association    #
+################################
+
+%.tts_genom_coords.genehancer.gz: %.tts_genom_coords.bed $(BIOINFO_REFERENCE_ROOT)/GeneHancer/dataset/v5/genehancer.connected_genes.all.clean_ensg.rr_coords.tissue.bed
+	bedtools intersect -a $< -b $^2 -wa -wb -loj | gzip > $@
+
+
