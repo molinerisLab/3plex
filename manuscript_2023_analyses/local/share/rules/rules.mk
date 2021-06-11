@@ -180,3 +180,54 @@ tss.slop: $(GENCODE_DIR)/primary_assembly.annotation.tss
 	bedtools intersect -a $< -b $^2 -wa -wb -loj | gzip > $@
 
 
+hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.bed: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.bed /sto1/ref/bioinfotree/task/GeneHancer/dataset/v5/genehancer.connected_genes.all.clean_ensg.rr_coords.bed
+	bedtools intersect -a $< -b $^2 -wa -wb -loj > $^3
+stats.rr_type: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.gz
+	bawk '{print $$1~3,$$7,$$21}' $< | uniq | cut -f 4,5 | symbol_count > $^2
+stats.target_genes: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.gz
+	bawk '{print $$7,$$23}' $< | sort | uniq | cut -f 1 | symbol_count > $^2
+stats.n_rr: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.gz
+	bawk '{print $$1~3,$$7}' $< | uniq | cut -f 4 | symbol_count > $^2
+
+
+
+#############
+#   grafo   #
+#############
+
+hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.bed
+	find_best 7:15 5 < $< | cut -f 5,7,15 > $@
+
+.META: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv
+	1	score
+	2	sequence_id
+	3	region_name
+
+%.header_added.gz: %.gz
+	(bawk -M $< | cut -f 2 | transpose; zcat $< ) | gzip > $@
+
+%.header_added: %
+	(bawk -M $< | cut -f 2 | transpose; cat $< ) > $@
+
+hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.ccREtype.tsv: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv /sto1/ref/bioinfotree/task/encode-screen/dataset/v13/hg38-NPC_H9.bed
+	cat $< | translate -a -r <(cut -f4,10 $^2) 3 > $^3
+
+.META: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.ccREtype.tsv
+	1	score
+	2	sequence_id
+	3	region_name
+	4	cCRE_type
+
+lncRNA_network.pre: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv
+	cat $< | translate -a -d -j -f 3 $< 3 > $@
+
+.META: lncRNA_network.pre
+	1	score_lnc1_cCRE
+	2	lnc1
+	3	cCRE
+	4	score_lnc2_cCRE
+	5	lnc2
+
+lncRNA_network.cutoff%.net: lncRNA_network.pre
+	bawk -v C=$* '$$score_lnc1_cCRE>=C && $$score_lnc2_cCRE>=C {print $$lnc1,$$lnc2,$$cCRE}' $< | sort | uniq | cut -f 1,2 | symbol_count | bsort -k3,3nr > $@
+
