@@ -58,6 +58,8 @@ cCRE.bed: $(cCRE)
 
 %fa.tpx: ssRNA.fa %fa
 	docker run -u `id -u`:$(DOCKER_GROUP) --rm -v $(DOCKER_DATA_DIR):$(DOCKER_DATA_DIR) -v $(SCRATCH):$(SCRATCH) triplexator:v0.02 bash -c "cd $(PWD); triplexator $(TRIPLEXATOR_PARAM) -fm 0 -of 0     -o $@ -rm 2 -p $(CORES) -ss $< -ds $^2" 
+	bawk '$$Score>=$(TRIPLEXATOR_SCORE_CUTOFF)' $@ >$@.tmp
+	mv $@.tmp $@
 %fa.tpx_aln: ssRNA.fa %fa
 	docker run -u `id -u`:$(DOCKER_GROUP) --rm -v $(DOCKER_DATA_DIR):$(DOCKER_DATA_DIR) -v $(SCRATCH):$(SCRATCH) triplexator:v0.02 bash -c "cd $(PWD); triplexator $(TRIPLEXATOR_PARAM) -fm 0 -of 1 -po -o $@ -rm 2 -p $(CORES) -ss $< -ds $^2" 
 
@@ -210,7 +212,7 @@ hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv: hg38-NPC_H9.sig
 	(bawk -M $< | cut -f 2 | transpose; cat $< ) > $@
 
 hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.ccREtype.tsv: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv /sto1/ref/bioinfotree/task/encode-screen/dataset/v13/hg38-NPC_H9.bed
-	cat $< | translate -a -r <(cut -f4,10 $^2) 3 > $^3
+	cat $< | translate -a -r <(cut -f4,10 $^2) 3 > $@
 
 .META: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.ccREtype.tsv
 	1	score
@@ -230,4 +232,31 @@ lncRNA_network.pre: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.
 
 lncRNA_network.cutoff%.net: lncRNA_network.pre
 	bawk -v C=$* '$$score_lnc1_cCRE>=C && $$score_lnc2_cCRE>=C {print $$lnc1,$$lnc2,$$cCRE}' $< | sort | uniq | cut -f 1,2 | symbol_count | bsort -k3,3nr > $@
+
+lncRNA_network.point.cutoff%.net: lncRNA_network.pre
+	bawk -v C=$* '($$score_lnc1_cCRE==C || $$score_lnc2_cCRE==C) && !($$score_lnc1_cCRE<C || $$score_lnc2_cCRE<C){print $$lnc1,$$lnc2,$$cCRE}' $< | sort | uniq | cut -f 1,2 | symbol_count | bsort -k3,3nr > $@
+
+lncRNA_network.cutoff.matrix: lncRNA_network.cutoff15.net lncRNA_network.point.cutoff11.net lncRNA_network.point.cutoff12.net lncRNA_network.point.cutoff13.net lncRNA_network.point.cutoff14.net
+	matrix_reduce -l '$^' 'lncRNA_network.*.net' | fasta2tab | bawk '$$2>=$$3 {print $$2" "$$3,$$1,$$4}' | sed 's/point.//; s/cutoff//' | tab2matrix -r lncRNAcouple > $@
+
+######################
+#
+# da rivedere
+#
+
+net: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv
+	bawk '{print $$2,$$3,$$1}' $< > $@
+
+net.jaccard: net
+	./jaccard_bipartite.py < $< > $@
+
+net.jaccard.plot: net.jaccard
+	bawk '$$1>$$2 {print $$1" "$$2,$$3,$$4,$$5,$$6}' $< > $@
+net.jaccard.grafo: net.jaccard
+	bawk '$$3==15 && $$1>$$2 {print $$1,$$2,$$6}' $< > $@
+
+.META: net.jaccard.grafo
+	1	seq1
+	2	seq2
+	3	jaccard
 
