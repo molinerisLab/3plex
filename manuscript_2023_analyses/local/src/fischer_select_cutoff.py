@@ -26,8 +26,8 @@ def main():
 	.META: STDOUT
 		1	key
 		2	greater and positive
-		3	greater and negative
-		4	lower and positive
+		3	lower and positive
+		4	greater and negative
 		5	lower and negative
 		6 	oddsratio
 		7	pvalue

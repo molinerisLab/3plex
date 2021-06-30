@@ -1,1 +1,0 @@
-../../local/bin/fischer_select_cutoff

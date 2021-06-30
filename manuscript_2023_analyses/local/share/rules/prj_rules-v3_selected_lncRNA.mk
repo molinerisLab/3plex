@@ -283,10 +283,10 @@ hg38-ccREs.bed.fa.tpx.best_score.complete: hg38-ccREs.bed.fa.tpx.best_score hg38
 	tab2matrix -e 0 -C <(cut -f 4 $^2) < $< | matrix2tab > $@
 hg38-ccREs.bed.fa.tpx.%_pos_neg: hg38-ccREs.bed.fa.tpx.best_score.complete hg38-ccREs.bed hg38-%.neg_pos.bed
 	translate <(cut -f 4,5 $^2) 2 < $< | translate -a -r -k <(cut -f 4- $^3) 2 > $@
-hg38-ccREs.bed.fa.tpx.%_pos_neg.fischer_select_cutoff: hg38-ccREs.bed.fa.tpx.%_pos_neg
-	bawk '{print $$1";"$$4,$$3,$$5}' $< | ./fischer_select_cutoff.py -a greater | tr ";" "\t" > $@
+h:g38-ccREs.bed.fa.tpx.%_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.%_pos_neg
+	bawk '{print $$1";"$$4,$$3,$$5}' $< | ./fisher_select_cutoff.py -a greater | tr ";" "\t" > $@
 
-.META: hg38-ccREs.bed.fa.tpx.*_pos_neg.fischer_select_cutoff
+.META: hg38-ccREs.bed.fa.tpx.*_pos_neg.fisher_select_cutoff
 	1	lncRNA
 	2	cCRE
 	3	score
@@ -308,10 +308,10 @@ hg38-ccREs.bed.fa.tpx.ALL_pos_neg: hg38-ccREs.bed.fa.tpx.NPC_H9_pos_neg hg38-ccR
 	5	cCRE_type	dELS
 	6	pos_neg		neg
 
-hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fischer_select_cutoff: hg38-ccREs.bed.fa.tpx.NPC_H9_pos_neg.fischer_select_cutoff hg38-ccREs.bed.fa.tpx.H9_pos_neg.fischer_select_cutoff
-	matrix_reduce 'hg38-ccREs.bed.fa.tpx.*_pos_neg.fischer_select_cutoff' -l '$^' | fasta2tab | bawk '{print $$2~10,$$1}' > $@
+hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.NPC_H9_pos_neg.fisher_select_cutoff hg38-ccREs.bed.fa.tpx.H9_pos_neg.fisher_select_cutoff hg38-ccREs.bed.fa.tpx.NPCvsH9_pos_neg.fisher_select_cutoff
+	matrix_reduce 'hg38-ccREs.bed.fa.tpx.*_pos_neg.fisher_select_cutoff' -l '$^' | fasta2tab | bawk '{print $$2~10,$$1}' > $@
 
-.META: hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fischer_select_cutoff
+.META: hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff
 	1	lncRNA
 	2	cCRE
 	3	score
