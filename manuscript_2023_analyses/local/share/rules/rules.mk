@@ -30,8 +30,8 @@ ssRNA.fa: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE
 	zcat $< | fasta2oneline | tr "|" "\t" | filter_1col 6 <(cut -f 1 $^2) | bawk '$$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > $@
 
 # ciclo che itera in lista di gene id dei lncRNA selezionati per creare un file fasta separato per ciascuno (da usare come inpute per TDF)
-single_fasta_done: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE_VERSION)/gencode.v32.transcripts.fa.gz selected_lncRNA
-	while read i; do zcat $< | fasta2oneline | tr "|" "\t" | grep $$i  | bawk '$$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > TDF/$$i.fa; done < $<; touch $@
+#single_fasta_done: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE_VERSION)/gencode.v32.transcripts.fa.gz selected_lncRNA
+#	while read i; do zcat $< | fasta2oneline | tr "|" "\t" | grep $$i  | bawk '$$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > TDF/$$i.fa; done < $<; touch $@
 
 ############################
 #
@@ -200,7 +200,7 @@ stats.n_rr: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.gz
 hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.bed
 	find_best 7:15 5 < $< | cut -f 5,7,15 > $@
 
-.META: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv
+.META: hg38-*.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv
 	1	score
 	2	sequence_id
 	3	region_name
@@ -214,7 +214,7 @@ hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv: hg38-NPC_H9.sig
 hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.ccREtype.tsv: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv /sto1/ref/bioinfotree/task/encode-screen/dataset/v13/hg38-NPC_H9.bed
 	cat $< | translate -a -r <(cut -f4,10 $^2) 3 > $@
 
-.META: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.ccREtype.tsv
+.META: hg38-*.signature_only.bed.fa.tpx.tts_genom_coords.best.ccREtype.tsv
 	1	score
 	2	sequence_id
 	3	region_name
@@ -253,7 +253,7 @@ net.jaccard: net
 net.jaccard.plot: net.jaccard
 	bawk '$$1>$$2 {print $$1" "$$2,$$3,$$4,$$5,$$6}' $< > $@
 net.jaccard.grafo: net.jaccard
-	bawk '$$3==15 && $$1>$$2 {print $$1,$$2,$$6}' $< > $@
+	bawk '$$3==15 && $$1>$$2 && $$6>0 {print $$1,$$2,$$6}' $< > $@
 
 .META: net.jaccard.grafo
 	1	seq1
