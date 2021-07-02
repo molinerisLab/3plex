@@ -324,3 +324,6 @@ hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.NP
 	10	cCRE_source
 
 
+hg38-ccREs.bed.fa.tpx.pos_neg: hg38-ccREs.bed hg38-ccREs.bed.fa.tpx hg38-NPC_H9.neg_pos.bed
+	bawk 'NR>1 && $$Score>=$(TRIPLEXATOR_PARAM) ' $< | find_best -s 4 7 | tr ";" "\t" > $@
+	translate <(echo -e "Duplex-ID\tDuplex-ID"; cut -f 4,5 $<) 4 < $^2 | translate -a -r -k <(echo -e "Duplex-ID\tccRE\tpNPC_pos_neg"; cut -f 4- $^3) 4 > $^4

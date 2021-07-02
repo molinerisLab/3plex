@@ -1,3 +1,6 @@
+#layout
+#cat ../../local/share/data/selected_lncRNA | parallel -j 1 --lb 'cd single_lncRNA; dataset_clone_recursive MIAT {} | sh'
+
 ###########################
 #
 #      gencode param

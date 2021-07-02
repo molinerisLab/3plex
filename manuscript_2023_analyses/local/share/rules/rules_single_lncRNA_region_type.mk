@@ -1,5 +1,7 @@
 REGION_TYPE=$(shell basename $$PWD)
 
+ALL+= tpx.pos_neg.bmodel_bootstrap tpx.pos_neg_no0.bmodel_bootstrap
+
 tpx.pos_neg: ../../best_score.tpx.pos_neg
 	bawk '$$region_type=="$(REGION_TYPE)"' $< > $@
 tpx.pos_neg_no0: ../../best_score.tpx.pos_neg_no0
