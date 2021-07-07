@@ -30,18 +30,18 @@ hg38-ccREs.bed.fa.tpx.%_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.%_po
 	8	oddsratio
 	9	pvalue
 
-hg38-ccREs.bed.fa.tpx.ALL_pos_neg: hg38-ccREs.bed.fa.tpx.NPC_H9_pos_neg hg38-ccREs.bed.fa.tpx.H9_pos_neg
+hg38-ccREs.bed.fa.tpx.ALL_pos_neg: hg38-ccREs.bed.fa.tpx.NPC_pos_neg hg38-ccREs.bed.fa.tpx.H9_pos_neg
 	matrix_reduce 'hg38-ccREs.bed.fa.tpx.*_pos_neg' -l '$^' | fasta2tab > $@
 
 .META: hg38-ccREs.bed.fa.tpx.ALL_pos_neg
-	1	cCRE_source	NPC_H9
+	1	cCRE_source	NPC
 	2	lncRNA		LINC00461
 	3	cCRE_id		EH38E0065969
 	4	score		10
 	5	cCRE_type	dELS
 	6	pos_neg		neg
 
-hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.NPC_H9_pos_neg.fisher_select_cutoff hg38-ccREs.bed.fa.tpx.H9_pos_neg.fisher_select_cutoff hg38-ccREs.bed.fa.tpx.NPCvsH9_pos_neg.fisher_select_cutoff
+hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.NPC_pos_neg.fisher_select_cutoff hg38-ccREs.bed.fa.tpx.H9_pos_neg.fisher_select_cutoff hg38-ccREs.bed.fa.tpx.NPCvsH9_pos_neg.fisher_select_cutoff
 	matrix_reduce 'hg38-ccREs.bed.fa.tpx.*_pos_neg.fisher_select_cutoff' -l '$^' | fasta2tab | bawk '{print $$2~10,$$1}' > $@
 
 .META: hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff
@@ -57,15 +57,15 @@ hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.NP
 	10	cCRE_source
 
 
-hg38-cCRE_specific_H9-NPC: hg38-H9.neg_pos.bed hg38-NPC_H9.neg_pos.bed
-	matrix_reduce 'hg38-*.neg_pos.bed' -l '$^' | fasta2tab | bawk '$$7=="pos" {print $$5,$$6,$$1}' | sed 's/NPC_H9/NPC/' | collapsesets 3 | grep -v ';' > $@
+hg38-cCRE_specific_H9-NPC: hg38-H9.neg_pos.bed hg38-NPC.neg_pos.bed
+	matrix_reduce 'hg38-*.neg_pos.bed' -l '$^' | fasta2tab | bawk '$$7=="pos" {print $$5,$$6,$$1}' | sed 's/NPC/NPC/' | collapsesets 3 | grep -v ';' > $@
 hg38-ccREs.bed.fa.tpx.best_score.specific_H9-NPC: hg38-cCRE_specific_H9-NPC hg38-ccREs.bed hg38-ccREs.bed.fa.tpx.best_score
 	translate -a -r -k -d <(cat $< | translate -f 2 <(cut -f 4,5 $^2) 1) 2 < $^3 \
 	| grep -v ';' > $@                      *perdiamo i ccRE che cambiano tipo ad H9 a NPC, ma sono pochi e nessun dELS*
 hg38-ccREs.bed.fa.tpx.NPCvsH9_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.best_score.specific_H9-NPC
 	bawk '{if($$5=="NPC"){$$5="pos"}else{$$5="neg"} print $$1";"$$4,$$3,$$5}' $< | fisher_select_cutoff  | tr ";" "\t" > $@
 
-upregulated: /sto1/epigen/ENCODE_RNAseq/dataset/NPC_H9/DGE/selected_lncRNA
+upregulated: /sto1/epigen/ENCODE_RNAseq/dataset/NPC/DGE/selected_lncRNA
 	bawk '{if($$6==1){up="NPC"}else{up="H9"} print $$7,up}' $< > $@
 hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff.upregulated: upregulated hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff
 	translate -a -r $< 1 < $^2 > $^3

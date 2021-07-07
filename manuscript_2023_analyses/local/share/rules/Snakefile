@@ -1,6 +1,11 @@
 NCPUS=28
 REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
 CONDA_ACTIVATE="set +u; source %s/miniconda3/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
+TRIPLEXATOR_PARAM="-L -1 -l 10 -e 20 -E 1"
+CORES=28
+
+DATASETS=["AC004930.1", "AC005006.1", "AC005520.5", "AC005884.2", "AC006064.5", "AC008569.1", "AC008641.1", "AC009248.2", "AC009264.1", "AC009276.1", "AC011131.1", "AC011474.3", "AC011998.3", "AC012409.4", "AC012574.1", "AC016553.1", "AC019294.2", "AC021752.1", "AC025254.1", "AC063919.1", "AC067747.1", "AC068544.2", "AC068580.1", "AC074131.1", "AC078962.4", "AC087442.1", "AC087477.2", "AC089999.1", "AC091180.4", "AC092296.2", "AC092296.4", "AC092567.1", "AC092807.1", "AC097376.3", "AC104971.3", "AC112491.1", "AC114316.1", "AC120498.2", "AC131274.1", "AC138627.1", "AC139099.1", "AC139426.2", "AC234771.1", "AC243829.5", "AF165147.1", "AL160262.1", "AL353600.1", "AL357315.1", "AL365258.1", "AL451081.1", "AL591368.1", "AL592182.1", "AP000704.1", "AP005263.1", "AP005436.2", "C1RL-AS1", "CLCA4-AS1", "DNAJC27-AS1", "DNM3OS", "EMX2OS", "EPHA1-AS1", "FAM41C", "FAM87A", "GTSE1-DT", "LACTB2-AS1", "LEF1-AS1", "LINC00467", "LINC00877", "LINC01483", "LINC01829", "LINC02041", "LINC02389", "LINC02453", "LINC02762", "MAP3K20-AS1", "MEG3", "MIR22HG", "MZF1-AS1", "NEAT1", "OTX2-AS1", "SATB2-AS1", "SGMS1-AS1", "SMIM2-AS1", "TAB3-AS1", "TMEM132D-AS1", "TMEM99", "VLDLR-AS1", "ZMYND10-AS1"]
+
 #CONDA_ACTIVATE="conda activate"
 
 #%fa.tpx: ssRNA.fa %fa
@@ -23,3 +28,23 @@ rule deeptol_heatmap_no_negative:
         --referencePoint center\
         -o {output}
         """
+
+
+#	docker run -u `id -u`:$(DOCKER_GROUP) --rm -v $(DOCKER_DATA_DIR):$(DOCKER_DATA_DIR) -v $(SCRATCH):$(SCRATCH) triplexator:v0.02 bash -c "cd $(PWD); triplexator $(TRIPLEXATOR_PARAM) -fm 0 -of 0     -o $@ -rm 2 -p $(CORES) -ss $< -ds $^2" 
+#	bawk '$$Score>=$(TRIPLEXATOR_SCORE_CUTOFF)' $@ >$@.tmp
+rule triplexator:
+    input:
+        ssRNA="{ssRNA}.fa",
+	DNA="{DNA}.fa"
+    output:
+        "{ssRNA}-{DNA}.tpx"
+    container:
+        "../../local/share/images/triplexator_v1.3.2.img"
+    threads: 28
+    shell: """
+        triplexator {TRIPLEXATOR_PARAM} -fm 0 -of 0 -o {output} -rm 2 -p {threads} -ss {input.ssRNA} -ds {input.DNA}
+	"""
+
+rule all_triplexator:
+	input:
+		expand("{dataset}-ccREs.tpx", dataset=DATASETS)

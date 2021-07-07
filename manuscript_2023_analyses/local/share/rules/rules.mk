@@ -36,6 +36,10 @@ ssRNA.fa: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE
 #single_fasta_done: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE_VERSION)/gencode.v32.transcripts.fa.gz selected_lncRNA
 #	while read i; do zcat $< | fasta2oneline | tr "|" "\t" | grep $$i  | bawk '$$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > TDF/$$i.fa; done < $<; touch $@
 
+
+%.fa: ssRNA.fa
+	get_fasta -i $* < $< > $@
+
 ############################
 #
 #       region definition
@@ -162,7 +166,7 @@ GeneIDs_NPC_TD-up: GeneIDs_NPC-up GeneIDs_TD-up
 GeneIDs_NPC_TD-up.tss2kb.bed: GeneIDs_NPC_TD-up $(TSS) $(CHROM_SIZE)
 	filter_1col 4 $< < $^2 | bedtools slop -b 1000 -i stdin -g $^3 | bedtools sort -i stdin | bedtools merge -i stdin -c 4 -o distinct | bawk '{print $$1~3,$$4"_"i++}' > $@
 
-%.bed.fa: /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/GRCh38.primary_assembly.genome.clean_id.fa %.bed
+%.bed.fa: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/hsapiens/32/GRCh38.primary_assembly.genome.clean_id.fa %.bed
 	bedtools getfasta -name -fi $< -bed $^2 -fo $@
 
 
@@ -185,13 +189,13 @@ tss.slop: $(GENCODE_DIR)/primary_assembly.annotation.tss
 	bedtools intersect -a $< -b $^2 -wa -wb -loj | gzip > $@
 
 
-hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.bed: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.bed /sto1/ref/bioinfotree/task/GeneHancer/dataset/v5/genehancer.connected_genes.all.clean_ensg.rr_coords.bed
+hg38-NPC.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.bed: hg38-NPC.signature_only.bed.fa.tpx.tts_genom_coords.bed /sto1/ref/bioinfotree/task/GeneHancer/dataset/v5/genehancer.connected_genes.all.clean_ensg.rr_coords.bed
 	bedtools intersect -a $< -b $^2 -wa -wb -loj > $^3
-stats.rr_type: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.gz
+stats.rr_type: hg38-NPC.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.gz
 	bawk '{print $$1~3,$$7,$$21}' $< | uniq | cut -f 4,5 | symbol_count > $^2
-stats.target_genes: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.gz
+stats.target_genes: hg38-NPC.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.gz
 	bawk '{print $$7,$$23}' $< | sort | uniq | cut -f 1 | symbol_count > $^2
-stats.n_rr: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.gz
+stats.n_rr: hg38-NPC.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.gz
 	bawk '{print $$1~3,$$7}' $< | uniq | cut -f 4 | symbol_count > $^2
 
 
@@ -200,7 +204,7 @@ stats.n_rr: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.genehancer.gz
 #   grafo   #
 #############
 
-hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.bed
+hg38-NPC.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv: hg38-NPC.signature_only.bed.fa.tpx.tts_genom_coords.bed
 	find_best 7:15 5 < $< | cut -f 5,7,15 > $@
 
 .META: hg38-*.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv
@@ -214,7 +218,7 @@ hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv: hg38-NPC_H9.sig
 %.header_added: %
 	(bawk -M $< | cut -f 2 | transpose; cat $< ) > $@
 
-hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.ccREtype.tsv: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv /sto1/ref/bioinfotree/task/encode-screen/dataset/v13/hg38-NPC_H9.bed
+hg38-NPC.signature_only.bed.fa.tpx.tts_genom_coords.best.ccREtype.tsv: hg38-NPC.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv /sto1/ref/bioinfotree/task/encode-screen/dataset/v13/hg38-NPC.bed
 	cat $< | translate -a -r <(cut -f4,10 $^2) 3 > $@
 
 .META: hg38-*.signature_only.bed.fa.tpx.tts_genom_coords.best.ccREtype.tsv
@@ -223,7 +227,7 @@ hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.ccREtype.tsv: hg38-N
 	3	region_name
 	4	cCRE_type
 
-lncRNA_network.pre: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv
+lncRNA_network.pre: hg38-NPC.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv
 	cat $< | translate -a -d -j -f 3 $< 3 > $@
 
 .META: lncRNA_network.pre
@@ -247,7 +251,7 @@ lncRNA_network.cutoff.matrix: lncRNA_network.cutoff15.net lncRNA_network.point.c
 # da rivedere
 #
 
-net: hg38-NPC_H9.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv
+net: hg38-NPC.signature_only.bed.fa.tpx.tts_genom_coords.best.tsv
 	bawk '{print $$2,$$3,$$1}' $< > $@
 
 net.jaccard: net

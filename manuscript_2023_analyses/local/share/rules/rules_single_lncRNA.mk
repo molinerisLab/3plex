@@ -22,10 +22,10 @@ best_score.tpx: tpx
 	12	Orientation
 	13	Guanine_rate
 
-best_score.tpx.pos_neg: ../../hg38-NPC_H9.neg_pos.bed best_score.tpx
+best_score.tpx.pos_neg: ../../hg38-NPC.neg_pos.bed best_score.tpx
 	cut -f 4- $< | translate -a -f 4 -v -e 0 $^2 1 > $@
 
-best_score.tpx.pos_neg_no0: ../../hg38-NPC_H9.neg_pos.bed best_score.tpx
+best_score.tpx.pos_neg_no0: ../../hg38-NPC.neg_pos.bed best_score.tpx
 	translate -a -r -k <(cut -f 4- $<) 4 < $^2 > $@
 
 .META: *.tpx.pos_neg best_score.tpx.pos_neg_no0

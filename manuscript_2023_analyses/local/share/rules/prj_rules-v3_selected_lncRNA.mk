@@ -297,18 +297,18 @@ h:g38-ccREs.bed.fa.tpx.%_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.%_p
 	8	oddsratio
 	9	pvalue
 
-hg38-ccREs.bed.fa.tpx.ALL_pos_neg: hg38-ccREs.bed.fa.tpx.NPC_H9_pos_neg hg38-ccREs.bed.fa.tpx.H9_pos_neg
+hg38-ccREs.bed.fa.tpx.ALL_pos_neg: hg38-ccREs.bed.fa.tpx.NPC_pos_neg hg38-ccREs.bed.fa.tpx.H9_pos_neg
 	matrix_reduce 'hg38-ccREs.bed.fa.tpx.*_pos_neg' -l '$^' | fasta2tab > $@
 
 .META: hg38-ccREs.bed.fa.tpx.ALL_pos_neg
-	1	cCRE_source	NPC_H9
+	1	cCRE_source	NPC
 	2	lncRNA		LINC00461
 	3	cCRE_id		EH38E0065969
 	4	score		10
 	5	cCRE_type	dELS
 	6	pos_neg		neg
 
-hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.NPC_H9_pos_neg.fisher_select_cutoff hg38-ccREs.bed.fa.tpx.H9_pos_neg.fisher_select_cutoff hg38-ccREs.bed.fa.tpx.NPCvsH9_pos_neg.fisher_select_cutoff
+hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.NPC_pos_neg.fisher_select_cutoff hg38-ccREs.bed.fa.tpx.H9_pos_neg.fisher_select_cutoff hg38-ccREs.bed.fa.tpx.NPCvsH9_pos_neg.fisher_select_cutoff
 	matrix_reduce 'hg38-ccREs.bed.fa.tpx.*_pos_neg.fisher_select_cutoff' -l '$^' | fasta2tab | bawk '{print $$2~10,$$1}' > $@
 
 .META: hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff
@@ -324,6 +324,6 @@ hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.NP
 	10	cCRE_source
 
 
-hg38-ccREs.bed.fa.tpx.pos_neg: hg38-ccREs.bed hg38-ccREs.bed.fa.tpx hg38-NPC_H9.neg_pos.bed
+hg38-ccREs.bed.fa.tpx.pos_neg: hg38-ccREs.bed hg38-ccREs.bed.fa.tpx hg38-NPC.neg_pos.bed
 	bawk 'NR>1 && $$Score>=$(TRIPLEXATOR_PARAM) ' $< | find_best -s 4 7 | tr ";" "\t" > $@
 	translate <(echo -e "Duplex-ID\tDuplex-ID"; cut -f 4,5 $<) 4 < $^2 | translate -a -r -k <(echo -e "Duplex-ID\tccRE\tpNPC_pos_neg"; cut -f 4- $^3) 4 > $^4
