@@ -327,3 +327,19 @@ hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.NP
 hg38-ccREs.bed.fa.tpx.pos_neg: hg38-ccREs.bed hg38-ccREs.bed.fa.tpx hg38-NPC.neg_pos.bed
 	bawk 'NR>1 && $$Score>=$(TRIPLEXATOR_PARAM) ' $< | find_best -s 4 7 | tr ";" "\t" > $@
 	translate <(echo -e "Duplex-ID\tDuplex-ID"; cut -f 4,5 $<) 4 < $^2 | translate -a -r -k <(echo -e "Duplex-ID\tccRE\tpNPC_pos_neg"; cut -f 4- $^3) 4 > $^4
+
+guanine_rate_effect:
+	matrix_reduce -t 'single_lncRNA/*/single_region_type/*/tpx.*.bmodel_bootstrap' | bawk '{if($$2~/^>/){print $$2}else{print $$0}}' | fasta2tab | bawk '$$1=="coefficients" && $$3=="Guanine_rate" ' | tr ";" "\t" \
+	| bawk '{if($$9==0){$$9=1e-250}; print}'> $@
+
+.META: guanine_rate_effect
+	1	source	coefficients
+	2	lncRNA	AC092957.1
+	3	ccRE	dELS
+	4	model_type	pos_neg
+	5	coef_name	Guanine_rate
+	6	coef	1.12421945832214
+	7	5perc	0.0563233821110062
+	8	95perc	19.9600843590402
+	9	pvalue	1.22505295721259e-88
+

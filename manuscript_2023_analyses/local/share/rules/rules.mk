@@ -267,3 +267,5 @@ net.jaccard.grafo: net.jaccard
 	2	seq2
 	3	jaccard
 
+ssRNA.len: ssRNA.fa
+	fastalen < $< > $@

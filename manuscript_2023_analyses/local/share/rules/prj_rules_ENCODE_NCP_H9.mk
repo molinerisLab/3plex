@@ -17,7 +17,7 @@ hg38-ccREs.bed.fa.tpx.best_score.complete: hg38-ccREs.bed.fa.tpx.best_score hg38
 hg38-ccREs.bed.fa.tpx.%_pos_neg: hg38-ccREs.bed.fa.tpx.best_score.complete hg38-ccREs.bed hg38-%.neg_pos.bed
 	translate <(cut -f 4,5 $^2) 2 < $< | translate -a -r -k <(cut -f 4- $^3) 2 > $@
 hg38-ccREs.bed.fa.tpx.%_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tpx.%_pos_neg
-	bawk '{print $$1";"$$4,$$3,$$5}' $< | ./fisher_select_cutoff.py -a greater | tr ";" "\t" > $@
+	bawk '{print $$1";"$$4,$$3,$$5}' $< | ./fisher_select_cutoff.py | tr ";" "\t" > $@
 
 .META: hg38-ccREs.bed.fa.tpx.*_pos_neg.fisher_select_cutoff
 	1	lncRNA
@@ -68,7 +68,7 @@ hg38-ccREs.bed.fa.tpx.NPCvsH9_pos_neg.fisher_select_cutoff: hg38-ccREs.bed.fa.tp
 upregulated: /sto1/epigen/ENCODE_RNAseq/dataset/NPC/DGE/selected_lncRNA
 	bawk '{if($$6==1){up="NPC"}else{up="H9"} print $$7,up}' $< > $@
 hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff.upregulated: upregulated hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff
-	translate -a -r $< 1 < $^2 > $^3
+	translate -a -r $< 1 < $^2 > $@
 
 .META: hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff.upregulated
 	1	lncRNA
@@ -82,4 +82,16 @@ hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff.upregulated: upregulated 
 	9	pvalue
 	10	cCRE_source
 	11	upregulated
+
+hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff.upregulated.best_pvalue: hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff.upregulated ssRNA.len
+	bawk 'NR>1 && $$cCRE_source=="NPCvsH9" {s=1; if($$oddsratio<1){s=-1}; print $$lncRNA";"$$cCRE";"$$upregulated, -log($$pvalue)/log(10), -s*log($$pvalue)/log(10)}' $< | find_best 1 2 | tr ";" "\t" \
+	| translate -a -r $^2 1 > $@
+
+.META: hg38-ccREs.bed.fa.tpx.ALL_pos_neg.fisher_select_cutoff.upregulated.best_pvalue
+	1	lncRNA
+	2	cCRE
+	3	upregulated
+	4	score_abs
+	5	score
+	6	len
 
