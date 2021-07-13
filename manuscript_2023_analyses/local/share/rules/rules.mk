@@ -32,13 +32,17 @@ cCRE?=$(BIOINFO_REFERENCE_ROOT)/encode-screen/dataset/v13/hg38-NPC.bed
 ssRNA.fa: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE_VERSION)/gencode.v32.transcripts.fa.gz ../../local/share/data/selected_lncRNA
 	zcat $< | fasta2oneline | tr "|" "\t" | filter_1col 6 <(cut -f 1 $^2) | bawk '$$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > $@
 
+longest_transcripts.fa: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE_VERSION)/gencode.v32.transcripts.fa.gz ../../local/share/data/selected_lncRNA
+	zcat $< | fasta2oneline | tr "|" "\t" | bawk '$$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > $@
+	
+
 # ciclo che itera in lista di gene id dei lncRNA selezionati per creare un file fasta separato per ciascuno (da usare come inpute per TDF)
 #single_fasta_done: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE_VERSION)/gencode.v32.transcripts.fa.gz selected_lncRNA
 #	while read i; do zcat $< | fasta2oneline | tr "|" "\t" | grep $$i  | bawk '$$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > TDF/$$i.fa; done < $<; touch $@
 
 
-%.fa: ssRNA.fa
-	get_fasta -i $* < $< > $@
+%.fa: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE_VERSION)/gencode.v32.transcripts.fa.gz
+	zcat $< | fasta2oneline | tr "|" "\t" |  bawk '$$6=="$*" && $$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > $@
 
 ############################
 #
@@ -48,7 +52,7 @@ ssRNA.fa: $(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(GENCODE_SPECIES)/$(GENCODE
 cCRE.bed: $(cCRE)
 	bawk '$$10=="PLS" || $$10=="dELS" || $$10=="pELS"' $< > $@
 %.bed.fa: $(GENCODE_DIR)/GRCh38.primary_assembly.genome.clean_id.fa %.bed
-	bedtools getfasta -name -fi $< -bed $^2 -fo $@
+	bedtools getfasta -nameOnly -fi $< -bed $^2 -fo $@
 
 #peak.fa: /sto1/epigen/Fatemeh_hESC/dataset/PARCLIP_P300_v1/Fatemeh-v2-P300_merged_reps.gencode_exon_annotation.seq.header_aded.gz ../../local/share/data/selected_lncRNA
 #	bawk 'NR>1 {print $$exon_geneID, $$peak_seq}' $< | filter_1col 1 $^2 | id2count -b 1 | bawk '{print ">"$$1; print $$2}' > $@
@@ -269,3 +273,9 @@ net.jaccard.grafo: net.jaccard
 
 ssRNA.len: ssRNA.fa
 	fastalen < $< > $@
+
+non_protein_cogind_most_expressed: ../../local/share/data/GEP.count.exp_filter.ltmm.metadata.max_exp_in_condition.biotype.len.gz
+	zgrep -v protein_coding $< | sort -k3,3gr | cut -f 4 > $@
+
+time:
+	matrix_reduce -t '*-ccREs.bed.tpx.log' | perl -lane 'print "$$F[0]\t$$F[-2]" if m/seconds$$/' | translate -a -r <(cat *fa | fasta_length | sort -u) 1 | bawk '{print $$0,$$2/$$3}' > $@
