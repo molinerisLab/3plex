@@ -10,15 +10,18 @@ TRIPLEXATOR_PARAM="-L -1 -l {} -e 20 -E 1".format(TRIPLEXATOR_SCORE_CUTOFF)
 def get_all_triplexator_expressed_input(wildcards):
 	import gzip
 	count=0
-	with gzip.open("../../local/share/data/GEP.count.exp_filter.ltmm.metadata.max_exp_in_condition.biotype.len.gz", mode='rt') as fh:
-		for line in fh:
-			tokens = line.split("\t")
-			if tokens[4]=="protein_coding":
-				continue
-			count+=1
-			if(count>1000):
-				return
-			yield "{}-ccREs.bed.tpx.gz".format(tokens[3])
+	with open("longest_transcripts.id") as fh_id:
+		valid_ids = [id.strip() for id in list(fh_id)]
+		with gzip.open("../../local/share/data/GEP.count.exp_filter.ltmm.metadata.max_exp_in_condition.biotype.len.gz", mode='rt') as fh:
+			for line in fh:
+				tokens = line.split("\t")
+				if tokens[3] in valid_ids:
+					if tokens[4]=="protein_coding":
+						continue
+					count+=1
+					#if(count>1000):
+					#	return
+					yield "{}-ccREs.bed.tpx.gz".format(tokens[3])
 
 def get_all_triplexator_selected_input(wildcards):
 	with open("../../local/share/data/selected_lncRNA.ENCODE_NPC_H9", mode='rt') as fh:
@@ -51,10 +54,10 @@ rule triplexator:
         "../../local/share/images/triplexator_v1.3.2.img"
     threads: NCPUS
     shell: """
-        triplexator {TRIPLEXATOR_PARAM} -fm 0 -of 0 -od SCRATCH -o {output}.tmp -rm 2 -p {threads} -ss {input.ssRNA} -ds {input.DNA} || echo "exited with error";
-	awk '$7>={TRIPLEXATOR_SCORE_CUTOFF}' SCRATCH/{output}.tmp | gzip > {output}; rm SCRATCH/{output}.tmp
-	cat SCRATCH/{output}.tmp.summary | gzip > {output}.summary.gz; rm SCRATCH/{output}.tmp.summary
-	mv SCRATCH/{output}.tmp.log triplexator_log/{output}.log; rm SCRATCH/{output}.tmp.log
+        triplexator {TRIPLEXATOR_PARAM} -fm 0 -of 0 -o {output}.tmp -rm 2 -p {threads} -ss {input.ssRNA} -ds {input.DNA} || echo "exited with error";
+	awk '$7>={TRIPLEXATOR_SCORE_CUTOFF}' {output}.tmp | gzip > {output}; rm {output}.tmp
+	cat {output}.tmp.summary | gzip > {output}.summary.gz; rm {output}.tmp.summary
+	mv {output}.tmp.log triplexator_log/{output}.log; rm {output}.tmp.log
 	"""
 
 rule all_triplexator:

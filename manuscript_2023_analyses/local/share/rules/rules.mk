@@ -279,3 +279,7 @@ non_protein_cogind_most_expressed: ../../local/share/data/GEP.count.exp_filter.l
 
 time:
 	matrix_reduce -t '*-ccREs.bed.tpx.log' | perl -lane 'print "$$F[0]\t$$F[-2]" if m/seconds$$/' | translate -a -r <(cat *fa | fasta_length | sort -u) 1 | bawk '{print $$0,$$2/$$3}' > $@
+
+longest_transcripts.id: longest_transcripts.fa
+	grep '>' $< | sed 's/>//' > $@
+
