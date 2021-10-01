@@ -35,6 +35,14 @@ TRIPLEXATOR_SCORE_CUTOFF=10
 #####################
 #  Rules
 
+def get_all_triplexator_selected_input(wildcards):
+	with open("selected_ssRNA_id", mode='rt') as fh:
+            for line in fh:
+                    yield "precomputed_tpx/{}-cCRE.bed.tpx.gz".format(line.rstrip())
+
+rule all_triplexator:
+        input:  
+            get_all_triplexator_selected_input
 
 rule cCRE_fasta:
 	input:
@@ -84,17 +92,15 @@ rule cCRE_bed:
 		bawk '$10=="PLS" || $10=="dELS" || $10=="pELS"' {input} > {output}
 	"""
 
-
-
 rule triplexator:
 	input:
 		ssRNA_file="{ssRNA}.fa",
 		dsDNA_file="{dsDNA}.fa"
 	output:
 		"{ssRNA}-{dsDNA}.tpx"
-	log: 
-		"{ssRNA}-{dsDNA}.tpx.log"
-	shadow: "minimal"
+	#log: 
+	#	"logs/{ssRNA}-{dsDNA}.tpx.log"
+	shadow: "shallow"
 	shell: """
 		mkdir -p logs;
 		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:v0.02 bash -c "cd {PWD};
