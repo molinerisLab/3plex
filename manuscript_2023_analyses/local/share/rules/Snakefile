@@ -1,0 +1,127 @@
+######################
+#  General Parameters
+
+NCPUS=os.environ.get("NCPUS",28)
+PWD=os.environ.get("PWD")
+REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
+BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"bioinfotree/"
+CONDA_ACTIVATE="set +u; source %s/miniconda2/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
+
+
+#####################
+#  Gencode Parameters
+
+GENCODE_SPECIES="hsapiens"
+GENCODE_VERSION="32"
+GENCODE_DIR=BIOINFO_REFERENCE_ROOT+"task/gencode/dataset/"+GENCODE_SPECIES+"/"+GENCODE_VERSION
+CCRE_DIR=BIOINFO_REFERENCE_ROOT+"task/encode-screen/dataset/v13/"
+
+
+######################
+#  Docker Parameters
+
+DOCKER_GROUP=os.environ.get("DOCKER_GROUP")
+DOCKER_DATA_DIR=os.environ.get("DOCKER_DATA_DIR")
+SCRATCH=os.environ.get("SCRATCH")
+
+
+######################
+#  Triplexator Parameters
+
+TRIPLEXATOR_PARAM="-l 10 -L -1 -e 20 -E -1"
+TRIPLEXATOR_SCORE_CUTOFF=10
+
+
+#####################
+#  Rules
+
+
+rule cCRE_fasta:
+	input:
+		assembly=GENCODE_DIR+"/GRCh38.primary_assembly.genome.clean_id.fa",
+		cCRE_bed="cCRE.bed"
+	output:
+		"cCRE.bed.fa"
+#	priority: 100
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}
+	"""
+
+rule get_fasta:
+	input:  
+		"longest_transcripts.fa"
+	output: 
+		temp("{GeneID}.fa")
+        #container:
+        #        "../../local/share/images/bit.wip-rnaseq.0.4.img"
+	threads: 1
+	shell: """
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		get_fasta -i {wildcards.GeneID} < {input} > {output}
+	"""
+
+#ruleorder: cCRE_fasta > get_fasta
+
+rule get_longest_transcripts:
+	input:
+		GENCODE_DIR+"/gencode.v32.transcripts.fa.gz"
+	output:
+		"longest_transcripts.fa"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8; 
+		zcat {input} | fasta2oneline | tr "|" "\t" | bawk '$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > {output}
+	"""
+
+
+rule cCRE_bed:
+	input:
+		CCRE_DIR+"GRCh38-ccREs.bed"
+	output:
+		"cCRE.bed"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bawk '$10=="PLS" || $10=="dELS" || $10=="pELS"' {input} > {output}
+	"""
+
+
+
+rule triplexator:
+	input:
+		ssRNA_file="{ssRNA}.fa",
+		dsDNA_file="{dsDNA}.fa"
+	output:
+		"{ssRNA}-{dsDNA}.tpx"
+	log: 
+		"{ssRNA}-{dsDNA}.tpx.log"
+	shadow: "minimal"
+	shell: """
+		mkdir -p logs;
+		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:v0.02 bash -c "cd {PWD};
+		triplexator {TRIPLEXATOR_PARAM} -fm 0 -of 0 -o {output} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}"
+		bawk '$Score>={TRIPLEXATOR_SCORE_CUTOFF}' {output} > {output}.tmp
+		mv {output}.tmp {output}
+		mv {output}.log logs/
+	"""
+
+rule gzip_precomputed_tpx_file:
+	input:
+		"{file_name}.tpx"
+	output:
+		"precomputed_tpx/{file_name}.tpx.gz"
+	shell:"""
+		mkdir -p precomputed_tpx;
+		gzip < {input} > {output}
+	"""
+
+
+rule triplexator_best_score:
+	input:
+		"{ssRNA}-{dsDNA}.tpx.gz"
+	output:
+		"{ssRNA}-{dsDNA}.best.tpx.gz"
+	shell: """
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bawk 'NR>1 && $Score>={TRIPLEXATOR_SCORE_CUTOFF} {print $sequence_id";"$Duplex_ID,$Score,$0}' {input} | find_best 1 2 | cut -f 3- | gzip > {output}
+	"""
+
