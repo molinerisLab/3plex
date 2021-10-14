@@ -4,7 +4,7 @@
 NCPUS=os.environ.get("NCPUS",28)
 PWD=os.environ.get("PWD")
 REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
-BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"bioinfotree/"
+BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"bioinfotree/task/"
 CONDA_ACTIVATE="set +u; source %s/miniconda2/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
 
 
@@ -13,8 +13,8 @@ CONDA_ACTIVATE="set +u; source %s/miniconda2/etc/profile.d/conda.sh ; conda acti
 
 GENCODE_SPECIES="hsapiens"
 GENCODE_VERSION="32"
-GENCODE_DIR=BIOINFO_REFERENCE_ROOT+"task/gencode/dataset/"+GENCODE_SPECIES+"/"+GENCODE_VERSION
-CCRE_DIR=BIOINFO_REFERENCE_ROOT+"task/encode-screen/dataset/v13/"
+GENCODE_DIR=BIOINFO_REFERENCE_ROOT+"gencode/dataset/"+GENCODE_SPECIES+"/"+GENCODE_VERSION
+CCRE_DIR=BIOINFO_REFERENCE_ROOT+"encode-screen/dataset/v13/"
 
 
 ######################
@@ -71,7 +71,7 @@ rule get_fasta:
 	input:  
 		"longest_transcripts.fa"
 	output: 
-		temp("{GeneID}.fa")
+		temp("{GeneID,[\w\.]+}.fa")
         #container:
         #        "../../local/share/images/bit.wip-rnaseq.0.4.img"
 	threads: 1
@@ -100,7 +100,7 @@ rule cCRE_bed:
 		"cCRE.bed"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		bawk '$10=="PLS" || $10=="dELS" || $10=="pELS"' {input} > {output}
+		bawk '$6=="PLS" || $6=="dELS" || $6=="pELS"' {input} > {output}
 	"""
  
 rule triplexator:

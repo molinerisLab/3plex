@@ -81,3 +81,5 @@ CHR?=chr1
 	echo `seq 1 22` X Y M | tr " " "\n" | parallel -j 22 'LongTarget -f1 ../chrs_mask/chr{} -f2 ssRNA.fa -ni 10 -ds 8 -lg 10'
 	touch $@
 
+tpx_analysis.fisher_select_cutoff.ALLconditions:
+	matrix_reduce -t 'tpx_analysis/*/cCRE.tpx.best.complete.*_neg_pos.fisher_select_cutoff' | tr ";" "\t" | cut -f1,2,4- > $@
