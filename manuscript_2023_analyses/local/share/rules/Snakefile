@@ -42,11 +42,24 @@ def get_all_triplexator_selected_input(wildcards):
                 yield "precomputed_tpx/{}-cCRE.bed.tpx.gz".format(line.rstrip())
 
 rule all_triplexator:
-        input:  
-            get_all_triplexator_selected_input
+	input:
+		get_all_triplexator_selected_input
+
+
+def get_all_fisher_selected_condition(wildcards):
+	with open("selected_lncRNA.conditions",mode='rt') as fh:
+		for line in fh:
+			ssRNA,diff,stem = line.rstrip().split("\t")
+			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}_{}_neg_pos.fisher_select_cutoff".format(ssRNA,diff,stem)
+
+
+rule all_fisher_selected_condition:
+	input:
+		get_all_fisher_selected_condition
+
 
 def get_all_fisher(wildcards):
-	with open("selected_lncRNA.contrasts",mode='rt') as fh:
+	with open("selected_lncRNA.ALLconditions",mode='rt') as fh:
 		for line in fh:
 			ssRNA,diff,stem = line.rstrip().split("\t")
 			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}_{}_neg_pos.fisher_select_cutoff".format(ssRNA,diff,stem)
@@ -54,6 +67,7 @@ def get_all_fisher(wildcards):
 rule all_fisher:
 	input:
 		get_all_fisher
+
 
 rule cCRE_fasta:
 	input:
@@ -192,4 +206,113 @@ rule fisher_select_cutoff:
 	"""
 
 
+rule:
+	input:
+		tpx="tpx_analysis/{ssRNA}/{target_regions}.tpx.gz",
+		bed="{target_regions}.bed"
+	output:
+		"tpx_analysis/{ssRNA}/{target_regions}.tpx.tts_genom_coords.pre"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		zcat {input.tpx} | unhead | translate -r -a -f 4 <(cut -f -4 {input.bed}) 4 > {output}
+	"""
+rule:
+	input:
+		"{file}.tpx.tts_genom_coords.pre"	
+	output:
+		"{file}.tpx.tts_genom_coords"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bawk '{{TTS_start_genom=$TTS_start+$region_b; TTS_end_genom=$TTS_end+$region_b; print $0,TTS_start_genom,TTS_end_genom}}' {input} > {output}
+	"""
+rule:
+	input:
+		"{file}.tpx.tts_genom_coords"	
+	output:
+		"{file}.tpx.tts_genom_coords.bed"
+	shell:"""
+		bawk '{{print $region_chr,$TTS_start_genom,$TTS_end_genom, $sequence_id "-" $Duplex_ID, $Score,$Strand,$sequence_id,$TFO_start,$TFO_end,$Error_rate,$Errors,$Motif,$Orientation,$Guanine_rate,$Duplex_ID,$region_b,$region_e}}' {input}\
+		| id2count -a 4  > {output}
+	"""
 
+"""
+.META: *.tpx.tts_genom_coords.pre
+	1	sequence_id
+	2	TFO_start
+	3	TFO_end
+	4	Duplex_ID
+	5	TTS_start
+	6	TTS_end
+	7	Score
+	8	Error_rate
+	9	Errors
+	10	Motif
+	11	Strand
+	12	Orientation
+	13	Guanine_rate
+	14	region_chr
+	15	region_b
+	16	region_e
+
+.META: *.tpx.tts_genom_coords
+	1	sequence_id
+	2	TFO_start
+	3	TFO_end
+	4	Duplex_ID
+	5	TTS_start
+	6	TTS_end
+	7	Score
+	8	Error_rate
+	9	Errors
+	10	Motif
+	11	Strand
+	12	Orientation
+	13	Guanine_rate
+	14	region_chr
+	15	region_b
+	16	region_e
+	17	TTS_start_genom
+	18	TTS_end_genom
+
+.META: *.tpx.tts_genom_coords.bed
+	1	region_chr
+	2	TTS_start
+	3	TTS_end
+	4	TTS_name
+	5	Score
+	6	Strand
+	7	sequence_id
+	8	TFO_start
+	9	TFO_end
+	10	Error_rate
+	11	Errors
+	12	Motif
+	13	Orientation
+	14	Guanine_rate
+	15	region_name
+	16	region_b
+	17	region_e
+
+.META: *.fisher_select_cutoff
+	1	ssRNA
+	2	greater_and_positive
+	3	lower_and_positive
+	4	greater_and_negative
+	5	lower_and_negative
+	6	oddsratio
+	7	pvalue
+
+"""
+
+
+rule barplot_lncRNA_condition:
+	input:
+		#"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.fisher_select_cutoff"
+		"{file}.fisher_select_cutoff"
+	output:
+		# tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.fisher_select_cutoff.barplot.pdf
+		"{file}.fisher_select_cutoff.barplot.pdf"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		../../local/src/single_barplot.R < {input} > {output}
+	"""
