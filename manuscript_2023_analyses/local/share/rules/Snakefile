@@ -59,7 +59,7 @@ rule all_fisher_selected_condition:
 
 
 def get_all_fisher(wildcards):
-	with open("selected_lncRNA.ALLconditions",mode='rt') as fh:
+	with open("all_lncRNA.ALLconditions",mode='rt') as fh:
 		for line in fh:
 			ssRNA,diff,stem = line.rstrip().split("\t")
 			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}_{}_neg_pos.fisher_select_cutoff".format(ssRNA,diff,stem)
@@ -85,7 +85,7 @@ rule get_fasta:
 	input:  
 		"longest_transcripts.fa"
 	output: 
-		temp("{GeneID,[\w\.]+}.fa")
+		temp("{GeneID,[\w\.-]+}.fa")
         #container:
         #        "../../local/share/images/bit.wip-rnaseq.0.4.img"
 	threads: 1
@@ -201,7 +201,7 @@ rule fisher_select_cutoff:
 	output:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.fisher_select_cutoff"
 	shell:"""
-		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		zcat {input} | bawk '{{print $1";"$4,$3,$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
 	"""
 
@@ -222,7 +222,7 @@ rule:
 	output:
 		"{file}.tpx.tts_genom_coords"
 	shell:"""
-		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		bawk '{{TTS_start_genom=$TTS_start+$region_b; TTS_end_genom=$TTS_end+$region_b; print $0,TTS_start_genom,TTS_end_genom}}' {input} > {output}
 	"""
 rule:
@@ -231,11 +231,31 @@ rule:
 	output:
 		"{file}.tpx.tts_genom_coords.bed"
 	shell:"""
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		bawk '{{print $region_chr,$TTS_start_genom,$TTS_end_genom, $sequence_id "-" $Duplex_ID, $Score,$Strand,$sequence_id,$TFO_start,$TFO_end,$Error_rate,$Errors,$Motif,$Orientation,$Guanine_rate,$Duplex_ID,$region_b,$region_e}}' {input}\
 		| id2count -a 4  > {output}
 	"""
+rule assoc_genehancer:
+	input:
+		tpx="{file}.tpx.tts_genom_coords.bed",
+		genehancer="/sto1/ref/bioinfotree/task/GeneHancer/dataset/v5/genehancer.connected_genes.signif.clean_ensg.entrez.rr_coords.tissue.bed"
+	output:
+		"{file}.tpx.tts_genom_coords.assoc_genes"
+	shell:"""
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bedtools intersect -loj -a {input.tpx} -b {input.genehancer}\
+		| bawk '{{print $7,$15,$22,$23,$24, $5}}' > {output}
+	"""
 
 """
+.META: *.tpx.tts_genom_coords.assoc_genes
+	1	ssRNA
+	2	cCRE
+	2	genehancer_region
+	3	gene
+	4	EntrezGene
+	4	tpx_score	
+
 .META: *.tpx.tts_genom_coords.pre
 	1	sequence_id
 	2	TFO_start
