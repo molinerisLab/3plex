@@ -153,3 +153,19 @@ tpx_analysis.fisher_select_cutoff.ALLconditions.%.matrix: tpx_analysis.fisher_se
 	bawk '$$cCRE=="$*" {$$pvalue=$$pvalue+2.26261e-288; if($$oddsratio>=1) {print $$condition,$$lncRNA,-log($$pvalue)/log(10)}else{print $$condition,$$lncRNA,log($$pvalue)/log(10)}}' $< | tab2matrix -r GeneID > $@
 tpx_analysis.fisher_select_cutoff.ALLconditions.%.matrix.oddsratio: tpx_analysis.fisher_select_cutoff.ALLconditions.best.selected_ssRNA_id
 	bawk '$$cCRE=="$*" {print $$condition,$$lncRNA,$$oddsratio-1}' $< | tab2matrix -r GeneID > $@
+
+tpx_analysis.fisher_select_cutoff.ALLconditions.best%.length_dist: tpx_analysis.fisher_select_cutoff.ALLconditions.best%
+	cut -f1,3,4 $< | symbol_count > $@
+
+.META: tpx_analysis.fisher_select_cutoff.ALLconditions.best%.length_dist
+	1	condition
+	2	cCRE
+	3	tpx_score
+	4	count
+
+
+tpx_analysis.fisher_select_cutoff.ALLconditions.selected_ssRNA_id: tpx_analysis.fisher_select_cutoff.ALLconditions.gz selected_ssRNA_id
+	zcat $< | filter_1col 2 $^2 > $@
+
+tpx_analysis.fisher_select_cutoff.ALLconditions.pvalue_correct.gz: tpx_analysis.fisher_select_cutoff.ALLconditions.gz
+	zcat $< | pvalue_correct -a -c 10 | gzip > $@
