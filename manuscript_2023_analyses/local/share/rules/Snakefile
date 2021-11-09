@@ -182,7 +182,7 @@ rule triplexator_best_score:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		bawk 'NR>1 {{print $1";"$4,$7}}' {input} | find_best 1 2 | tr ";" "\\t" | gzip > {output}
+		bawk 'NR>1 {{print $1";"$4,$7}}' {input} | find_best -s 1 2 | tr ";" "\\t" | gzip > {output}
 	"""
 
 
