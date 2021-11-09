@@ -1,3 +1,5 @@
+configfile: "config.yaml"
+
 ######################
 #  General Parameters
 
@@ -29,8 +31,8 @@ SCRATCH=os.environ.get("SCRATCH")
 ######################
 #  Triplexator Parameters
 
-TRIPLEXATOR_PARAM="-l 10 -L -1 -e 20 -E -1"
-TRIPLEXATOR_SCORE_CUTOFF="10"
+TRIPLEXATOR_PARAM="-L -1 -e 20 -E -1"
+# Other parameters are specified in config.yaml
 
 
 #####################
@@ -67,6 +69,8 @@ def get_all_fisher(wildcards):
 rule all_fisher:
 	input:
 		get_all_fisher
+
+
 
 
 rule cCRE_fasta:
@@ -116,7 +120,15 @@ rule cCRE_bed:
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		bawk '$6=="PLS" || $6=="dELS" || $6=="pELS"' {input} > {output}
 	"""
- 
+
+
+TRIPLEXATOR_ALN_2_ONE_LINE=""
+if config["TRIPLEXATOR_ALN"]==1:
+	TRIPLEXATOR_ALN_2_ONE_LINE=	""" unhead {output} -f {output}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output}.tmp;"""+\
+					""" mv {output}.head {output}; cat {output}.tmp >> {output}; rm {output}.tmp """
+
+ #v0.02
+ #v1.3.2_l6
 rule triplexator:
 	input:
 		ssRNA_file="{ssRNA}.fa",
@@ -128,9 +140,12 @@ rule triplexator:
 	#shadow: "shallow"
 	shell: """
 		mkdir -p logs;
-		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:v0.02 bash -c "cd {PWD};
-		triplexator {TRIPLEXATOR_PARAM} -fm 0 -of 0 -o {output} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}"
-		bawk '$Score>={TRIPLEXATOR_SCORE_CUTOFF}' {output} > {output}.tmp
+		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
+		triplexator -l {config[TRIPLEXATOR_MIN_LEN]} {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}"
+	""" + \
+		TRIPLEXATOR_ALN_2_ONE_LINE + \
+	"""
+		bawk '$Score>={config[TRIPLEXATOR_SCORE_CUTOFF]}' {output} > {output}.tmp
 		mv {output}.tmp {output}
 		mv {output}.log logs/
 		rm -rf {output}.summary
