@@ -169,3 +169,17 @@ tpx_analysis.fisher_select_cutoff.ALLconditions.selected_ssRNA_id: tpx_analysis.
 
 tpx_analysis.fisher_select_cutoff.ALLconditions.pvalue_correct.gz: tpx_analysis.fisher_select_cutoff.ALLconditions.gz
 	zcat $< | pvalue_correct -a -c 10 | gzip > $@
+
+tpx_analysis.fisher_select_cutoff.ALLconditions.best.selected_ssRNA_id.GEPcount: tpx_analysis.fisher_select_cutoff.ALLconditions.best.selected_ssRNA_id GEP.count.exp_filter.ltmm.metadata.exp_genes_condition.matrix.selected_lncRNA.header_added
+	bawk '{print $$2";"$$1,$$3,$$11}' $< | translate -a <(cut -f1,3- $^2 | matrix2tab | bawk '{print $$1";"$$2,$$3}') 1 | tr ";" "\t" > $@
+
+.META: tpx_analysis.fisher_select_cutoff.ALLconditions.best.selected_ssRNA_id.GEPcount
+	1	GeneID
+	2	condition	HEP_H9
+	3	exp	2.67169721233
+	4	cCRE	PLS
+	5	TPXcCRE_score	-131.317235
+
+
+tpx_analysis.fisher_select_cutoff.ALLconditions.%.matrix.exp_corr: GEP.count.exp_filter.ltmm.metadata.exp_genes_condition.matrix.selected_lncRNA.header_added tpx_analysis.fisher_select_cutoff.ALLconditions.%.matrix
+	./corr_plot.R $< < $^2 | bawk '{print $$5,$$1~4}'  > $@
