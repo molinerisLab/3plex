@@ -67,10 +67,8 @@ def main():
 	12	Orientation
 	13	Guanine_rate
 	14	stability
-	15	aln1
-	16	aln2
-	17	aln3
-	18	aln4
+	15	TFO
+	16	TTS
 
 	'''
 	parser = OptionParser(usage=usage)
@@ -107,7 +105,7 @@ def main():
 			#stability+=stab_table[P][c][TFO_seq[i]]
 			stability+=stab_table[P][d[c]][d[TFO_seq[i]]]
 		#print "\t".join(tokens[:-4]+list(stability,aln1,aln2,aln3,aln4))
-		print("\t".join(tokens[:-4]+[str(stability),TFO_seq,TTS_seq]))	
+		print("\t".join(tokens[:-4]+[str(round(stability,1)),TFO_seq,TTS_seq]))	
 
 if __name__ == '__main__':
 	main()
