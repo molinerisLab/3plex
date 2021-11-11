@@ -93,7 +93,7 @@ COND=HEP_H9 NPC_H9 MESEND_H1 MESENC_H1
 
 
 tpx_analysis.fisher_select_cutoff.ALLconditions.gz:
-	matrix_reduce -t 'tpx_analysis/*/cCRE.tpx.best.complete.*_neg_pos.fisher_select_cutoff' | tr ";" "\t" | cut -f 2- | gzip > $@
+	matrix_reduce -t 'tpx_analysis/*/cCRE.tpx.best.complete.*_neg_pos.fisher_select_cutoff' | tr ";" "\t" | cut -f 1,2,4- | gzip > $@
 
 tpx_analysis.fisher_select_cutoff.ALLconditions.best: tpx_analysis.fisher_select_cutoff.ALLconditions.gz
 	zcat $< | find_best -r 1:2:3 10 > $@

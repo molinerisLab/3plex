@@ -104,8 +104,8 @@ def main():
 			#print(c,TFO_seq[i])
 			#stability+=stab_table[P][c][TFO_seq[i]]
 			stability+=stab_table[P][d[c]][d[TFO_seq[i]]]
-		#print "\t".join(tokens[:-4]+list(stability,aln1,aln2,aln3,aln4))
-		print("\t".join(tokens[:-4]+[str(round(stability,1)),TFO_seq,TTS_seq]))	
+		print("\t".join(tokens[:-4]+[str(round(stability,1)),aln1,aln2,aln3,aln4]))
+		#print("\t".join(tokens[:-4]+[str(round(stability,1)),TFO_seq,TTS_seq]))	
 
 if __name__ == '__main__':
 	main()

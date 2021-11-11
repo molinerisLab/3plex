@@ -216,7 +216,7 @@ rule fisher_select_cutoff:
 	output:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.fisher_select_cutoff"
 	shell:"""
-		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		zcat {input} | bawk '{{print $1";"$4,$3,$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
 	"""
 
