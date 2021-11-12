@@ -124,8 +124,8 @@ rule cCRE_bed:
 
 TRIPLEXATOR_ALN_2_ONE_LINE=""
 if config["TRIPLEXATOR_ALN"]==1:
-	TRIPLEXATOR_ALN_2_ONE_LINE=	""" unhead {output} -f {output}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output}.tmp;"""+\
-					""" mv {output}.head {output}; cat {output}.tmp >> {output}; rm {output}.tmp """
+	TRIPLEXATOR_ALN_2_ONE_LINE=	"""unhead {output} -f {output}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output}.tmp;""" + \
+					"""mv {output}.head {output}; cat {output}.tmp >> {output}; rm {output}.tmp """
 
  #v0.02
  #v1.3.2_l6
@@ -141,10 +141,10 @@ rule triplexator:
 	shell: """
 		mkdir -p logs;
 		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
-		triplexator -l {config[TRIPLEXATOR_MIN_LEN]} {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}"
-	""" + \
+		triplexator -l {config[TRIPLEXATOR_MIN_LEN]} {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
+		""" + \
 		TRIPLEXATOR_ALN_2_ONE_LINE + \
-	"""
+		"""
 		bawk '$Score>={config[TRIPLEXATOR_SCORE_CUTOFF]}' {output} > {output}.tmp
 		mv {output}.tmp {output}
 		mv {output}.log logs/
@@ -175,18 +175,18 @@ rule link_tpx:
 		ln -s ../../{input} cCRE.tpx.gz
 	"""
 
-rule triplexator_best_score:
+rule longTarget_best_score:
 	input:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.gz"
 	output:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		bawk 'NR>1 {{print $1";"$4,$7}}' {input} | find_best -s 1 2 | tr ";" "\\t" | gzip > {output}
+		zcat {input} | unhead | ../../local/src/tpx_thermal_stability.py | bawk 'NR>1 {{print $1";"$4,$14}}' | find_best -s 1 2 | tr ";" "\\t" | gzip > {output}
 	"""
 
 
-rule triplexator_best_score_complete:
+rule longTarget_best_score_complete:
 	input:
 		cCRE_bed="cCRE.bed",
 		tpx_best="tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
@@ -198,7 +198,7 @@ rule triplexator_best_score_complete:
 	""" 
 
 
-rule triplexator_best_score_complete_active:
+rule longTarget_best_score_complete_active:
 	input:
 		cCRE_bed="cCRE.bed",
 		tpx_best_complete="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.gz",
