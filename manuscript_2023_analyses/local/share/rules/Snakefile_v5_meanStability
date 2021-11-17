@@ -49,7 +49,7 @@ rule all_triplexator:
 
 
 def get_all_fisher_selected_condition(wildcards):
-	with open("selected_lncRNA.conditions",mode='rt') as fh:
+	with open("selected_lncRNA.ALLconditions",mode='rt') as fh:
 		for line in fh:
 			ssRNA,diff,stem = line.rstrip().split("\t")
 			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}_{}_neg_pos.fisher_select_cutoff".format(ssRNA,diff,stem)
@@ -217,9 +217,9 @@ rule fisher_select_cutoff:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.fisher_select_cutoff"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		zcat {input} | bawk '{{print $1";"$4,int($3/10),$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
+		zcat {input} | bawk '{{print $1";"$4,$3,$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
 	"""
-
+#zcat {input} | bawk '{{print $1";"$4,int($3/10),$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
 
 rule:
 	input:
