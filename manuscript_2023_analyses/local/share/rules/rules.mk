@@ -183,3 +183,30 @@ tpx_analysis.fisher_select_cutoff.ALLconditions.best.selected_ssRNA_id.GEPcount:
 
 tpx_analysis.fisher_select_cutoff.ALLconditions.%.matrix.exp_corr: GEP.count.exp_filter.ltmm.metadata.exp_genes_condition.matrix.selected_lncRNA.header_added tpx_analysis.fisher_select_cutoff.ALLconditions.%.matrix
 	./corr_plot.R $< < $^2 | bawk '{print $$5,$$1~4}'  > $@
+
+
+
+#####################################
+#
+#	LongTarget Stability
+#
+cCRE.tpx.best.complete.fisher_select_cutoff.ALLcond.best.selected_ssRNA_id: $(addprefix tpx_analysis/, $(addsuffix /cCRE.tpx.best.complete.fisher_select_cutoff.ALLcond.best,$(ssRNA)))
+	matrix_reduce -t 'tpx_analysis/*/cCRE.tpx.best.complete.fisher_select_cutoff.ALLcond.best' > $@	
+
+tpx_analysis/%/cCRE.tpx.best.complete.fisher_select_cutoff.ALLcond.best:
+	matrix_reduce -t 'tpx_analysis/$*/cCRE.tpx.best.complete.*_neg_pos.fisher_select_cutoff' | cut -f1,3- | find_best -a 1:2 10 > $@
+
+.META: cCRE.tpx.best.complete.fisher_select_cutoff.ALLcond.best.selected_ssRNA_id
+	1	GeneID	AC016590.1
+	2	condition	MESENC_H1
+	3	cCRE	dELS
+	4	score	10.0
+	5	greater_pos	6981
+	6	lower_pos	12839
+	7	greater_neg	5843
+	8	lower_neg	6037
+	9	odds_ratio	0.561787
+	10	pvalue	4.81687e-132
+	11	TPXcCRE_score	-131.317235
+
+
