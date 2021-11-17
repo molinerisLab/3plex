@@ -19,12 +19,11 @@ z<-read.table(stdin,header=F,col.names=c("lncRNA","cCRE","tpx_score","greater_po
 p<-ggplot(data=z, aes(x=tpx_score,y=TPXcCRE_score, fill=cCRE))+
   geom_col()+
   facet_grid(.~cCRE, scale="free_y")+
-  theme_bw()+
+  theme_linedraw()+
   xlab("TPX score") + ylab("TPX-cCRE score")+
   theme(text=element_text(size=11),axis.text.x=element_text(angle=90,vjust=0.5,hjust=1),legend.position='none')+
-  #xlim(5,NA)+
+  xlim(1,NA)+
   geom_hline(yintercept=-log10(0.05),linetype="dashed")
-  geom_hline(yintercept=+log10(0.05),linetype="dashed")
 
 ggsave("/dev/stdout",plot=p,device="pdf")
                 
