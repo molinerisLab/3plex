@@ -82,7 +82,7 @@ rule all_fisher:
 	input:
 		get_all_fisher
 
-rule all_fisher_pos_neg_rand:
+rule all_fisher_neg_pos_rand:
 	input:
 		get_all_fisher_neg_pos_rand
 

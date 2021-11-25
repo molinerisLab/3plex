@@ -1,5 +1,5 @@
 ChIRP.bed.split: ../../local/share/data/ChIRP_narrowPeaks.bed
-	tr ";" "\t" < $< | bedtools sort > $@
+	tr ";" "\t" < $< | grep -v CDKN2B-AS1 | bedtools sort > $@
 
 %.neg_pos.bed: %_onlypos.bed %_neg.bed
 	cat $^ > $@

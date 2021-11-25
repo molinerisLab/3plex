@@ -182,7 +182,7 @@ rule longTarget_best_score:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		zcat {input} | unhead | ../../local/src/tpx_thermal_stability.py | bawk 'NR>1 {{print $1";"$4,$14}}' | find_best -s 1 2 | tr ";" "\\t" | gzip > {output}
+		zcat {input} | unhead | ../../local/src/tpx_thermal_stability.py | bawk 'NR>1 {{print $1"@"$4,$14}}' | find_best -s 1 2 | tr "@" "\\t" | gzip > {output}
 	"""
 
 
@@ -202,22 +202,22 @@ rule longTarget_best_score_complete_active:
 	input:
 		cCRE_bed="cCRE.bed",
 		tpx_best_complete="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.gz",
-		cond_neg_pos_bed="{condition}.neg_pos.bed"
+		cond_neg_pos_bed="{condition}.{neg_pos}.bed"
 	output:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.gz"
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.gz"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		zcat {input.tpx_best_complete} | translate <(cut -f 4,5 {input.cCRE_bed}) 2 | translate -a -r -k <(cut -f 4- {input.cond_neg_pos_bed}) 2 | gzip > {output}
+		zcat {input.tpx_best_complete} | translate -a -r -k <(cut -f 4- {input.cond_neg_pos_bed}) 2 | gzip > {output}
 	"""
 
 rule fisher_select_cutoff:
 	input:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.gz"
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.gz"
 	output:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.fisher_select_cutoff"
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		zcat {input} | bawk '{{print $1";"$4,$3,$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
+		zcat {input} | bawk '{{print $1"@"$4,$3,$5}}' | fisher_select_cutoff | tr "@" "\\t" > {output}
 	"""
 #zcat {input} | bawk '{{print $1";"$4,int($3/10),$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
 
