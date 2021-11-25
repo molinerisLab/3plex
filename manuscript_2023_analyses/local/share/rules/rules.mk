@@ -209,4 +209,13 @@ tpx_analysis/%/cCRE.tpx.best.complete.fisher_select_cutoff.ALLcond.best:
 	10	pvalue	4.81687e-132
 	11	TPXcCRE_score	-131.317235
 
+#####################################
 
+ALL.cCRE.tpx.best.complete.gz: cCRE.bed
+	zcat tpx_analysis/*/cCRE.tpx.best.complete.gz | tab2matrix -t | translate -a -v -e pos_lncRNA <(cut -f 4,5 $<) 1 | gzip > $@
+
+ALL.cCRE.tpx.best.complete.neg_pos.fisher_select_cutoff.best:
+	matrix_reduce -t 'tpx_analysis/*/cCRE.tpx.best.complete.*.fisher_select_cutoff' | find_best -r 2 10 > $@
+
+tpx_analysis/Z85996.1/cCRE.tpx.best.complete.Z85996.1-neg_pos.best_cut.gz: ALL.cCRE.tpx.best.complete.neg_pos.fisher_select_cutoff.best tpx_analysis/Z85996.1/cCRE.tpx.best.complete.Z85996.1-neg_pos.gz
+	bawk -v C=$$(bawk '$$2=="Z85996.1" {print $$4}' $<) '$$3>=C' $^2 | gzip > $^3
