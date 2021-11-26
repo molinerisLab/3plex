@@ -195,7 +195,25 @@ rule link_tpx:
 		ln -s ../../{input} cCRE.tpx.gz
 	"""
 
-rule longTarget_best_score:
+rule tpx_stabilty:
+	input:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.gz"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.gz"
+	shell:"""
+		zcat {input} | unhead | ../../local/src/tpx_thermal_stability.py | gzip > {output}
+	"""
+		
+rule tpx_stability_tfo_profile:
+	input:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.gz"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.cut_{stability_cutoff}.tfo_profile"
+	shell:"""	
+		bawk '$Stability>={wildcards.stability_cutoff} {{print $Duplex_ID,$Stability,$1,$2,$3,$4}}' {input} | find_best 1 2 | cut -f 3- | bedtools sort | bedtools merge -c 4 -o count_distinct > {output}
+	"""
+
+rule tpx_best_stability:
 	input:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.gz"
 	output:
@@ -224,7 +242,7 @@ rule longTarget_best_score_complete_active:
 		tpx_best_complete="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.gz",
 		cond_neg_pos_bed="{condition}.{neg_pos}.bed"
 	output:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.gz"
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos,\w+}.gz"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		zcat {input.tpx_best_complete} | translate -a -r -k <(cut -f 4- {input.cond_neg_pos_bed}) 2 | gzip > {output}
@@ -240,6 +258,36 @@ rule fisher_select_cutoff:
 		zcat {input} | bawk '{{print $1"@"$4,$3,$5}}' | fisher_select_cutoff | tr "@" "\\t" > {output}
 	"""
 #zcat {input} | bawk '{{print $1";"$4,int($3/10),$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
+
+
+rule fisher_best_cutoff:
+	input:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+	shell:"""
+		find_best -r 1 9 < {input} > {output}
+	"""
+
+rule fisher_best_cutoff_cut:
+	input:
+		neg_pos="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.gz",
+		cutoff="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.best_cut.gz"
+	shell:"""
+		bawk -v C=$(bawk '{{print $3}}' {input.cutoff}) '$3>=C' {input.neg_pos} | gzip > {output}
+	"""
+
+	#	cutoff="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+#rule tpx_stability_best_cutoff:
+#	input:
+#		tpx_stability="tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
+#	output:
+#		"tpx_analysis/{ssRNA}/cCRE.tpx.best.cutoff_{}.gz"
+#	shell:"""
+#		ciao
+#	"""
 
 rule:
 	input:
@@ -283,6 +331,38 @@ rule assoc_genehancer:
 	"""
 
 """
+
+.META: *.tpx.gz
+	1       ssRNA
+	2       TFO_start
+	3       TFO_end
+	4       Duplex_ID
+	5       TTS_start
+	6       TTS_end
+	7       Score
+	8       Error_rate
+	9       Errors
+	10      Motif
+	11      Strand
+	12      Orientation
+	13      Guanine_rate
+
+.META: *.tpx.stability.gz
+	1       ssRNA
+	2       TFO_start
+	3       TFO_end
+	4       Duplex_ID
+	5       TTS_start
+	6       TTS_end
+	7       Score
+	8       Error_rate
+	9       Errors
+	10      Motif
+	11      Strand
+	12      Orientation
+	13      Guanine_rate
+	14      Stability
+
 .META: *.tpx.tts_genom_coords.assoc_genes
 	1	ssRNA
 	2	cCRE
@@ -356,6 +436,13 @@ rule assoc_genehancer:
 	5	lower_and_negative
 	6	oddsratio
 	7	pvalue
+
+.META: cCRE.tpx.best.complete.*-neg_pos.gz
+	1	ssRNA	HOTTIP
+	2	region	merged_ChIRP_1
+	3	score	0
+	4	condition	HOTTIP
+	5	neg_pos	pos
 
 """
 

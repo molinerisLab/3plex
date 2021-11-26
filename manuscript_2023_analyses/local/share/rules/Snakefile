@@ -49,7 +49,7 @@ rule all_triplexator:
 
 
 def get_all_fisher_selected_condition(wildcards):
-	with open("selected_lncRNA.conditions",mode='rt') as fh:
+	with open("selected_lncRNA.ALLconditions",mode='rt') as fh:
 		for line in fh:
 			ssRNA,diff,stem = line.rstrip().split("\t")
 			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}_{}_neg_pos.fisher_select_cutoff".format(ssRNA,diff,stem)
@@ -66,9 +66,29 @@ def get_all_fisher(wildcards):
 			ssRNA,diff,stem = line.rstrip().split("\t")
 			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}_{}_neg_pos.fisher_select_cutoff".format(ssRNA,diff,stem)
 
+def get_all_fisher_neg_pos_rand(wildcards):
+	with open("selected_ssRNA_id",mode='rt') as fh:
+		for line in fh:
+			ssRNA = line.rstrip()
+			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}-neg_pos_rand.fisher_select_cutoff".format(ssRNA,ssRNA)
+
+def get_all_fisher_neg_pos_nocCRE(wildcards):
+	with open("selected_ssRNA_id",mode='rt') as fh:
+		for line in fh:
+			ssRNA = line.rstrip()
+			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}-neg_pos.fisher_select_cutoff".format(ssRNA,ssRNA)
+
 rule all_fisher:
 	input:
 		get_all_fisher
+
+rule all_fisher_neg_pos_rand:
+	input:
+		get_all_fisher_neg_pos_rand
+
+rule all_fisher_neg_pos_nocCRE:
+	input:
+		get_all_fisher_neg_pos_nocCRE
 
 
 
@@ -124,8 +144,8 @@ rule cCRE_bed:
 
 TRIPLEXATOR_ALN_2_ONE_LINE=""
 if config["TRIPLEXATOR_ALN"]==1:
-	TRIPLEXATOR_ALN_2_ONE_LINE=	""" unhead {output} -f {output}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output}.tmp;"""+\
-					""" mv {output}.head {output}; cat {output}.tmp >> {output}; rm {output}.tmp """
+	TRIPLEXATOR_ALN_2_ONE_LINE=	"""unhead {output.tpx} -f {output.tpx}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output.tpx}.tmp;""" + \
+					"""mv {output.tpx}.head {output.tpx}; cat {output.tpx}.tmp >> {output.tpx}; rm {output.tpx}.tmp """
 
  #v0.02
  #v1.3.2_l6
@@ -134,33 +154,47 @@ rule triplexator:
 		ssRNA_file="{ssRNA}.fa",
 		dsDNA_file="{dsDNA}.fa"
 	output:
-		"{ssRNA}-{dsDNA}.tpx"
+		tpx="{ssRNA}-{dsDNA}.tpx.raw",
+		summary="{ssRNA}-{dsDNA}.tpx.raw.summary"
 	#log: 
 	#	"logs/{ssRNA}-{dsDNA}.tpx.log"
 	#shadow: "shallow"
 	shell: """
 		mkdir -p logs;
 		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
-		triplexator -l {config[TRIPLEXATOR_MIN_LEN]} {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}"
-	""" + \
+		triplexator -l {config[TRIPLEXATOR_MIN_LEN]} {TRIPLEXATOR_PARAM} -fm 1 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
+		""" + \
 		TRIPLEXATOR_ALN_2_ONE_LINE + \
-	"""
-		bawk '$Score>={config[TRIPLEXATOR_SCORE_CUTOFF]}' {output} > {output}.tmp
-		mv {output}.tmp {output}
-		mv {output}.log logs/
-		rm -rf {output}.summary
+		"""
+		mv {output.tpx}.log logs/
 	"""
 
+rule triplexator_filter:
+	input:
+		"{path}.tpx.raw"
+	output:
+		"{path}.tpx"
+	shell: """
+		bawk '$Score>={config[TRIPLEXATOR_SCORE_CUTOFF]}' {input} > {output}
+	"""
+
+#bawk '$Guanine_rate>=0.7 {print $Duplex_ID,$TTS_start,$TTS_end}' tpx_analysis/TERC/cCRE.tpx.gz  | unhead | bedtools sort | bedtools merge | bawk '{print $1,$3-$2}' | translate -a -r <(bawk '{print $4,$3-$2}' cCRE.bed) 1 > tpx_analysis/TERC/cCRE.tpx.custom_t_pot
 
 rule gzip_precomputed_tpx_file:
 	input:
-		"{file_name}.tpx"
+		raw="{file_name}.tpx.raw",
+		filtered="{file_name}.tpx",
+		summary="{file_name}.tpx.summary"
 	output:
-		"precomputed_tpx/{file_name}.tpx.gz"
+		raw="precomputed_tpx/{file_name}.tpx.raw.gz",
+		filtered="precomputed_tpx/{file_name}.tpx.gz",
+		summary="precomputed_tpx/{file_name}.tpx.raw.summary.gz"
 	shell:"""
 		mkdir -p precomputed_tpx;
-		gzip < {input} > {output};
-		rm {input}
+		gzip < {input.raw} > {output.raw};
+		gzip < {input.filtered} > {output.filtered};
+		gzip < {input.summary} > {output.summary};
+		rm {input.raw} {input.filtered} {input.summary}
 	"""
 
 
@@ -175,18 +209,36 @@ rule link_tpx:
 		ln -s ../../{input} cCRE.tpx.gz
 	"""
 
-rule triplexator_best_score:
+rule tpx_stabilty:
+	input:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.gz"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.gz"
+	shell:"""
+		zcat {input} | unhead | ../../local/src/tpx_thermal_stability.py | gzip > {output}
+	"""
+		
+rule tpx_stability_tfo_profile:
+	input:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.gz"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.cut_{stability_cutoff}.tfo_profile"
+	shell:"""	
+		bawk '$Stability>={wildcards.stability_cutoff} {{print $Duplex_ID,$Stability,$1,$2,$3,$4}}' {input} | find_best 1 2 | cut -f 3- | bedtools sort | bedtools merge -c 4 -o count_distinct > {output}
+	"""
+
+rule tpx_best_stability:
 	input:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.gz"
 	output:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		bawk 'NR>1 {{print $1";"$4,$7}}' {input} | find_best -s 1 2 | tr ";" "\\t" | gzip > {output}
+		zcat {input} | unhead | ../../local/src/tpx_thermal_stability.py | bawk 'NR>1 {{print $1"@"$4,$14}}' | find_best -s 1 2 | tr "@" "\\t" | gzip > {output}
 	"""
 
 
-rule triplexator_best_score_complete:
+rule longTarget_best_score_complete:
 	input:
 		cCRE_bed="cCRE.bed",
 		tpx_best="tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
@@ -198,28 +250,58 @@ rule triplexator_best_score_complete:
 	""" 
 
 
-rule triplexator_best_score_complete_active:
+rule longTarget_best_score_complete_active:
 	input:
 		cCRE_bed="cCRE.bed",
 		tpx_best_complete="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.gz",
-		cond_neg_pos_bed="{condition}.neg_pos.bed"
+		cond_neg_pos_bed="{condition}.{neg_pos}.bed"
 	output:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.gz"
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos,\w+}.gz"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		zcat {input.tpx_best_complete} | translate <(cut -f 4,5 {input.cCRE_bed}) 2 | translate -a -r -k <(cut -f 4- {input.cond_neg_pos_bed}) 2 | gzip > {output}
+		zcat {input.tpx_best_complete} | translate -a -r -k <(cut -f 4- {input.cond_neg_pos_bed}) 2 | gzip > {output}
 	"""
 
 rule fisher_select_cutoff:
 	input:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.gz"
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.gz"
 	output:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.fisher_select_cutoff"
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		zcat {input} | bawk '{{print $1";"$4,$3,$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
+		zcat {input} | bawk '{{print $1"@"$4,$3,$5}}' | fisher_select_cutoff | tr "@" "\\t" > {output}
+	"""
+#zcat {input} | bawk '{{print $1";"$4,int($3/10),$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
+
+
+rule fisher_best_cutoff:
+	input:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+	shell:"""
+		find_best -r 1 9 < {input} > {output}
 	"""
 
+rule fisher_best_cutoff_cut:
+	input:
+		neg_pos="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.gz",
+		cutoff="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.best_cut.gz"
+	shell:"""
+		bawk -v C=$(bawk '{{print $3}}' {input.cutoff}) '$3>=C' {input.neg_pos} | gzip > {output}
+	"""
+
+	#	cutoff="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+#rule tpx_stability_best_cutoff:
+#	input:
+#		tpx_stability="tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
+#	output:
+#		"tpx_analysis/{ssRNA}/cCRE.tpx.best.cutoff_{}.gz"
+#	shell:"""
+#		ciao
+#	"""
 
 rule:
 	input:
@@ -263,6 +345,38 @@ rule assoc_genehancer:
 	"""
 
 """
+
+.META: *.tpx.gz
+	1       ssRNA
+	2       TFO_start
+	3       TFO_end
+	4       Duplex_ID
+	5       TTS_start
+	6       TTS_end
+	7       Score
+	8       Error_rate
+	9       Errors
+	10      Motif
+	11      Strand
+	12      Orientation
+	13      Guanine_rate
+
+.META: *.tpx.stability.gz
+	1       ssRNA
+	2       TFO_start
+	3       TFO_end
+	4       Duplex_ID
+	5       TTS_start
+	6       TTS_end
+	7       Score
+	8       Error_rate
+	9       Errors
+	10      Motif
+	11      Strand
+	12      Orientation
+	13      Guanine_rate
+	14      Stability
+
 .META: *.tpx.tts_genom_coords.assoc_genes
 	1	ssRNA
 	2	cCRE
@@ -336,6 +450,21 @@ rule assoc_genehancer:
 	5	lower_and_negative
 	6	oddsratio
 	7	pvalue
+
+.META: cCRE.tpx.best.complete.*-neg_pos.gz
+	1	ssRNA	HOTTIP
+	2	region	merged_ChIRP_1
+	3	score	0
+	4	condition	HOTTIP
+	5	neg_pos	pos
+
+.META: cCRE.tpx.best.complete.*-neg_pos_rand.gz
+	1	ssRNA	HOTTIP
+	2	region	merged_ChIRP_1
+	3	score	0
+	4	condition	HOTTIP
+	5	neg_pos	pos
+
 
 """
 

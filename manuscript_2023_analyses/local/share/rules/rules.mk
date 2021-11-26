@@ -219,3 +219,28 @@ ALL.cCRE.tpx.best.complete.neg_pos.fisher_select_cutoff.best:
 
 tpx_analysis/Z85996.1/cCRE.tpx.best.complete.Z85996.1-neg_pos.best_cut.gz: ALL.cCRE.tpx.best.complete.neg_pos.fisher_select_cutoff.best tpx_analysis/Z85996.1/cCRE.tpx.best.complete.Z85996.1-neg_pos.gz
 	bawk -v C=$$(bawk '$$2=="Z85996.1" {print $$4}' $<) '$$3>=C' $^2 | gzip > $^3
+
+greater_neg_in_common:
+	matrix_reduce -t 'tpx_analysis/*/cCRE.tpx.best.complete.*-neg_pos.best_cut.gz' | bawk '$$6=="neg" {print $$3,$$2,$$4}' | cut -f 1 | symbol_count -d > $@
+greater_neg: cCRE.bed
+	matrix_reduce -t 'tpx_analysis/*/cCRE.tpx.best.complete.*-neg_pos.best_cut.gz' | bawk '$$6=="neg"' | translate -a <(echo -e "region\tpos_lncRNA"; cut -f 4,5 $<) 1 > $@ 
+greater_neg_in_common.matrix: cCRE.bed
+	matrix_reduce -t 'tpx_analysis/*/cCRE.tpx.best.complete.*-neg_pos.best_cut.gz' | bawk '$$6=="neg" {print $$3,$$2,$$4}' | tab2matrix -r region | translate -a <(echo -e "region\tpos_lncRNA"; cut -f 4,5 $<) 1 > $@
+
+tpx_analysis/%/cCRE.tpx.custom_t_pot: tpx_analysis/%/cCRE.tpx.gz cCRE.bed
+	bawk '$$Guanine_rate>=0.7 {print $$Duplex_ID,$$TTS_start,$$TTS_end}' $< | unhead | bedtools sort | bedtools merge | bawk '{print $$1,$$3-$$2}' | translate -a -r <(bawk '{print $$4,$$3-$$2}' $^2) 1 > $@
+
+
+tpx_analysis/%/cCRE.tpx.custom_t_pot.neg_pos_rand: %.neg_pos_rand.bed tpx_analysis/%/cCRE.tpx.custom_t_pot
+	translate -a -r -k <(cut -f 4,6 $<) 1 < $^2 | bawk '{print $$0,$$2/$$3}' > $@
+
+.META: cCRE.tpx.custom_t_pot.neg_pos_rand
+	1	region	chirp_peak_1003;TERC
+	2	covered_len	12
+	3	total_len	804
+	4	neg_pos	pos
+	5	custom_t_pot	0.014925373134328358
+
+TERC-cCRE.bed.tpx.summary.neg_pos: TERC.neg_pos_rand.bed TERC-cCRE.bed.tpx.summary
+	translate -a -k <(cut -f 4,6 $<) 1 < $^2 | bawk 'BEGIN{print "region","neg_pos","t_pot"} {print $$1,$$2,$$5}' > $@
+
