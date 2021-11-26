@@ -31,7 +31,9 @@ SCRATCH=os.environ.get("SCRATCH")
 ######################
 #  Triplexator Parameters
 
-TRIPLEXATOR_PARAM="-L -1 -e 20 -E -1"
+TRIPLEXATOR_PARAM=os.environ.get("REFERENCE_ROOT",None)
+if TRIPLEXATOR_PARAM is None:
+	TRIPLEXATOR_PARAM="-L -1 -e 20 -E -1 -l {}".format(config["TRIPLEXATOR_MIN_LEN"])
 # Other parameters are specified in config.yaml
 
 
@@ -154,15 +156,15 @@ rule triplexator:
 		ssRNA_file="{ssRNA}.fa",
 		dsDNA_file="{dsDNA}.fa"
 	output:
-		tpx="{ssRNA}-{dsDNA}.tpx.raw",
-		summary="{ssRNA}-{dsDNA}.tpx.raw.summary"
+		tpx="{ssRNA}-{dsDNA}.tpx.raw_%s" % TRIPLEXATOR_PARAM.replace(" ",""), 
+		summary="{ssRNA}-{dsDNA}.tpx.raw_%s.summary" % TRIPLEXATOR_PARAM.replace(" ","")
 	#log: 
 	#	"logs/{ssRNA}-{dsDNA}.tpx.log"
 	#shadow: "shallow"
 	shell: """
 		mkdir -p logs;
 		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
-		triplexator -l {config[TRIPLEXATOR_MIN_LEN]} {TRIPLEXATOR_PARAM} -fm 1 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
+		triplexator -l {config[TRIPLEXATOR_MIN_LEN]} {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
 		""" + \
 		TRIPLEXATOR_ALN_2_ONE_LINE + \
 		"""
@@ -178,13 +180,12 @@ rule triplexator_filter:
 		bawk '$Score>={config[TRIPLEXATOR_SCORE_CUTOFF]}' {input} > {output}
 	"""
 
-#bawk '$Guanine_rate>=0.7 {print $Duplex_ID,$TTS_start,$TTS_end}' tpx_analysis/TERC/cCRE.tpx.gz  | unhead | bedtools sort | bedtools merge | bawk '{print $1,$3-$2}' | translate -a -r <(bawk '{print $4,$3-$2}' cCRE.bed) 1 > tpx_analysis/TERC/cCRE.tpx.custom_t_pot
 
 rule gzip_precomputed_tpx_file:
 	input:
 		raw="{file_name}.tpx.raw",
 		filtered="{file_name}.tpx",
-		summary="{file_name}.tpx.summary"
+		summary="{file_name}.tpx.raw.summary"
 	output:
 		raw="precomputed_tpx/{file_name}.tpx.raw.gz",
 		filtered="precomputed_tpx/{file_name}.tpx.gz",

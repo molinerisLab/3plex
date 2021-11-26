@@ -241,6 +241,25 @@ tpx_analysis/%/cCRE.tpx.custom_t_pot.neg_pos_rand: %.neg_pos_rand.bed tpx_analys
 	4	neg_pos	pos
 	5	custom_t_pot	0.014925373134328358
 
-TERC-cCRE.bed.tpx.summary.neg_pos: TERC.neg_pos_rand.bed TERC-cCRE.bed.tpx.summary
-	translate -a -k <(cut -f 4,6 $<) 1 < $^2 | bawk 'BEGIN{print "region","neg_pos","t_pot"} {print $$1,$$2,$$5}' > $@
+TERC-cCRE.bed.tpx.raw.summary.neg_pos: TERC.neg_pos_rand.bed TERC-cCRE.bed.tpx.raw.summary
+	translate -a -k <(cut -f 4,6 $<) 1 < $^2 | bawk 'BEGIN{print "Duplex_ID","neg_pos","t_pot"} {print $$1,$$2,$$5}' > $@
+
+TERC-cCRE.bed.tpx.raw.custom_summary.pre: TERC-cCRE.bed.tpx.raw cCRE.bed.fa TERC.fa
+	unhead $< | cut -f 1,4 | symbol_count | translate -a -r <(fasta_length < $^2) 2 | translate -a -r <(fasta_length < $^3) 1 > $@
+TERC-cCRE.bed.tpx.raw.custom_summary: ../../local/src/tiplexator_t_pot_norm.py TERC-cCRE.bed.tpx.raw.custom_summary.pre
+	$< -l 3 -L -1 < $^2 > $@
+TERC-cCRE.bed.tpx.summary.neg_pos: TERC.neg_pos_rand.bed TERC-cCRE.bed.tpx.raw.summary
+	translate -a -k <(cut -f 4,6 $<) 1 < $^2 | bawk 'BEGIN{print "Duplex_ID","neg_pos","t_pot"} {print $$1,$$2,$$5}' > $@
+
+.META: TERC-cCRE.bed.tpx.raw.custom_summary
+	1	ssRNA	TERC
+	2	Duplex_ID	rand_chirp_peak_9;TERC
+	3	txp_count	
+	4	Duplex_lenght	780
+	5	ssRNA_lenght	541
+	6	nom_factor	174247920
+	7	custom_t_pot	4.017264596329184e-08
+
+TERC-cCRE.bed.tpx.raw.summary.custom_summary.neg_pos: TERC-cCRE.bed.tpx.raw.custom_summary.header_added TERC-cCRE.bed.tpx.summary.neg_pos
+	translate -a -r <(cut -f 2,7 $<) 1 < $^2 > $@
 
