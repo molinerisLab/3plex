@@ -185,13 +185,55 @@ rule triplexator_param_exploration:
 		"""
 	"""
 
-rule triplexator_filter:
+rule summary_neg_pos:
 	input:
-		"{path}.tpx.raw"
+		summary="tpx_paramspace/{ssRNA}/{dsDNA}/{triplexator_params}.tpx.summary"
+		neg_pos="{ssRNA}.neg_pos_rand"
 	output:
-		"{path}.tpx"
+		"tpx_paramspace/{ssRNA}/{dsDNA}/{triplexator_params}.tpx.summary.neg_pos"
 	shell: """
-		bawk '$Score>={config[TRIPLEXATOR_SCORE_CUTOFF]}' {input} > {output}
+		translate -a -k <(cut -f 4,6 $<) 1 < $^2 | bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot"}} {{print $1,$2,$5}}' > {output}
+	"""
+
+rule custom_summary_pre:
+	input:
+		tpx="tpx_paramspace/{ssRNA}/{dsDNA}/{triplexator_params}.tpx"
+		cCRE_fasta="cCRE.bed.fa"
+		ssRNA_file="{ssRNA}.fa"
+	output:
+		"tpx_paramspace/{ssRNA}/{dsDNA}/{triplexator_params}.tpx.custom_summary.pre"
+	shell: """
+		unhead {input.tpx} | cut -f 1,4 | symbol_count | translate -a -r <(fasta_length < {input.cCRE_fasta}) 2 | translate -a -r <(fasta_length < {input.ssRNA_file}) 1 > {output}
+	"""
+
+rule custom_summary:
+	input:
+		"{file_path}.custom_summary.pre"
+	output:
+		"{file_path}.custom_summary"
+	shell: """
+        ../../local/src/tiplexator_t_pot_norm.py -l 3 -L -1 < {input} > {output}
+	"""
+
+rule custom_summary_neg_pos:
+	input:
+		custom_summary="{file_path}.custom_summary"
+		summary_neg_pos="{file_path}.summary.neg_pos"
+	output:
+		"{file_path}.custom_summary.neg_pos"
+	shell: """
+		translate -a -r <(cut -f 2,7 {input.custom_summary}) 1 < {input.summary_neg_pos} > {output}
+	"""
+
+#TERC-cCRE.bed.tpx.raw%.covered_frac: TERC-cCRE.bed.tpx.raw% cCRE.bed
+#bawk '{print $$4,$$5,$$6}' $< | unhead | bedtools sort | bedtools merge | bawk '{print $$1,$$3-$$2}' | stat_base -g -t | translate -a -r <(bawk '{print $$4,$$3-$$2}' $^2) 1 | bawk '{print $$1,$$2,$$2/$$3}' > $@
+rule covered_frac:
+	input:
+		"{ssRNA}."
+		cCRE_bed="cCRE.bed"
+	ouptut:
+		"{ssRNA}-"
+	shell: """
 	"""
 
 
