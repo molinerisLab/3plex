@@ -1,6 +1,7 @@
 from snakemake.utils import Paramspace
 import pandas as pd
 
+
 configfile: "config.yaml"
 
 ######################
@@ -39,6 +40,7 @@ if TRIPLEXATOR_PARAM is None:
 	TRIPLEXATOR_PARAM="-L -1 -e 20 -E -1 -l {}".format(config["TRIPLEXATOR_MIN_LEN"])
 # Other parameters are specified in config.yaml
 
+triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\t"))
 
 #####################
 #  Rules
@@ -153,26 +155,34 @@ if config["TRIPLEXATOR_ALN"]==1:
 	TRIPLEXATOR_ALN_2_ONE_LINE=	"""unhead {output.tpx} -f {output.tpx}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output.tpx}.tmp;""" + \
 					"""mv {output.tpx}.head {output.tpx}; cat {output.tpx}.tmp >> {output.tpx}; rm {output.tpx}.tmp """
 
- #v0.02
- #v1.3.2_l6
-rule triplexator:
+
+rule all_tpx_paramspace:
+	input:
+		expand("tpx_paramspace/TERC/TERC.neg_pos_rand.bed/{params}/raw.tpx.stability", params=triplexator_paramspace.instance_patterns)
+
+rule triplexator_param_exploration:
 	input:
 		ssRNA_file="{ssRNA}.fa",
 		dsDNA_file="{dsDNA}.fa"
+	params:
+		params_instance=triplexator_paramspace.instance
 	output:
-		tpx="{ssRNA}-{dsDNA}.tpx.raw_%s" % TRIPLEXATOR_PARAM.replace(" ",""), 
-		summary="{ssRNA}-{dsDNA}.tpx.raw_%s.summary" % TRIPLEXATOR_PARAM.replace(" ","")
-	#log: 
-	#	"logs/{ssRNA}-{dsDNA}.tpx.log"
-	#shadow: "shallow"
+		tpx	="tpx_paramspace/{ssRNA}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx",
+		summary ="tpx_paramspace/{ssRNA}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary"
 	shell: """
-		mkdir -p logs;
 		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
-		triplexator {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
+		mkdir -p $(dirname {output.tpx}); cd $(dirname {output.tpx});\
+		triplexator \
+			-l  {wildcards.min_length} \
+			-L  {wildcards.max_length} \
+			-e  {wildcards.error_rate} \
+			-g  {wildcards.guanine_rate} \
+			-fr {wildcards.filter_repeat} \
+			-c  {wildcards.consecutive_errors} \
+			-fm 0 -of {config[TRIPLEXATOR_ALN]} -o raw.tpx -rm 2 -p {NCPUS} -ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file}"
 		""" + \
 		TRIPLEXATOR_ALN_2_ONE_LINE + \
 		"""
-		mv {output.tpx}.log logs/
 	"""
 
 rule triplexator_filter:
@@ -183,6 +193,36 @@ rule triplexator_filter:
 	shell: """
 		bawk '$Score>={config[TRIPLEXATOR_SCORE_CUTOFF]}' {input} > {output}
 	"""
+
+
+#rule triplexator:
+#	input:
+#		ssRNA_file="{ssRNA}.fa",
+#		dsDNA_file="{dsDNA}.fa"
+#	output:
+#		tpx="{ssRNA}-{dsDNA}.tpx.raw_%s" % TRIPLEXATOR_PARAM.replace(" ",""), 
+#		summary="{ssRNA}-{dsDNA}.tpx.raw_%s.summary" % TRIPLEXATOR_PARAM.replace(" ","")
+#	#log: 
+#	#	"logs/{ssRNA}-{dsDNA}.tpx.log"
+#	#shadow: "shallow"
+#	shell: """
+#		mkdir -p logs;
+#		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
+#		triplexator {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
+#		""" + \
+#		TRIPLEXATOR_ALN_2_ONE_LINE + \
+#		"""
+#		mv {output.tpx}.log logs/
+#	"""
+
+#rule triplexator_filter:
+#	input:
+#		"{path}.tpx.raw"
+#	output:
+#		"{path}.tpx"
+#	shell: """
+#		bawk '$Score>={config[TRIPLEXATOR_SCORE_CUTOFF]}' {input} > {output}
+#	"""
 
 
 rule gzip_precomputed_tpx_file:
@@ -203,16 +243,16 @@ rule gzip_precomputed_tpx_file:
 	"""
 
 
-rule link_tpx:
-	input:
-		"precomputed_tpx/{ssRNA}-cCRE.bed.tpx.gz"
-	output:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.gz"
-	shell: """
-		mkdir -p tpx_analysis/{wildcards.ssRNA};
-		cd tpx_analysis/{wildcards.ssRNA};
-		ln -s ../../{input} cCRE.tpx.gz
-	"""
+#rule link_tpx:
+#	input:
+#		"precomputed_tpx/{ssRNA}-cCRE.bed.tpx.gz"
+#	output:
+#		"tpx_analysis/{ssRNA}/cCRE.tpx.gz"
+#	shell: """
+#		mkdir -p tpx_analysis/{wildcards.ssRNA};
+#		cd tpx_analysis/{wildcards.ssRNA};
+#		ln -s ../../{input} cCRE.tpx.gz
+#	"""
 
 rule tpx_stabilty:
 	input:
@@ -225,9 +265,9 @@ rule tpx_stabilty:
 
 rule tpx_stabilty_generic:
 	input:
-		"{path}.tpx.raw_{param}"
+		"{path}.tpx"
 	output:
-		"{path}.tpx.raw_{param}.stability"
+		"{path}.tpx.stability"
 	shell:"""
 		cat {input} | unhead | ../../local/src/tpx_thermal_stability.py > {output}
 	"""
@@ -241,15 +281,15 @@ rule tpx_stability_tfo_profile:
 		bawk '$Stability>={wildcards.stability_cutoff} {{print $Duplex_ID,$Stability,$1,$2,$3,$4}}' {input} | find_best 1 2 | cut -f 3- | bedtools sort | bedtools merge -c 4 -o count_distinct > {output}
 	"""
 
-rule tpx_best_stability:
-	input:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.gz"
-	output:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
-	shell:"""
-		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		zcat {input} | unhead | ../../local/src/tpx_thermal_stability.py | bawk 'NR>1 {{print $1"@"$4,$14}}' | find_best -s 1 2 | tr "@" "\\t" | gzip > {output}
-	"""
+#rule tpx_best_stability:
+#	input:
+#		"tpx_analysis/{ssRNA}/cCRE.tpx.gz"
+#	output:
+#		"tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
+#	shell:"""
+#		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+#		zcat {input} | unhead | ../../local/src/tpx_thermal_stability.py | bawk 'NR>1 {{print $1"@"$4,$14}}' | find_best -s 1 2 | tr "@" "\\t" | gzip > {output}
+#	"""
 
 
 rule longTarget_best_score_complete:
