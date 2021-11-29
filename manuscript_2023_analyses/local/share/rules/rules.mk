@@ -227,12 +227,8 @@ greater_neg: cCRE.bed
 greater_neg_in_common.matrix: cCRE.bed
 	matrix_reduce -t 'tpx_analysis/*/cCRE.tpx.best.complete.*-neg_pos.best_cut.gz' | bawk '$$6=="neg" {print $$3,$$2,$$4}' | tab2matrix -r region | translate -a <(echo -e "region\tpos_lncRNA"; cut -f 4,5 $<) 1 > $@
 
-tpx_analysis/%/cCRE.tpx.custom_t_pot: tpx_analysis/%/cCRE.tpx.gz cCRE.bed
-	bawk '$$Guanine_rate>=0.7 {print $$Duplex_ID,$$TTS_start,$$TTS_end}' $< | unhead | bedtools sort | bedtools merge | bawk '{print $$1,$$3-$$2}' | translate -a -r <(bawk '{print $$4,$$3-$$2}' $^2) 1 > $@
-
-
-tpx_analysis/%/cCRE.tpx.custom_t_pot.neg_pos_rand: %.neg_pos_rand.bed tpx_analysis/%/cCRE.tpx.custom_t_pot
-	translate -a -r -k <(cut -f 4,6 $<) 1 < $^2 | bawk '{print $$0,$$2/$$3}' > $@
+#tpx_analysis/%/cCRE.tpx.custom_t_pot: tpx_analysis/%/cCRE.tpx.gz cCRE.bed
+#	bawk '$$Guanine_rate>=0.7 {print $$Duplex_ID,$$TTS_start,$$TTS_end}' $< | unhead | bedtools sort | bedtools merge | bawk '{print $$1,$$3-$$2}' | translate -a -r <(bawk '{print $$4,$$3-$$2}' $^2) 1 > $@
 
 .META: cCRE.tpx.custom_t_pot.neg_pos_rand
 	1	region	chirp_peak_1003;TERC
@@ -241,17 +237,18 @@ tpx_analysis/%/cCRE.tpx.custom_t_pot.neg_pos_rand: %.neg_pos_rand.bed tpx_analys
 	4	neg_pos	pos
 	5	custom_t_pot	0.014925373134328358
 
-TERC-cCRE.bed.tpx.raw.summary.neg_pos: TERC.neg_pos_rand.bed TERC-cCRE.bed.tpx.raw.summary
+TERC-cCRE.bed.tpx.raw_%.summary.neg_pos: TERC.neg_pos_rand.bed TERC-cCRE.bed.tpx.raw_%.summary
 	translate -a -k <(cut -f 4,6 $<) 1 < $^2 | bawk 'BEGIN{print "Duplex_ID","neg_pos","t_pot"} {print $$1,$$2,$$5}' > $@
 
-TERC-cCRE.bed.tpx.raw.custom_summary.pre: TERC-cCRE.bed.tpx.raw cCRE.bed.fa TERC.fa
+TERC-cCRE.bed.tpx.raw_%.custom_summary.pre: TERC-cCRE.bed.tpx.raw_% cCRE.bed.fa TERC.fa
 	unhead $< | cut -f 1,4 | symbol_count | translate -a -r <(fasta_length < $^2) 2 | translate -a -r <(fasta_length < $^3) 1 > $@
-TERC-cCRE.bed.tpx.raw.custom_summary: ../../local/src/tiplexator_t_pot_norm.py TERC-cCRE.bed.tpx.raw.custom_summary.pre
-	$< -l 3 -L -1 < $^2 > $@
-TERC-cCRE.bed.tpx.summary.neg_pos: TERC.neg_pos_rand.bed TERC-cCRE.bed.tpx.raw.summary
-	translate -a -k <(cut -f 4,6 $<) 1 < $^2 | bawk 'BEGIN{print "Duplex_ID","neg_pos","t_pot"} {print $$1,$$2,$$5}' > $@
 
-.META: TERC-cCRE.bed.tpx.raw.custom_summary
+TERC-cCRE.bed.tpx.raw_%.custom_summary: TERC-cCRE.bed.tpx.raw_%.custom_summary.pre
+	../../local/src/tiplexator_t_pot_norm.py -l 3 -L -1 < $< > $@
+#TERC-cCRE.bed.tpx.summary.neg_pos: TERC.neg_pos_rand.bed TERC-cCRE.bed.tpx.raw.summary
+#	translate -a -k <(cut -f 4,6 $<) 1 < $^2 | bawk 'BEGIN{print "Duplex_ID","neg_pos","t_pot"} {print $$1,$$2,$$5}' > $@
+
+.META: TERC-cCRE.bed.tpx.raw_*.custom_summary
 	1	ssRNA	TERC
 	2	Duplex_ID	rand_chirp_peak_9;TERC
 	3	txp_count	
@@ -260,6 +257,33 @@ TERC-cCRE.bed.tpx.summary.neg_pos: TERC.neg_pos_rand.bed TERC-cCRE.bed.tpx.raw.s
 	6	nom_factor	174247920
 	7	custom_t_pot	4.017264596329184e-08
 
-TERC-cCRE.bed.tpx.raw.summary.custom_summary.neg_pos: TERC-cCRE.bed.tpx.raw.custom_summary.header_added TERC-cCRE.bed.tpx.summary.neg_pos
+TERC-cCRE.bed.tpx.raw_%.summary.custom_summary.neg_pos: TERC-cCRE.bed.tpx.raw_%.custom_summary.header_added TERC-cCRE.bed.tpx.raw_%summary.neg_pos
 	translate -a -r <(cut -f 2,7 $<) 1 < $^2 > $@
 
+TERC-cCRE.bed.tpx.raw%.covered_frac: TERC-cCRE.bed.tpx.raw% cCRE.bed
+	bawk '{print $$4,$$5,$$6}' $< | unhead | bedtools sort | bedtools merge | bawk '{print $$1,$$3-$$2}' | stat_base -g -t | translate -a -r <(bawk '{print $$4,$$3-$$2}' $^2) 1 | bawk '{print $$1,$$2,$$2/$$3}' > $@
+
+.META: TERC-cCRE.bed.tpx.raw*.covered_frac
+	1	Duplex_ID
+	2	TTS_covered_len
+	3	TTS_covered_frac
+
+TERC-cCRE.bed.tpx.raw%.neg_pos_rand: TERC.neg_pos_rand.bed TERC-cCRE.bed.tpx.raw%
+	translate -a -r <(echo -e "Duplex_ID\tneg_pos"; cut -f 4,6 $<) 1 < $^2 > $@
+
+TERC-cCRE.bed.tpx.raw_%.summary.clean: TERC-cCRE.bed.tpx.raw_%.summary
+	bawk 'BEGIN{print "Duplex_ID","ssRNA","summary_total_tpx","summary_t_pot"} NR>1 {print $$1,$$2,$$3,$$4}' $< > $@
+
+TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac: TERC-cCRE.bed.tpx.raw_%.covered_frac.header_added TERC-cCRE.bed.tpx.raw_%.summary.clean
+	translate -a $< 1 < $^2 > $@
+
+TERC-cCRE.bed.tpx.raw_%.stability.best: TERC-cCRE.bed.tpx.raw_%.stability
+	find_best 4 14 < $< > $@
+TERC-cCRE.bed.tpx.raw_%.stability.tot_norm: TERC-cCRE.bed.tpx.raw_%.stability cCRE.bed
+	cut -f 4,14 < $< | bsort | stat_base -g -t | translate -a -r <(bawk '{print $$4,$$3-$$2}' $^2) 1 | bawk '{print $$1,$$2,$$2/$$3}' > $@
+
+TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability: TERC-cCRE.bed.tpx.raw_%.stability.best TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac TERC-cCRE.bed.tpx.raw_%.stability.tot_norm
+	translate -a -r <(bawk 'BEGIN{print "Duplex_ID","stability_best"} {print $$4,$$14}' $<) 1 < $^2 | translate -a -r <(bawk 'BEGIN{print "Duplex_ID","stability_tot","stability_norm"} {print}' $^3) 1 > $@
+
+TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability.custom_t_pot.neg_pos_rand: TERC-cCRE.bed.tpx.raw_%.custom_summary.header_added TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability.neg_pos_rand
+	translate -a -r -f 2 $< 1 < $^2 1 > $@

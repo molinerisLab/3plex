@@ -31,7 +31,7 @@ SCRATCH=os.environ.get("SCRATCH")
 ######################
 #  Triplexator Parameters
 
-TRIPLEXATOR_PARAM=os.environ.get("REFERENCE_ROOT",None)
+TRIPLEXATOR_PARAM=os.environ.get("TRIPLEXATOR_PARAM",None)
 if TRIPLEXATOR_PARAM is None:
 	TRIPLEXATOR_PARAM="-L -1 -e 20 -E -1 -l {}".format(config["TRIPLEXATOR_MIN_LEN"])
 # Other parameters are specified in config.yaml
@@ -111,7 +111,8 @@ rule get_fasta:
 	input:  
 		"longest_transcripts.fa"
 	output: 
-		temp("{GeneID,[\w\.-]+}.fa")
+	#	temp("{GeneID,[\w\.-]+}.fa")
+		"{GeneID,[\w\.-]+}.fa"
         #container:
         #        "../../local/share/images/bit.wip-rnaseq.0.4.img"
 	threads: 1
@@ -164,7 +165,7 @@ rule triplexator:
 	shell: """
 		mkdir -p logs;
 		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
-		triplexator -l {config[TRIPLEXATOR_MIN_LEN]} {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
+		triplexator {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
 		""" + \
 		TRIPLEXATOR_ALN_2_ONE_LINE + \
 		"""
@@ -217,6 +218,15 @@ rule tpx_stabilty:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.gz"
 	shell:"""
 		zcat {input} | unhead | ../../local/src/tpx_thermal_stability.py | gzip > {output}
+	"""
+
+rule tpx_stabilty_generic:
+	input:
+		"{path}.tpx.raw_{param}"
+	output:
+		"{path}.tpx.raw_{param}.stability"
+	shell:"""
+		cat {input} | unhead | ../../local/src/tpx_thermal_stability.py > {output}
 	"""
 		
 rule tpx_stability_tfo_profile:
@@ -481,3 +491,5 @@ rule barplot_lncRNA_condition:
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		../../local/src/single_barplot.R < {input} > {output}
 	"""
+
+
