@@ -13,7 +13,7 @@ ChIRP.bed.split: ../../local/share/data/ChIRP_narrowPeaks.bed
 	| bawk '{print $$0, "neg" }'> $@
 	rm $@.tmp
 
-%.neg_rand.excl.bed: /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/hg38.shuffle_blacklist.bed %_onlypos.bed
+%.neg_rand.excl.bed: /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/hg38.shuffle_blacklist.bed /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/gap.bed %_onlypos.bed
 	cut -f -3 $^ |  bedtools sort | bedtools merge > $@
 
 %.neg_rand.bed: %_onlypos.bed /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/chrom.info.no_alt %.neg_rand.excl.bed
