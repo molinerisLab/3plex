@@ -43,10 +43,14 @@ if TRIPLEXATOR_PARAM is None:
 #####################
 #  Rules
 
-def get_all_triplexator_selected_input(wildcards):
+def all_selected_ssRNA_id():
 	with open("selected_ssRNA_id", mode='rt') as fh:
-            for line in fh:
-                yield "precomputed_tpx/{}-cCRE.bed.tpx.gz".format(line.rstrip())
+		for line in fh:
+			yield line.rstrip()
+
+def get_all_triplexator_selected_input(wildcards):
+	for GeneID in all_selected_ssRNA_id():
+                yield "precomputed_tpx/{}-cCRE.bed.tpx.gz".format(GeneID)
 
 rule all_triplexator:
 	input:
