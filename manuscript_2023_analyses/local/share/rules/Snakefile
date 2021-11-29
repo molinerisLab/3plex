@@ -76,16 +76,12 @@ def get_all_fisher(wildcards):
 			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}_{}_neg_pos.fisher_select_cutoff".format(ssRNA,diff,stem)
 
 def get_all_fisher_neg_pos_rand(wildcards):
-	with open("selected_ssRNA_id",mode='rt') as fh:
-		for line in fh:
-			ssRNA = line.rstrip()
-			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}-neg_pos_rand.fisher_select_cutoff".format(ssRNA,ssRNA)
+	for ssRNA in all_selected_ssRNA_id():
+		yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}-neg_pos_rand.fisher_select_cutoff".format(ssRNA,ssRNA)
 
 def get_all_fisher_neg_pos_nocCRE(wildcards):
-	with open("selected_ssRNA_id",mode='rt') as fh:
-		for line in fh:
-			ssRNA = line.rstrip()
-			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}-neg_pos.fisher_select_cutoff".format(ssRNA,ssRNA)
+	for ssRNA in all_selected_ssRNA_id():
+		yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}-neg_pos.fisher_select_cutoff".format(ssRNA,ssRNA)
 
 rule all_fisher:
 	input:
