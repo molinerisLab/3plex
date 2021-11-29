@@ -237,10 +237,10 @@ greater_neg_in_common.matrix: cCRE.bed
 	4	neg_pos	pos
 	5	custom_t_pot	0.014925373134328358
 
-TERC-cCRE.bed.tpx.raw_%.summary.neg_pos: TERC.neg_pos_rand.bed TERC-cCRE.bed.tpx.raw_%.summary
+%.tpx.summary.neg_pos: %.tpx.summary
 	translate -a -k <(cut -f 4,6 $<) 1 < $^2 | bawk 'BEGIN{print "Duplex_ID","neg_pos","t_pot"} {print $$1,$$2,$$5}' > $@
 
-TERC-cCRE.bed.tpx.raw_%.custom_summary.pre: TERC-cCRE.bed.tpx.raw_% cCRE.bed.fa TERC.fa
+%.tpx.custom_summary.pre: %.tpx cCRE.bed.fa TERC.fa
 	unhead $< | cut -f 1,4 | symbol_count | translate -a -r <(fasta_length < $^2) 2 | translate -a -r <(fasta_length < $^3) 1 > $@
 
 TERC-cCRE.bed.tpx.raw_%.custom_summary: TERC-cCRE.bed.tpx.raw_%.custom_summary.pre
@@ -287,3 +287,29 @@ TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability: TERC-cCRE.bed.tpx.
 
 TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability.custom_t_pot.neg_pos_rand: TERC-cCRE.bed.tpx.raw_%.custom_summary.header_added TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability.neg_pos_rand
 	translate -a -r -f 2 $< 1 < $^2 1 > $@
+
+
+
+
+
+##################################
+#
+#	2D structure
+#
+
+%_W200_L150_u10_0001_lunp: %.fa
+	conda activate rnaFoldRand_v0.1; \
+        RNAplfold -W 200 -L 150 -u 10 -o --id-prefix $*_W200_L150_u10 < $<
+
+%_lunp.lastcol: %_lunp
+	grep -v '#' $< | bawk '{print $$(NF)}' > $@
+
+%_modif_zscore: %_lunp.lastcol
+	conda activate pybigwig; \
+        ../../local/src/distMedian.py < $< > $@
+
+
+ssRNA_W200_L150_u10_0001_modif_zscore.bedGraph: ssRNA_W200_L150_u10_0001_modif_zscore
+	grep -v '^#' $< | enumerate_rows -s 8 | bawk '{print "ssRNA",$$1-4,$$1+1-4,$$2}' > $@
+
+
