@@ -1,3 +1,6 @@
+from snakemake.utils import Paramspace
+import pandas as pd
+
 configfile: "config.yaml"
 
 ######################
@@ -98,9 +101,9 @@ rule all_fisher_neg_pos_nocCRE:
 rule cCRE_fasta:
 	input:
 		assembly=GENCODE_DIR+"/GRCh38.primary_assembly.genome.clean_id.fa",
-		cCRE_bed="cCRE.bed"
+		cCRE_bed="{path}.bed"
 	output:
-		"cCRE.bed.fa"
+		"{path}.bed.fa"
 #	priority: 100
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
@@ -121,7 +124,7 @@ rule get_fasta:
 		get_fasta -i {wildcards.GeneID} < {input} > {output}
 	"""
 
-#ruleorder: cCRE_fasta > get_fasta
+ruleorder: cCRE_fasta > get_fasta
 
 rule get_longest_transcripts:
 	input:
