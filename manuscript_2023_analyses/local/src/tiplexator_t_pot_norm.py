@@ -31,12 +31,14 @@ def main():
 	if len(args) != 0:
 		exit('Unexpected argument number.')
 	
+	print("\t".join(("Duplex_ID","tpx_count_custom","neg_pos","tpx_count_standard","t_pot_norm","Duplex_length","oligolength","triplexator_norm_factor","t_pot_custom")))
 	for line in stdin:
-		(ssRNA,duplex_ID,tpx_count,duplexlength,oligolength) = line.rstrip().split('\t')
+		(duplex_ID,tpx_count_custom,neg_pos,tpx_count_standard,t_pot_norm,duplexlength,oligolength) = line.rstrip().split('\t')
+
 		#oligolength===ssRNA_length
 		duplexlength=int(duplexlength)
 		oligolength=int(oligolength)
-		tpx_count=int(tpx_count)
+		tpx_count_custom=int(tpx_count_custom)
 		
 		if options.maxLength==-1:
 			maxLength = min((oligolength,duplexlength))
@@ -48,7 +50,7 @@ def main():
   			n += (duplexlength-i+1)*(oligolength-i+1)
 		n*=2;
 	
-		print("\t".join((str(i) for i in (ssRNA,duplex_ID,tpx_count,duplexlength,oligolength,n,float(tpx_count)/n))))
+		print("\t".join((str(i) for i in (duplex_ID,tpx_count_custom,neg_pos,tpx_count_standard,t_pot_norm,duplexlength,oligolength,n,float(tpx_count_custom)/n))))
 
 if __name__ == '__main__':
 	main()

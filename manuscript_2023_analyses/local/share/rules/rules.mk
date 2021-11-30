@@ -297,9 +297,13 @@ TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability.custom_t_pot.neg_po
 #	2D structure
 #
 
-%_W200_L150_u10_0001_lunp: %.fa
+%_lunp: %.fa
 	conda activate rnaFoldRand_v0.1; \
-        RNAplfold -W 200 -L 150 -u 10 -o --id-prefix $*_W200_L150_u10 < $<
+	RNAplfold -W 200 -L 150 -u 10 -o < $<
+
+#%_W200_L150_u10_0001_lunp: %.fa
+#	conda activate rnaFoldRand_v0.1; \
+#       RNAplfold -W 200 -L 150 -u 10 -o --id-prefix $*_W200_L150_u10 < $<
 
 %_lunp.lastcol: %_lunp
 	grep -v '#' $< | bawk '{print $$(NF)}' > $@
@@ -309,12 +313,12 @@ TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability.custom_t_pot.neg_po
         ../../local/src/distMedian.py < $< > $@
 
 
-ssRNA_W200_L150_u10_0001_modif_zscore.bedGraph: ssRNA_W200_L150_u10_0001_modif_zscore
+%_modif_zscore.bedGraph: %_modif_zscore
 	grep -v '^#' $< | enumerate_rows -s 8 | bawk '{print "ssRNA",$$1-4,$$1+1-4,$$2}' > $@
 
 
-%_W200_L150_u10_0001_lunp.single_nt_prob: %_W200_L150_u10_0001_lunp
+%.single_nt_prob: %_lunp
 	unhead -n 2 $< | cut -f1,2 > $@
 
-%_W200_L150_u10_0001_modif_zscore.bed: %_W200_L150_u10_0001_modif_zscore
+%_modif_zscore.aboveMedian.bed: %_modif_zscore
 	grep -v '^#' $< | bawk '$$1<0 {print "$*",NR-1+5,NR+5,$$1}' | bedtools merge > $@

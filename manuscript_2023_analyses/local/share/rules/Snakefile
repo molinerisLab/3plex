@@ -43,6 +43,19 @@ if TRIPLEXATOR_PARAM is None:
 triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\t"))
 
 #####################
+#  Generic rules
+
+rule header_added:
+	input:
+		"{file}"
+	output:
+		"{file}.header_added"
+	shell:"""
+		(bawk -M {input} | cut -f 2 | transpose; cat {input} ) > {output}
+	"""
+		
+
+#####################
 #  Rules
 
 def all_selected_ssRNA_id():
@@ -158,7 +171,8 @@ if config["TRIPLEXATOR_ALN"]==1:
 
 rule all_tpx_paramspace:
 	input:
-		expand("tpx_paramspace/TERC/TERC.neg_pos_rand.bed/{params}/raw.tpx.stability", params=triplexator_paramspace.instance_patterns)
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandnes}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.stability", params=triplexator_paramspace.instance_patterns, ssRNA=all_selected_ssRNA_id(), single_strandnes=config["SINGLE_STRANDES"])
+		#expand("tpx_paramspace/TERC/TERC.neg_pos_rand.bed/{params}/raw.tpx", params=triplexator_paramspace.instance_patterns)
 
 rule triplexator_param_exploration:
 	input:
@@ -203,124 +217,99 @@ rule summary_neg_pos:
 	output:
 		"tpx_paramspace/{ssRNA}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary.neg_pos"
 	shell: """
-		translate -a -r -v -e 0 {input.summary} 4 < {input.neg_pos_bed} |  bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_lenght"}} {{print $4,$6,$8,$9,$3-$2}}' > {output}
-	"""
-
-rule custom_summary_pre:
-	input:
-		tpx="tpx_paramspace/{ssRNA}/{dsDNA}.bed/{triplexator_params}/raw.tpx",
-		cCRE_fasta="{dsDNA}.bed.fa",
-		ssRNA_file="{ssRNA}.fa"
-	output:
-		"tpx_paramspace/{ssRNA}/{dsDNA}.bed/{triplexator_params}/raw.tpx.custom_summary.pre"
-	shell: """
-		unhead {input.tpx} | cut -f 1,4 | symbol_count | translate -a -r <(fasta_length < {input.cCRE_fasta}) 2 | \
-		translate -a -r <(fasta_length < {input.ssRNA_file}) 1 > {output}
+		translate -a -r -v -e 0 {input.summary} 4 < {input.neg_pos_bed} |  bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_length"}} {{print $4,$6,$8,$9,$3-$2}}' > {output}
 	"""
 
 rule custom_summary:
 	input:
-		"{file_path}/raw.tpx.custom_summary.pre"
+		tpx="tpx_paramspace/{ssRNA}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx",
+		summary_neg_pos="tpx_paramspace/{ssRNA}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.summary.neg_pos",
+		ssRNA_file="{ssRNA}.fa"
 	output:
-		"{file_path}/raw.tpx.custom_summary"
+		"tpx_paramspace/{ssRNA}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.custom_summary.neg_pos"
+	wildcard_constraints:
+		ssRNA="[^/]+",
+		min_length="\d+",
+		max_length="-*\d+"
 	shell: """
-        ../../local/src/tiplexator_t_pot_norm.py -l 3 -L -1 < {input} > {output}
+		unhead {input.summary_neg_pos} \
+		| translate -a -v -e 0 <(unhead {input.tpx} | cut -f 4 | symbol_count) 1 \
+		| append_each_row "$(fasta_length < {wildcards.ssRNA}.fa | cut -f 2)"  \
+        	| ../../local/src/tiplexator_t_pot_norm.py -l {wildcards.min_length} -L {wildcards.max_length} > {output}
 	"""
 
-rule custom_summary_neg_pos:
+
+rule summary_covered_by_tts:
 	input:
-		custom_summary="{file_path}/raw.tpx.custom_summary",
-		summary_neg_pos="{file_path}/raw.tpx.summary.neg_pos"
+		tpx="tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx",
+		summary="tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos",
+		dsDNA_bed="{dsDNA}.bed"
 	output:
-		"{file_path}/raw.tpx.custom_summary.neg_pos"
+		"tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"
 	shell: """
-		unhead {input.summary_neg_pos} | translate -a -r <(cut -f 2,7 {input.custom_summary}) 1 | \
-		bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","custom_t_pot"}} {{print $0}}'> {output}
+		cat {input.summary} \
+		| translate -a -r -v -e 0 \
+			<(bawk '{{print $4,$5,$6}}' {input.tpx} | unhead \
+			 | bedtools sort | bedtools merge | bawk '{{print $1,$3-$2}}' \
+			 | stat_base -g -t \
+			 | bawk 'BEGIN{{print "Duplex_ID","TTS_covered_len"}} {{print $1,$2}}' \
+			) 1 \
+		| bawk 'NR==1 {{print $0,"TTS_covered_frac"}} NR>1 {{ print $0,$10/$6}}'> {output}
 	"""
 
-rule covered_frac:
+rule tpx_stabilty_generic:
 	input:
-		tpx="{file_path}/raw.tpx",
-		cCRE_bed="{dsDNA}.bed"
+		"{path}.tpx"
 	output:
-		"{file_path}/raw.tpx.covered_frac"
-	shell: """
-		bawk '{{print $4,$5,$6}}' {input.tpx} | unhead | bedtools sort | bedtools merge | bawk '{{print $1,$3-$2}}' | \
-		stat_base -g -t | translate -a -r <(bawk '{{print $4,$3-$2}}' {input.cCRE_bed}) 1 | \
-		bawk 'BEGIN{{print "Duplex_ID","TTS_covered_len","TTS_covered_frac"}} {{print $1,$2,$2/$3}}' > {output}
-	"""
-
-rule summary_clean:
-	input:
-		"{file_path}/raw.tpx.custom_summary"
-	output:
-		"{file_path}/raw.tpx.custom_summary.clean"
-	shell: """
-		bawk 'BEGIN{{print "Duplex_ID","ssRNA","summary_total_tpx","summary_t_pot"}} NR>1 {{print $2,$1,$3,$4}}' {input} > {output}
-	"""
-
-rule summary_clean_covered_frac:
-	input:
-		covered_fraction="{file_path}/raw.tpx.covered_frac",
-		summary_clean="{file_path}/raw.tpx.custom_summary.clean"
-	output:
-		"{file_path}/raw.tpx.custom_summary.clean.covered_frac"
-	shell: """
-		translate -a {input.covered_fraction} 1 < {input.summary_clean} > {output}
-	"""
-
-rule neg_pos_rand:
-	input:
-		neg_pos_rand="{ssRNA}.neg_pos_rand.bed",
-		tpx_file="tpx_paramspace/{ssRNA}/{dsDNA}.bed/{triplexator_params}/raw.tpx.{params}"
-	output:
-		"tpx_paramspace/{ssRNA}/{dsDNA}.bed/{triplexator_params}/raw.tpx.{params}.neg_pos_rand"
-	shell: """
-		translate -a -r <(echo -e "Duplex_ID\tneg_pos"; cut -f 4,6 {input.neg_pos_rand}) 1 < {input.tpx_file} > {output}
+		"{path}.tpx.stability"
+	shell:"""
+		cat {input} | unhead | ../../local/src/tpx_thermal_stability.py > {output}
 	"""
 
 rule stability_best:
 	input:
 		"{file_path}/raw.tpx.stability"
 	output:
-		"{file_path}/raw.tpx.stability.best"
+		"{file_path}/raw.best.tpx.stability"
 	shell: """
 		find_best 4 14 < {input} > {output}
 	"""
 
-rule stability_tot_norm:
+rule stability_tot_overcount:
 	input:
-		stability_file="{file_path}/raw.tpx.stability",
-		cCRE_bed="cCRE.bed"
+		stability_file="{file_path}/raw.tpx.stability"
 	output:
-		"{file_path}/raw.tpx.stability.tot_norm"
+		"{file_path}/raw.tpx.stability.tot_overcount"
 	shell: """
-		cut -f 4,14 < {input.stability_file} | bsort | stat_base -g -t | translate -a -r <(bawk '{{print $4,$3-$2}}' {input.cCRE_bed}) 1 | bawk '{{print $1,$2,$2/$3}}' > {output}
+		cut -f 4,14 < {input.stability_file} | bsort | stat_base -g -t \
+		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_overcount"}} {{print}}' > {output}
 	"""
 
-rule summary_clean_covered_frac_stability:
+rule stability_tot_undercount:
 	input:
-		best_stability="{file_path}/raw.tpx.stability.best",
-		summary_clean_covfrac="{file_path}/raw.tpx.custom_summary.clean.covered_frac",
-		stability_tot_norm="{file_path}/raw.tpx.stability.tot_norm"
+		stability_file="{file_path}/raw.tpx.stability"
 	output:
-		"{file_path}/raw.tpx.custom_summary.clean.covered_frac.stability"
+		"{file_path}/raw.tpx.stability.tot_undercount"
 	shell: """
-		translate -a -r <(bawk 'BEGIN{{print "Duplex_ID","stability_best"}} {{print $4,$14}}' {input.best_stability}) 1 < {input.summary_clean_covfrac} | \
-		translate -a -r <(bawk 'BEGIN{{print "Duplex_ID","stability_tot","stability_norm"}} {{print}}' {input.stability_tot_norm}) 1 > {output}
+		bawk '{{print $Duplex_ID,$TTS_start,$TTS_end,$Stability}}' {input} | bedtools sort | bedtools merge -c 4 -o max | cut -f 1,4 | bsort | stat_base -g -t \
+		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_undercount"}} {{print}}' > {output}
 	"""
 
-rule summary_clean_covered_frac_stability_custom_t_pot_neg_pos:
+rule summary_covered_by_tts_stability:
 	input:
-		custom_summary="{file_path}/raw.tpx.custom_summary",
-		summary_clean="{file_path}/raw.tpx.custom_summary.clean.covered_frac.stability.neg_pos_rand"
+		summary			 = "{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts",
+		stability_best           = "{file_path}/raw.best.tpx.stability.header_added",
+		stability_tot_overcount  = "{file_path}/raw.tpx.stability.tot_overcount",
+		stability_tot_undercount = "{file_path}/raw.tpx.stability.tot_undercount"
 	output:
-		"{file_path}/raw.tpx.custom_summary.clean.covered_frac.stability.custom_t_pot.neg_pos_rand"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability"
 	shell: """
-		unhead {input.summary_clean} | translate -a -r -f 2 {input.custom_summary} 1 | \
-		bawk 'BEGIN{{print "Duplex_ID","TTS_covered_len","TTS_covered_frac","ssRNA","summary_total_tpx","summary_t_pot", \
-		"stability_best","stability_tot","stability_norm","neg_pos","ssRNA","txp_count","Duplex_lenght","ssRNA_lenght","norm_factor","custom_t_pot","ssRNA", \
-		"txp_count","Duplex_lenght","ssRNA_lenght","nom_factor","custom_t_pot"}} {{print}}' > {output}
+		cat {input.summary} \
+		| translate -a -r -v -e 0 <(bawk '{{print $Duplex_ID,$Stability}}' {input.stability_best}) 1 \
+		| translate -a -r -v -e 0 {input.stability_tot_overcount} 1 \
+		| translate -a -r -v -e 0 {input.stability_tot_undercount} 1 > {output}.tmp
+		bawk 'NR==1 {{print $0,"Stability_norm_overcount","Stability_norm_undercount" }} NR>1 {{print $0,$Stability_tot_overcount/$Duplex_length, $Stability_tot_undercount/$Duplex_length}}' {output}.tmp > {output}
+		rm {output}.tmp
 	"""
 
 #../../local/src/ROC.R neg_pos PROB__fitted_model PROB__custom_t_pot__only PROB__stability_norm__only -O pippo_ROC < pippo > pippo_table
@@ -392,23 +381,6 @@ rule gzip_precomputed_tpx_file:
 #		ln -s ../../{input} cCRE.tpx.gz
 #	"""
 
-rule tpx_stabilty:
-	input:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.gz"
-	output:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.gz"
-	shell:"""
-		zcat {input} | unhead | ../../local/src/tpx_thermal_stability.py | gzip > {output}
-	"""
-
-rule tpx_stabilty_generic:
-	input:
-		"{path}.tpx"
-	output:
-		"{path}.tpx.stability"
-	shell:"""
-		cat {input} | unhead | ../../local/src/tpx_thermal_stability.py > {output}
-	"""
 	
 rule tpx_stability_tfo_profile:
 	input:
@@ -543,21 +515,21 @@ rule assoc_genehancer:
 	12      Orientation
 	13      Guanine_rate
 
-.META: *.tpx.stability.gz
-	1       ssRNA
-	2       TFO_start
-	3       TFO_end
-	4       Duplex_ID
-	5       TTS_start
-	6       TTS_end
-	7       Score
-	8       Error_rate
-	9       Errors
-	10      Motif
-	11      Strand
-	12      Orientation
-	13      Guanine_rate
-	14      Stability
+.META: *.tpx.stability.gz *.tpx.stability
+	1	ssRNA
+	2	TFO_start
+	3	TFO_end
+	4	Duplex_ID
+	5	TTS_start
+	6	TTS_end
+	7	Score
+	8	Error_rate
+	9	Errors
+	10	Motif
+	11	Strand
+	12	Orientation
+	13	Guanine_rate
+	14	Stability
 
 .META: *.tpx.tts_genom_coords.assoc_genes
 	1	ssRNA
