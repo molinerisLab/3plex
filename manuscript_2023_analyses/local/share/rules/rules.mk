@@ -313,3 +313,8 @@ ssRNA_W200_L150_u10_0001_modif_zscore.bedGraph: ssRNA_W200_L150_u10_0001_modif_z
 	grep -v '^#' $< | enumerate_rows -s 8 | bawk '{print "ssRNA",$$1-4,$$1+1-4,$$2}' > $@
 
 
+%_W200_L150_u10_0001_lunp.single_nt_prob: %_W200_L150_u10_0001_lunp
+	unhead -n 2 $< | cut -f1,2 > $@
+
+%_W200_L150_u10_0001_modif_zscore.bed: %_W200_L150_u10_0001_modif_zscore
+	grep -v '^#' $< | bawk '$$1<0 {print "$*",NR-1+5,NR+5,$$1}' | bedtools merge > $@
