@@ -203,7 +203,7 @@ rule summary_neg_pos:
 	output:
 		"tpx_paramspace/{ssRNA}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary.neg_pos"
 	shell: """
-		translate -a -k <(cut -f 4,6 {input.neg_pos_bed}) 1 < {input.summary} | bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot"}} {{print $1,$2,$5}}' > {output}
+		translate -a -r -v -e 0 {input.summary} 4 < {input.neg_pos_bed} |  bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_lenght"}} {{print $4,$6,$8,$9,$3-$2}}' > {output}
 	"""
 
 rule custom_summary_pre:
