@@ -1,0 +1,1 @@
+../../local/share/makefiles/makefile_v12_2Dstructure
