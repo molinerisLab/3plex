@@ -38,9 +38,21 @@ SCRATCH=os.environ.get("SCRATCH")
 TRIPLEXATOR_PARAM=os.environ.get("TRIPLEXATOR_PARAM",None)
 if TRIPLEXATOR_PARAM is None:
 	TRIPLEXATOR_PARAM="-L -1 -e 20 -E -1 -l {}".format(config["TRIPLEXATOR_MIN_LEN"])
+
+
+#######################
+# Other Parameters
+
+PREDICTORS_COL_NAMES=os.environ.get("PREDICTORS_COL_NAMES")
+
+
 # Other parameters are specified in config.yaml
 
+
 triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\t"))
+
+
+
 
 #####################
 #  Generic rules
@@ -54,6 +66,9 @@ rule header_added:
 		(bawk -M {input} | cut -f 2 | transpose; cat {input} ) > {output}
 	"""
 		
+
+
+
 
 #####################
 #  Rules
@@ -169,10 +184,11 @@ if config["TRIPLEXATOR_ALN"]==1:
 					"""mv {output.tpx}.head {output.tpx}; cat {output.tpx}.tmp >> {output.tpx}; rm {output.tpx}.tmp """
 
 
-rule all_tpx_paramspace:
-	input:
-		expand("tpx_paramspace/{ssRNA}_ss{single_strandnes}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.stability", params=triplexator_paramspace.instance_patterns, ssRNA=all_selected_ssRNA_id(), single_strandnes=config["SINGLE_STRANDES"])
-		#expand("tpx_paramspace/TERC/TERC.neg_pos_rand.bed/{params}/raw.tpx", params=triplexator_paramspace.instance_patterns)
+#rule all_tpx_paramspace:
+#	input:
+#		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.stability", \
+#		params=triplexator_paramspace.instance_patterns, ssRNA=all_selected_ssRNA_id(), single_strandedness=config["SINGLE_STRANDES"])
+
 
 rule triplexator_param_exploration:
 	input:
@@ -277,17 +293,17 @@ rule stability_best:
 
 rule stability_tot_overcount:
 	input:
-		stability_file="{file_path}/raw.tpx.stability"
+		"{file_path}/raw.tpx.stability"
 	output:
 		"{file_path}/raw.tpx.stability.tot_overcount"
 	shell: """
-		cut -f 4,14 < {input.stability_file} | bsort | stat_base -g -t \
+		cut -f 4,14 < {input} | bsort | stat_base -g -t \
 		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_overcount"}} {{print}}' > {output}
 	"""
 
 rule stability_tot_undercount:
 	input:
-		stability_file="{file_path}/raw.tpx.stability"
+		"{file_path}/raw.tpx.stability"
 	output:
 		"{file_path}/raw.tpx.stability.tot_undercount"
 	shell: """
@@ -315,11 +331,11 @@ rule summary_covered_by_tts_stability:
 #../../local/src/ROC.R neg_pos PROB__fitted_model PROB__custom_t_pot__only PROB__stability_norm__only -O pippo_ROC < pippo > pippo_table
 rule compute_AUC_comparison:
 	input:
-		"{file_path}/raw.tpx.custom_summary.clean.covered_frac.stability.neg_pos_rand"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability"
 	output:
-		"{file_path}/raw.tpx.custom_summary.clean.covered_frac.stability.neg_pos_rand.AUC_comp"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC_comp"
 	shell: """
-		../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} -O auc_comparison_plot < {input} > {output}
+		../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {PREDICTORS_COL_NAMES} -O '{wildcards.file_path}/auc_comparison_plot' < {input} > {output}
 	"""
 
 #rule triplexator:
