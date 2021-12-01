@@ -184,6 +184,13 @@ if config["TRIPLEXATOR_ALN"]==1:
 					"""mv {output.tpx}.head {output.tpx}; cat {output.tpx}.tmp >> {output.tpx}; rm {output.tpx}.tmp """
 
 
+
+
+
+#############################
+#  Triplex scoring methods  #
+#############################
+
 #rule all_tpx_paramspace:
 #	input:
 #		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.stability", \
@@ -215,16 +222,6 @@ rule triplexator_param_exploration:
 		"""
 	"""
 
-
-
-
-
-#############################
-#  Triplex scoring methods  #
-#############################
-
-# Final target:
-# {file_path}/raw.tpx.custom_summary.clean.covered_frac.stability.custom_t_pot.neg_pos_rand
 
 rule summary_neg_pos:
 	input:
@@ -337,6 +334,25 @@ rule compute_AUC_comparison:
 	shell: """
 		../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {PREDICTORS_COL_NAMES} -O '{wildcards.file_path}/auc_comparison_plot' < {input} > {output}
 	"""
+
+
+
+################
+# 2D structure #
+################
+
+rule RNAplfold_lunp:
+	input:
+		"{ssRNA}.fa"
+	output:
+		"ssRNA_fasta/{ssRNA}/{ssRNA}_lunp"
+	shell: """
+		{CONDA_ACTIVATE} rnaFoldRand_v0.1; \
+		mkdir -p ssRNA_fasta/{wildcards.ssRNA}; \
+		RNAplfold -W {config[RNAPLFOLD_WINDOW_SIZE]} -L {config[RNAPLFOLD_SPAN_SIZE]} -u {config[RNAPLFOLD_UNPAIRED_WINDOW]} -o < {input}; \
+		mv {wildcards.ssRNA}_lunp {output}; rm {wildcards.ssRNA}_basepairs
+	"""
+
 
 #rule triplexator:
 #	input:
