@@ -43,10 +43,11 @@ if TRIPLEXATOR_PARAM is None:
 #######################
 # Other Parameters
 
-PREDICTORS_COL_NAMES=os.environ.get("PREDICTORS_COL_NAMES")
+PREDICTORS_COL_NAMES=os.environ.get("PREDICTORS_COL_NAMES",config["PREDICTORS_COL_NAMES"])
 
 
-# Other parameters are specified in config.yaml
+
+# More parameters are specified in config.yaml
 
 
 triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\t"))
@@ -318,19 +319,28 @@ rule summary_covered_by_tts_stability:
 		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability"
 	shell: """
 		cat {input.summary} \
-		| translate -a -r -v -e 0 <(bawk '{{print $Duplex_ID,$Stability}}' {input.stability_best}) 1 \
+		| translate -a -r -v -e 0 <(bawk '{{if(NR==1){{$Stability="Stability_best"}} print $Duplex_ID,$Stability}}' {input.stability_best}) 1 \
 		| translate -a -r -v -e 0 {input.stability_tot_overcount} 1 \
 		| translate -a -r -v -e 0 {input.stability_tot_undercount} 1 > {output}.tmp
 		bawk 'NR==1 {{print $0,"Stability_norm_overcount","Stability_norm_undercount" }} NR>1 {{print $0,$Stability_tot_overcount/$Duplex_length, $Stability_tot_undercount/$Duplex_length}}' {output}.tmp > {output}
 		rm {output}.tmp
 	"""
 
-#../../local/src/ROC.R neg_pos PROB__fitted_model PROB__custom_t_pot__only PROB__stability_norm__only -O pippo_ROC < pippo > pippo_table
-rule compute_AUC_comparison:
+rule summary_covered_by_tts_stability_logistic:
 	input:
 		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability"
 	output:
-		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC_comp"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic"
+	shell: """
+		bmodel -c -s -d -n {input} "neg_pos~Stability_best+Stability_norm_undercount" | get_fasta -n data_and_prob > {output}
+	"""
+
+#../../local/src/ROC.R neg_pos PROB__fitted_model PROB__custom_t_pot__only PROB__stability_norm__only -O pippo_ROC < pippo > pippo_table
+rule compute_AUC_comparison:
+	input:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic"
+	output:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp"
 	shell: """
 		../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {PREDICTORS_COL_NAMES} -O '{wildcards.file_path}/auc_comparison_plot' < {input} > {output}
 	"""
