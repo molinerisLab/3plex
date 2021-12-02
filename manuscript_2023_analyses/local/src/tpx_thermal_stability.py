@@ -12,20 +12,23 @@ A=0
 C=1
 G=2
 T=3
+N=4
 
 PARALLEL=1
 ANTIPARALLEL=0
 
-stab_table=[[None,None,None,None],[None,None,None,None]]
-#                                 A     C     G     T
-stab_table[PARALLEL][A]=	[0.0,  0.0,  2.8,  0.0]
-stab_table[PARALLEL][C]=	[0.0,  4.5,  2.2,  2.4]
-stab_table[PARALLEL][G]=	[0.0,  2.4,  0.0,  2.6]
-stab_table[PARALLEL][T]=	[0.0,  0.0,  0.0,  3.7]
-stab_table[ANTIPARALLEL][A]=	[0.0,  0.0,  1.0,  0.0]
-stab_table[ANTIPARALLEL][C]=	[1.0,  3.0,  3.0,  0.0]
-stab_table[ANTIPARALLEL][G]=	[0.0,  1.0,  0.0,  2.0]
-stab_table[ANTIPARALLEL][T]=	[3.0,  1.0,  0.0,  3.5]
+stab_table=[[None,None,None,None,None],[None,None,None,None,None]]
+#                                 A     C     G     T    N
+stab_table[PARALLEL][A]=	[0.0,  0.0,  2.8,  0.0,  0.0]
+stab_table[PARALLEL][C]=	[0.0,  4.5,  2.2,  2.4,  0.0]
+stab_table[PARALLEL][G]=	[0.0,  2.4,  0.0,  2.6,  0.0]
+stab_table[PARALLEL][T]=	[0.0,  0.0,  0.0,  3.7,  0.0]
+stab_table[PARALLEL][N]=	[0.0,  0.0,  0.0,  0.0,  0.0]
+stab_table[ANTIPARALLEL][A]=	[0.0,  0.0,  1.0,  0.0,  0.0]
+stab_table[ANTIPARALLEL][C]=	[1.0,  3.0,  3.0,  0.0,  0.0]
+stab_table[ANTIPARALLEL][G]=	[0.0,  1.0,  0.0,  2.0,  0.0]
+stab_table[ANTIPARALLEL][T]=	[3.0,  1.0,  0.0,  3.5,  0.0]
+stab_table[ANTIPARALLEL][N]=	[0.0,  0.0,  0.0,  0.0,  0.0]
 
 
 
@@ -82,8 +85,8 @@ def main():
 	if len(args) != 0:
 		exit('Unexpected argument number.')
 	
-	d={"A":0, "C":1, "G":2, "T":3}
-
+	d={"A":0, "C":1, "G":2, "T":3, "N":4}
+	
 	for line in stdin:
 		tokens = line.rstrip().split('\t')
 		(Sequence_ID,TFO_start,TFO_end,Duplex_ID,TTS_start,TTS_end,Score,Error_rate,Errors,Motif,Strand,Orientation,Guanine_rate,aln1,aln2,aln3,aln4)=tokens
@@ -97,7 +100,7 @@ def main():
 		P=PARALLEL
 		if(Orientation=="A"):
 			P=ANTIPARALLEL
-
+		
 		#print(TFO_seq, TTS_seq)
 		stability=0
 		for (i,c) in enumerate(TTS_seq):
