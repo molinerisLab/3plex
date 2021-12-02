@@ -50,8 +50,8 @@ plt.ylabel('modified z-score')
 plt.savefig('ss_prof.mediaMobile.png')
 
 # Stdout
-print('# Median: {}'.format(median))
-print('# Fine range: {}'.format(x[-1]))
-print('# Max modified z-score position: {}'.format(np.where(modif_zscore==np.amax(modif_zscore))))
+#print('# Median: {}'.format(median))
+#print('# Fine range: {}'.format(x[-1]))
+#print('# Max modified z-score position: {}'.format(np.where(modif_zscore==np.amax(modif_zscore))))
 for i in modif_zscore:
 	print("{:.4f}".format(i))
