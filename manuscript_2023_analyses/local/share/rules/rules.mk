@@ -322,3 +322,6 @@ TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability.custom_t_pot.neg_po
 
 %_modif_zscore.aboveMedian.bed: %_modif_zscore
 	grep -v '^#' $< | bawk '$$1<0 {print "$*",NR-1+5,NR+5,$$1}' | bedtools merge > $@
+
+%_ss20_unpaired_window.fa: RNAplfold/%_lunp.unpaired_window.modif_zscore %.fa
+	PERC=$$(sort -n $< | awk '{all[NR] = $$0} END{print all[int(NR*0.2 - 0.5)]}'); fasta_mask <(bawk -v perc=$$PERC '$$1<perc {print "TERC",NR-1+4,NR+4}' $< | bedtools merge) < $^2 > $@
