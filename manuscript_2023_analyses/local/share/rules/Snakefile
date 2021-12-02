@@ -192,21 +192,31 @@ if config["TRIPLEXATOR_ALN"]==1:
 #  Triplex scoring methods  #
 #############################
 
-#rule all_tpx_paramspace:
-#	input:
-#		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.stability", \
-#		params=triplexator_paramspace.instance_patterns, ssRNA=all_selected_ssRNA_id(), single_strandedness=config["SINGLE_STRANDES"])
-
+# target:
+rule all_tpx_paramspace:
+	input:
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp", \
+			params = triplexator_paramspace.instance_patterns,
+			ssRNA = all_selected_ssRNA_id(),
+			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+			window=config["WINDOW"]
+		)
 
 rule triplexator_param_exploration:
 	input:
-		ssRNA_file="{ssRNA}.fa",
+		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta",
 		dsDNA_file="{dsDNA}.fa"
 	params:
 		params_instance=triplexator_paramspace.instance
 	output:
-		tpx	="tpx_paramspace/{ssRNA}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx",
-		summary ="tpx_paramspace/{ssRNA}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary"
+		tpx	="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx",
+		summary ="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary"
+	wildcard_constraints:
+		single_strandedness_cutoff	= "\d+",
+		window				= "\w+",
+		ssRNA				= "[^/]+",
+		dsDNA				= "[^/]+"
+			
 	shell: """
 		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
 		mkdir -p $(dirname {output.tpx}); cd $(dirname {output.tpx});\
@@ -226,40 +236,46 @@ rule triplexator_param_exploration:
 
 rule summary_neg_pos:
 	input:
-		summary="tpx_paramspace/{ssRNA}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary",
+		summary="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary",
 		neg_pos_bed="{dsDNA}.bed"
 	output:
-		"tpx_paramspace/{ssRNA}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary.neg_pos"
+		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary.neg_pos"
 	shell: """
 		translate -a -r -v -e 0 {input.summary} 4 < {input.neg_pos_bed} |  bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_length"}} {{print $4,$6,$8,$9,$3-$2}}' > {output}
 	"""
 
 rule custom_summary:
 	input:
-		tpx="tpx_paramspace/{ssRNA}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx",
-		summary_neg_pos="tpx_paramspace/{ssRNA}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.summary.neg_pos",
-		ssRNA_file="{ssRNA}.fa"
+		tpx="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx",
+		summary_neg_pos="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.summary.neg_pos",
+		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta"
 	output:
-		"tpx_paramspace/{ssRNA}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.custom_summary.neg_pos"
+		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.custom_summary.neg_pos"
 	wildcard_constraints:
 		ssRNA="[^/]+",
 		min_length="\d+",
 		max_length="-*\d+"
 	shell: """
 		unhead {input.summary_neg_pos} \
-		| translate -a -v -e 0 <(unhead {input.tpx} | cut -f 4 | symbol_count) 1 \
-		| append_each_row "$(fasta_length < {wildcards.ssRNA}.fa | cut -f 2)"  \
+		| translate -a -v -e 0 -z <(unhead {input.tpx} | cut -f 4 | symbol_count) 1 \
+		| append_each_row "$(unhead {input.ssRNA_file} | tr -d "N\\n" | wc -c)"  \
         	| ../../local/src/tiplexator_t_pot_norm.py -l {wildcards.min_length} -L {wildcards.max_length} > {output}
 	"""
 
-
+# Changed from:
+#input:
+#		tpx="tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx",
+#		summary="tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos",
+#		dsDNA_bed="{dsDNA}.bed"
+#	output:
+#		"tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"
 rule summary_covered_by_tts:
 	input:
-		tpx="tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx",
-		summary="tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos",
+		tpx="tpx_paramspace/{ssRNA,[^/]+}_ss{single_strandedness_cutoff}_{window}/{dsDNA,[^/]+}.bed/{path}/raw.tpx",
+		summary="tpx_paramspace/{ssRNA,[^/]+}_ss{single_strandedness_cutoff}_{window}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos",
 		dsDNA_bed="{dsDNA}.bed"
 	output:
-		"tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"
+		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"	
 	shell: """
 		cat {input.summary} \
 		| translate -a -r -v -e 0 \
@@ -273,9 +289,9 @@ rule summary_covered_by_tts:
 
 rule tpx_stabilty_generic:
 	input:
-		"{path}.tpx"
+		"{file_path}.tpx"
 	output:
-		"{path}.tpx.stability"
+		"{file_path}.tpx.stability"
 	shell:"""
 		cat {input} | unhead | ../../local/src/tpx_thermal_stability.py > {output}
 	"""
@@ -335,14 +351,14 @@ rule summary_covered_by_tts_stability_logistic:
 		bmodel -c -s -d -n {input} "neg_pos~Stability_best+Stability_norm_undercount" | get_fasta -n data_and_prob > {output}
 	"""
 
-#../../local/src/ROC.R neg_pos PROB__fitted_model PROB__custom_t_pot__only PROB__stability_norm__only -O pippo_ROC < pippo > pippo_table
+
 rule compute_AUC_comparison:
 	input:
 		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic"
 	output:
 		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp"
 	shell: """
-		../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {PREDICTORS_COL_NAMES} -O '{wildcards.file_path}/auc_comparison_plot' < {input} > {output}
+		../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} -O '{wildcards.file_path}/auc_comparison_plot' < {input} > {output}
 	"""
 
 
@@ -355,14 +371,77 @@ rule RNAplfold_lunp:
 	input:
 		"{ssRNA}.fa"
 	output:
-		"ssRNA_fasta/{ssRNA}/{ssRNA}_lunp"
+		lunp="RNAplfold/{ssRNA}_lunp",
+		basepairs="RNAplfold/{ssRNA}_basepairs"
 	shell: """
 		{CONDA_ACTIVATE} rnaFoldRand_v0.1; \
-		mkdir -p ssRNA_fasta/{wildcards.ssRNA}; \
+		mkdir -p RNAplfold;\
 		RNAplfold -W {config[RNAPLFOLD_WINDOW_SIZE]} -L {config[RNAPLFOLD_SPAN_SIZE]} -u {config[RNAPLFOLD_UNPAIRED_WINDOW]} -o < {input}; \
-		mv {wildcards.ssRNA}_lunp {output}; rm {wildcards.ssRNA}_basepairs
+		mv {wildcards.ssRNA}_lunp {output.lunp}; mv {wildcards.ssRNA}_basepairs {output.basepairs}
 	"""
 
+# Unpaired window
+rule RNAplfold_lunp_unpaired_window_modif_zscore:
+	input:
+		"RNAplfold/{ssRNA}_lunp"
+	output:
+		"RNAplfold/{ssRNA}_lunp.unpaired_window.modif_zscore"
+	shell:"""
+		{CONDA_ACTIVATE} pybigwig; \
+		grep -v '#' {input} | bawk '{{print $(NF)}}' | ../../local/src/distMedian.py > {output}
+	"""
+
+
+# set the shift for bed file positions
+WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2
+if(config["RNAPLFOLD_UNPAIRED_WINDOW"] % 2 != 0):
+	WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2 + 0.5
+
+rule mask_fasta_unpaired_window:
+	input:
+		RNAplfold_prob="RNAplfold/{ssRNA}_lunp.unpaired_window.modif_zscore",
+		fasta="{ssRNA}.fa"
+	output:
+		"{ssRNA}_ss{percentile}_unpaired_window.fasta"
+	shell:"""
+		PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
+		fasta_mask <(bawk -v perc=$PERC '$1<perc {{print "{wildcards.ssRNA}",NR - 1 + {WINDOW_CENTER}, NR + {WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge) < {input.fasta} > {output}
+	"""
+
+
+# Single nt base pairing probability
+rule RNAplfold_lunp_singleNt_modif_zscore:
+	input:
+		"RNAplfold/{ssRNA}_lunp"
+	output:
+		"RNAplfold/{ssRNA}_lunp.singleNt.modif_zscore"
+	shell: """
+		{CONDA_ACTIVATE} pybigwig; \
+		grep -v '#' {input} | bawk '{{print $2}}' | ../../local/src/distMedian.py > {output}
+	"""
+
+
+# no shift for bed file
+rule mask_fasta_singleNt:
+	input:
+		RNAplfold_prob="RNAplfold/{ssRNA}_lunp.singleNt.modif_zscore",
+		fasta="{ssRNA}.fa"
+	output:
+		"{ssRNA}_ss{percentile}_singleNt.fasta"
+	shell:"""
+		PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
+		fasta_mask <(bawk -v perc=$PERC '$1<perc {{print "{wildcards.ssRNA}",NR - 1, NR}}' {input.RNAplfold_prob} | bedtools merge) < {input.fasta} > {output}
+	"""
+
+
+#rule RNAplfold_lunp_singleNt:
+#	input:
+#		"RNAplfold/{ssRNA}_lunp"
+#	output:
+#		"RNAplfold/{ssRNA}_lunp.singleNt"
+#	shell:"""
+#		grep -v '#' {input} | bawk '{{print $1}}' > {output}
+#	"""
 
 #rule triplexator:
 #	input:
