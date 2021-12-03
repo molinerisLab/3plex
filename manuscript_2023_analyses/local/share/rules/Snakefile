@@ -199,7 +199,7 @@ rule all_tpx_paramspace:
 			params = triplexator_paramspace.instance_patterns,
 			ssRNA = all_selected_ssRNA_id(),
 			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
-			window=config["WINDOW"]
+			window=config["RNAPLFOLD_WINDOW"]
 		)
 
 rule triplexator_param_exploration:
@@ -381,11 +381,11 @@ rule RNAplfold_lunp:
 	"""
 
 # Unpaired window
-rule RNAplfold_lunp_unpaired_window_modif_zscore:
+rule RNAplfold_lunp_unpairedWindow_modif_zscore:
 	input:
 		"RNAplfold/{ssRNA}_lunp"
 	output:
-		"RNAplfold/{ssRNA}_lunp.unpaired_window.modif_zscore"
+		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
 	shell:"""
 		{CONDA_ACTIVATE} pybigwig; \
 		grep -v '#' {input} | bawk '{{print $(NF)}}' | ../../local/src/distMedian.py > {output}
@@ -397,12 +397,12 @@ WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2
 if(config["RNAPLFOLD_UNPAIRED_WINDOW"] % 2 != 0):
 	WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2 + 0.5
 
-rule mask_fasta_unpaired_window:
+rule mask_fasta_unpairedWindow:
 	input:
-		RNAplfold_prob="RNAplfold/{ssRNA}_lunp.unpaired_window.modif_zscore",
+		RNAplfold_prob="RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore",
 		fasta="{ssRNA}.fa"
 	output:
-		"{ssRNA}_ss{percentile}_unpaired_window.fasta"
+		"{ssRNA}_ss{percentile}_unpairedWindow.fasta"
 	shell:"""
 		PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
 		fasta_mask <(bawk -v perc=$PERC '$1<perc {{print "{wildcards.ssRNA}",NR - 1 + {WINDOW_CENTER}, NR + {WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge) < {input.fasta} > {output}
