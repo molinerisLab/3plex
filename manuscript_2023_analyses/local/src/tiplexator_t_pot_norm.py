@@ -3,6 +3,7 @@ from __future__ import with_statement
 
 from sys import stdin, stderr
 from optparse import OptionParser
+import warnings
 #from random import shuffle
 #from subprocess import Popen, PIPE
 #from collections import defaultdict
@@ -45,10 +46,15 @@ def main():
 		else:
 			maxLength = min((options.maxLength,oligolength,duplexlength))
 
-		n=0
-		for i in range(options.minLength,maxLength+1):
-  			n += (duplexlength-i+1)*(oligolength-i+1)
-		n*=2;
+		stabilty=0
+		if maxLength<options.minLength:
+			warnings.warn("duplex or ssRNA length < options.minLength, stabilty put at 0 for this TPX:\nduplex_ID	tpx_count_custom	neg_pos	tpx_count_standard	t_pot_norm	duplexlength	oligolength\n%s" % line)
+		else:
+			n=0
+			for i in range(options.minLength,maxLength+1):
+				n += (duplexlength-i+1)*(oligolength-i+1)
+			n*=2;
+			stabilty=float(tpx_count_custom)/n
 	
 		print("\t".join((str(i) for i in (duplex_ID,tpx_count_custom,neg_pos,tpx_count_standard,t_pot_norm,duplexlength,oligolength,n,float(tpx_count_custom)/n))))
 
