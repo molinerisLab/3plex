@@ -342,13 +342,22 @@ rule summary_covered_by_tts_stability:
 		rm {output}.tmp
 	"""
 
-rule summary_covered_by_tts_stability_logistic:
+rule summary_covered_by_tts_stability_logistic_full:
 	input:
 		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability"
 	output:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic_full"
+	shell: """
+		bmodel -c -s -d -n {input} "neg_pos~Stability_best+Stability_norm_undercount" > {output}
+	"""
+
+rule summary_covered_by_tts_stability_logistic:
+	input:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic_full"
+	output:
 		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic"
 	shell: """
-		bmodel -c -s -d -n {input} "neg_pos~Stability_best+Stability_norm_undercount" | get_fasta -n data_and_prob > {output}
+		get_fasta -n data_and_prob < {input} > {output}
 	"""
 
 
@@ -432,7 +441,6 @@ rule mask_fasta_singleNt:
 		PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
 		fasta_mask <(bawk -v perc=$PERC '$1<perc {{print "{wildcards.ssRNA}",NR - 1, NR}}' {input.RNAplfold_prob} | bedtools merge) < {input.fasta} > {output}
 	"""
-
 
 #rule RNAplfold_lunp_singleNt:
 #	input:

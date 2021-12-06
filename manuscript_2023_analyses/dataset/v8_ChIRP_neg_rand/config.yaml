@@ -31,5 +31,5 @@ SINGLE_STRANDEDNESS_CUTOFF:
         - "50"
 
 RNAPLFOLD_WINDOW:
-        - "singleNt"
         - "unpairedWindow"
+#       - "singleNt"
