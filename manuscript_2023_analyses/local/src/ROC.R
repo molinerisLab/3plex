@@ -54,7 +54,7 @@ predictors <- args
 
 ### Definition of ROC curve formula including all predictors
 ### ROC object
-roc_list <- roc(as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors)))), data = z)
+roc_list <- suppressMessages(roc(as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors)))), data = z, direction='>'))
 
 ### Create label strings for the legend
 labels <- predictors
@@ -94,15 +94,17 @@ table_out <- data.frame(pred_1=character(),
 count=1
 for(i in predictors){
   for(j in predictors){
-     roc.pred_1 <- roc(as.formula(paste(outcomes,"~",i)), data= z)
-     roc.pred_2 <- roc(as.formula(paste(outcomes,"~",j)), data= z)
-     pred_1 <- i
-     pred_2 <- j
-     AUC_1 <- roc.pred_1$auc
-     AUC_2 <- roc.pred_2$auc
-     p_value_cfr <- roc.test(roc.pred_1, roc.pred_2)$p.value
-     table_out[count,] <- c(pred_1,pred_2,AUC_1,AUC_2,p_value_cfr)
-     count = count + 1 
+     if(j>i){
+	     roc.pred_1 <- suppressMessages(roc(as.formula(paste(outcomes,"~",i)), data= z, direction=">"))
+	     roc.pred_2 <- suppressMessages(roc(as.formula(paste(outcomes,"~",j)), data= z, direction=">"))
+	     pred_1 <- i
+	     pred_2 <- j
+	     AUC_1 <- roc.pred_1$auc
+	     AUC_2 <- roc.pred_2$auc
+	     p_value_cfr <- roc.test(roc.pred_1, roc.pred_2)$p.value
+	     table_out[count,] <- c(pred_1,pred_2,AUC_1,AUC_2,p_value_cfr)
+	     count = count + 1
+    } 
   }
 }
 
