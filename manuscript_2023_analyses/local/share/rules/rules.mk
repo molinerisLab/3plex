@@ -378,8 +378,9 @@ PROB__fitted_model_unpairedWindow_evaluation_best_param: tpx_paramspace_AUC_cmp
 	bawk '$$RNAplfold_window=="unpairedWindow" && $$predictor1=="PROB__fitted_model"' $< | find_best 1 12 > $@
 
 bestAUC_params.tsv: tpx_paramspace_AUC_cmp
-	bawk '$$RNAplfold_window=="unpairedWindow" && $$predictor1=="PROB__fitted_model"' $< | find_best 1 12 | cut -f 1-9 | \
-	bawk 'BEGIN{print "GeneID","RNA_ss_cutoff","RNAplfold_window","min_length","max_length","error_rate","guanine_rate","filter_repeat","consecutive_errors"} {print}' > $@
+	bawk '$$RNAplfold_window=="unpairedWindow" && $$predictor1=="PROB__fitted_model"' $< | find_best 1 12 > $@
+
+#	bawk 'BEGIN{print "GeneID","RNA_ss_cutoff","RNAplfold_window","min_length","max_length","error_rate","guanine_rate","filter_repeat","consecutive_errors"} {print}' > $@
 
 raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestAUC_params.matrix_reduce: bestAUC_params.tsv
 	matrix_reduce -t 'tpx_paramspace/*_*_unpairedWindow/*.neg_pos_rand.bed/min_length~10/max_length~*/error_rate~20/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic' | filter_1col 1 <(bawk '{print $$1";"$$2";"$$1";"$$5";"$$7";"$$8";"$$9}' $< | unhead) | tr ";" "\t" | bawk '{print $$1,$$8";"$$9,$$10~25}' | grep -v "Stability" > $@
