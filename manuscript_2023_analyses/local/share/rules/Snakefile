@@ -271,11 +271,10 @@ rule custom_summary:
 #		"tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"
 rule summary_covered_by_tts:
 	input:
-		tpx="tpx_paramspace/{ssRNA,[^/]+}_ss{single_strandedness_cutoff}_{window}/{dsDNA,[^/]+}.bed/{path}/raw.tpx",
-		summary="tpx_paramspace/{ssRNA,[^/]+}_ss{single_strandedness_cutoff}_{window}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos",
-		dsDNA_bed="{dsDNA}.bed"
+		tpx="{path}/raw.tpx",
+		summary="{path}/raw.tpx.custom_summary.neg_pos",
 	output:
-		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"	
+		"{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"	
 	shell: """
 		cat {input.summary} \
 		| translate -a -r -v -e 0 \
@@ -357,7 +356,12 @@ rule summary_covered_by_tts_stability_logistic:
 	output:
 		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic"
 	shell: """
-		get_fasta -n data_and_prob < {input} > {output}
+		fasta2tab {input} \
+		| perl -wlane 'BEGIN{{$,="\t"; $neg=0}} \
+			if($neg==1 || ($F[0] eq "coefficients" && $F[1] ne "(Intercept)" && $F[2]<0)){{$neg=1;}} \
+			if($F[0] eq "data_and_prob"){{\
+				 if($F[17] ne "PROB__fitted_model" and $neg){{$F[17]=0}}\
+			 shift(@F); print @F}}' > {output}
 	"""
 
 
@@ -367,7 +371,7 @@ rule compute_AUC_comparison:
 	output:
 		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp"
 	shell: """
-		../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} -O '{wildcards.file_path}/auc_comparison_plot' < {input} > {output}
+		../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} -d "<" -O '{wildcards.file_path}/auc_comparison_plot' < {input} > {output}
 	"""
 
 
