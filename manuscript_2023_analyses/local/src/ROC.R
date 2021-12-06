@@ -7,7 +7,8 @@ suppressMessages(library("optparse"))
 options(error = function() traceback(2))
 
 option_list <- list(
-	make_option(c("-O", "--pdfname"), action="store", default="ROC_comparison", dest="pdf_name", help="Specify the name of the pdf image [default: \"ROC_comparison\"]")
+	make_option(c("-O", "--pdfname"), action="store", default="ROC_comparison", dest="pdf_name", help="Specify the name of the pdf image [default: \"ROC_comparison\"]"),
+        make_option(c("-d", "--direction"), action="store", default="auto", dest="direction", help="in which direction to make the comparison? “auto” (default): automatically define in which group the median is higher and take the direction accordingly. “>”: if the predictor values for the control group are higher than the values of the case group (controls > t >= cases). “<”: if the predictor values for the control group are lower or equal than the values of the case group (controls < t <= cases). You should set this explicity to “>” or “<” whenever you are resampling or randomizing the data, otherwise the curves will be biased towards higher AUC values. [default \"%default\"]")
 )
 
 # Esempio per passare stringa con più elementi da trasformare in un vettore di predittori
@@ -54,7 +55,7 @@ predictors <- args
 
 ### Definition of ROC curve formula including all predictors
 ### ROC object
-roc_list <- suppressMessages(roc(as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors)))), data = z, direction='>'))
+roc_list <- suppressMessages(roc(as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors)))), data = z, direction=opt$direction))
 
 ### Create label strings for the legend
 labels <- predictors
@@ -95,8 +96,8 @@ count=1
 for(i in predictors){
   for(j in predictors){
      if(j>i){
-	     roc.pred_1 <- suppressMessages(roc(as.formula(paste(outcomes,"~",i)), data= z, direction=">"))
-	     roc.pred_2 <- suppressMessages(roc(as.formula(paste(outcomes,"~",j)), data= z, direction=">"))
+	     roc.pred_1 <- suppressMessages(roc(as.formula(paste(outcomes,"~",i)), data= z, direction=opt$direction))
+	     roc.pred_2 <- suppressMessages(roc(as.formula(paste(outcomes,"~",j)), data= z, direction=opt$direction))
 	     pred_1 <- i
 	     pred_2 <- j
 	     AUC_1 <- roc.pred_1$auc
