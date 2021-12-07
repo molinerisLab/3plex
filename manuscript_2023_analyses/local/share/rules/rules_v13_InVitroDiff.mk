@@ -410,3 +410,6 @@ raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestAUC_params.
 
 parameter_evaluation-max_length: tpx_paramspace_AUC_cmp
 	cat $< | round_table -p 3 | find_best -m 1 12 | cut -f -10,12 | sort | uniq | collapsesets 5 | collapsesets 10 > $@
+
+selected_ssRNA.conditions.clean: selected_ssRNA.conditions
+	filter_1col 1 <(cut -f 1 $< | symbol_count | bawk '$$2==1 {print $$1}') < $< > $@

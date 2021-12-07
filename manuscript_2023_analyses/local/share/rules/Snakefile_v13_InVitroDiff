@@ -35,10 +35,13 @@ SCRATCH=os.environ.get("SCRATCH")
 ######################
 #  Triplexator Parameters
 
-TRIPLEXATOR_PARAM=os.environ.get("TRIPLEXATOR_PARAM",None)
-if TRIPLEXATOR_PARAM is None:
-	TRIPLEXATOR_PARAM="-L -1 -e 20 -E -1 -l {}".format(config["TRIPLEXATOR_MIN_LEN"])
+#TRIPLEXATOR_PARAM=os.environ.get("TRIPLEXATOR_PARAM",None)
+#if TRIPLEXATOR_PARAM is None:
+#	TRIPLEXATOR_PARAM="-L -1 -e 20 -E -1 -l {}".format(config["TRIPLEXATOR_MIN_LEN"])
 
+triplexator_paramspace = None
+if os.path.exists('triplexator_params.tsv'):
+	triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\t"))
 
 #######################
 # Other Parameters
@@ -46,12 +49,7 @@ if TRIPLEXATOR_PARAM is None:
 PREDICTORS_COL_NAMES=os.environ.get("PREDICTORS_COL_NAMES",config["PREDICTORS_COL_NAMES"])
 
 
-
 # More parameters are specified in config.yaml
-
-
-triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\t"))
-
 
 
 
@@ -168,34 +166,20 @@ rule get_longest_transcripts:
 	"""
 
 
-rule cCRE_bed:
-	input:
-		CCRE_DIR+"GRCh38-ccREs.bed"
-	output:
-		"cCRE.bed"
-	shell:"""
-		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		bawk '$6=="PLS" || $6=="dELS" || $6=="pELS"' {input} > {output}
-	"""
 
+#############################
+#  Triplex scoring methods  #
+#############################
 
 TRIPLEXATOR_ALN_2_ONE_LINE=""
 if config["TRIPLEXATOR_ALN"]==1:
 	TRIPLEXATOR_ALN_2_ONE_LINE=	"""unhead {output.tpx} -f {output.tpx}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output.tpx}.tmp;""" + \
 					"""mv {output.tpx}.head {output.tpx}; cat {output.tpx}.tmp >> {output.tpx}; rm {output.tpx}.tmp """
 
-
-
-
-
-#############################
-#  Triplex scoring methods  #
-#############################
-
 # target:
 rule all_tpx_paramspace:
 	input:
-		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp", \
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp", \
 			params = triplexator_paramspace.instance_patterns,
 			ssRNA = all_selected_ssRNA_id(),
 			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
@@ -233,13 +217,34 @@ rule triplexator_param_exploration:
 		"""
 	"""
 
+#rule triplexator:
+#	input:
+#		ssRNA_file="{ssRNA}.fa",
+#		dsDNA_file="{dsDNA}.fa"
+#	output:
+#		tpx="{ssRNA}-{dsDNA}.tpx.raw_%s" % TRIPLEXATOR_PARAM.replace(" ",""), 
+#		summary="{ssRNA}-{dsDNA}.tpx.raw_%s.summary" % TRIPLEXATOR_PARAM.replace(" ","")
+#	#log: 
+#	#	"logs/{ssRNA}-{dsDNA}.tpx.log"
+#	#shadow: "shallow"
+#	shell: """
+#		mkdir -p logs;
+#		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
+#		triplexator {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
+#		""" + \
+#		TRIPLEXATOR_ALN_2_ONE_LINE + \
+#		"""
+#		mv {output.tpx}.log logs/
+#	"""
+
+
 
 rule summary_neg_pos:
 	input:
-		summary="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary",
+		summary="{path}raw.tpx.summary",
 		neg_pos_bed="{dsDNA}.bed"
 	output:
-		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary.neg_pos"
+		"{path}raw.tpx.summary.neg_pos"
 	shell: """
 		translate -a -r -v -e 0 {input.summary} 4 < {input.neg_pos_bed} |  bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_length"}} {{print $4,$6,$8,$9,$3-$2}}' > {output}
 	"""
@@ -455,26 +460,6 @@ rule mask_fasta_singleNt:
 #		grep -v '#' {input} | bawk '{{print $1}}' > {output}
 #	"""
 
-#rule triplexator:
-#	input:
-#		ssRNA_file="{ssRNA}.fa",
-#		dsDNA_file="{dsDNA}.fa"
-#	output:
-#		tpx="{ssRNA}-{dsDNA}.tpx.raw_%s" % TRIPLEXATOR_PARAM.replace(" ",""), 
-#		summary="{ssRNA}-{dsDNA}.tpx.raw_%s.summary" % TRIPLEXATOR_PARAM.replace(" ","")
-#	#log: 
-#	#	"logs/{ssRNA}-{dsDNA}.tpx.log"
-#	#shadow: "shallow"
-#	shell: """
-#		mkdir -p logs;
-#		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
-#		triplexator {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
-#		""" + \
-#		TRIPLEXATOR_ALN_2_ONE_LINE + \
-#		"""
-#		mv {output.tpx}.log logs/
-#	"""
-
 #rule triplexator_filter:
 #	input:
 #		"{path}.tpx.raw"
@@ -487,19 +472,16 @@ rule mask_fasta_singleNt:
 
 rule gzip_precomputed_tpx_file:
 	input:
-		raw="{file_name}.tpx.raw",
-		filtered="{file_name}.tpx",
-		summary="{file_name}.tpx.raw.summary"
+		tpx="{file_name}.tpx",
+		summary="{file_name}.tpx.summary"
 	output:
-		raw="precomputed_tpx/{file_name}.tpx.raw.gz",
-		filtered="precomputed_tpx/{file_name}.tpx.gz",
-		summary="precomputed_tpx/{file_name}.tpx.raw.summary.gz"
+		tpx="precomputed_tpx/{file_name}.tpx.gz",
+		summary="precomputed_tpx/{file_name}.tpx.summary.gz"
 	shell:"""
 		mkdir -p precomputed_tpx;
-		gzip < {input.raw} > {output.raw};
-		gzip < {input.filtered} > {output.filtered};
+		gzip < {input.tpx} > {output.tpx};
 		gzip < {input.summary} > {output.summary};
-		rm {input.raw} {input.filtered} {input.summary}
+		rm {input.tpx} {input.summary}
 	"""
 
 
@@ -768,4 +750,22 @@ rule barplot_lncRNA_condition:
 		../../local/src/single_barplot.R < {input} > {output}
 	"""
 
+rule cCRE_matrix:
+	input:
+		in_vitro_diff="%s/hg38-{in_vitro_diff}.signature_only.noCTCF.bed" % config['ENCODE_DIR'],
+		staminal="%s/hg38-{staminal}.signature_only.noCTCF.bed" % config['ENCODE_DIR']
+	output:
+		"cCRE-{in_vitro_diff}-vs-{staminal}.matrix"
+	shell: """
+		matrix_reduce -t '{config[ENCODE_DIR]}/hg38-*.signature_only.noCTCF.bed' -l '{input}' | bawk '{{print $1,$2";"$3";"$4";"$5,$11}}' | tab2matrix -t -r "Region" -e 'Low-DNase' > {output}
+	"""
+
+rule cCRE_bed:
+	input:
+		"{cCRE}.matrix"
+	output:
+		"{cCRE}.bed"
+	shell:"""
+		cut -f 1 {input} | unhead | tr ";" "\t" > {output}
+	"""
 
