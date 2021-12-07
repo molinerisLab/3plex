@@ -330,7 +330,9 @@ tpx_paramspace_AUC_cmp:
 	matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/*/*/*/*/*/*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp' \
 	| grep -v -w pred_1 | tr ";" "\t" \
 	| perl -lane '$$,="\t"; @F=map{s/.*\~//; $$_} @F; print @F' \
-	| cut -f 1-3,5-  > $@
+	| cut -f 1-3,5-  \
+	| bawk '{print $$0; print $$1~9,$$11,$$10,$$13,$$12,$$14}' | sort | uniq > $@
+
 tpx_paramspace_AUC: tpx_paramspace_AUC_cmp	
 	cut -f -10,12 $< > $@
 
@@ -406,3 +408,5 @@ raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestAUC_params.
 	18	PROB__fitted_model
 
 
+parameter_evaluation-max_length: tpx_paramspace_AUC_cmp
+	cat $< | round_table -p 3 | find_best -m 1 12 | cut -f -10,12 | sort | uniq | collapsesets 5 | collapsesets 10 > $@
