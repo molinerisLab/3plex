@@ -7,7 +7,7 @@ configfile: "config.yaml"
 ######################
 #  General Parameters
 
-NCPUS=os.environ.get("NCPUS",2)
+NCPUS=os.environ.get("NCPUS",4)
 PWD=os.environ.get("PWD")
 REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
 BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"bioinfotree/task/"
@@ -72,14 +72,26 @@ rule header_added:
 #####################
 #  Rules
 
-def all_selected_ssRNA_id():
-	with open("selected_ssRNA_id", mode='rt') as fh:
+
+def all_selected_ssRNA_id(input_condition=None):
+	with open("selected_ssRNA.conditions.clean", mode='rt') as fh:
 		for line in fh:
-			yield line.rstrip()
+			(ssRNA, condition, staminal) = line.rstrip().split("\t")
+			if input_condition is not None and condition!=input_condition:
+				continue
+			yield ssRNA
 
 def get_all_triplexator_selected_input(wildcards):
-	for GeneID in all_selected_ssRNA_id():
-                yield "precomputed_tpx/{}-cCRE.bed.tpx.gz".format(GeneID)
+	for condition in config['ENCODE_CONDITIONS']:
+		for ssRNA in all_selected_ssRNA_id(condition):
+			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx",
+					condition = condition, 
+					params = triplexator_paramspace.instance_patterns,
+					ssRNA = ssRNA,
+					single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+					window=config["RNAPLFOLD_WINDOW"]
+				):
+				yield target
 
 rule all_triplexator:
 	input:
@@ -762,9 +774,9 @@ rule cCRE_matrix:
 
 rule cCRE_bed:
 	input:
-		"{cCRE}.matrix"
+		"{condition}_{staminal}-vs-{staminal}.matrix"
 	output:
-		"{cCRE}.bed"
+		"{condition}_{staminal}.bed"
 	shell:"""
 		cut -f 1 {input} | unhead | tr ";" "\t" > {output}
 	"""
