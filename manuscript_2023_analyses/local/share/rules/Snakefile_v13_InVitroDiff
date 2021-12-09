@@ -537,21 +537,19 @@ rule longTarget_best_score_complete_active:
 		cCRE_bed="cCRE-{condition}.neg_pos.bed",
 		tpx_scored="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.{stability_summarize}"
 	output:
-		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.{stability_summarize}.type.pos_neg"
+		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.{stability_summarize}.type.neg_pos"
 	shell:"""
 		unhead {input.tpx_scored} | translate -a -r <(cut -f 4- {input.cCRE_bed}) 1 > {output}
 	"""
 
 rule fisher_select_cutoff:
 	input:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.gz"
+		"{path}/raw.tpx.stability.{stability_summarize}.type.neg_pos"
 	output:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff"
+		"{path}/raw.tpx.stability.{stability_summarize}.fisher_select_cutoff"
 	shell:"""
-		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		zcat {input} | bawk '{{print $1"@"$4,$3,$5}}' | fisher_select_cutoff | tr "@" "\\t" > {output}
+		bawk '{{$2=sprintf("%n",$2); print $3,$2,$4}}' {input} | fisher_select_cutoff > {output}
 	"""
-#zcat {input} | bawk '{{print $1";"$4,int($3/10),$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
 
 
 rule fisher_best_cutoff:
@@ -798,10 +796,10 @@ rule cCRE_bed_type_pre:
 #		translate -a {input.cond_stam_type_pre} 4 < {input.cond_bed} > {output}
 #	"""
 
-def get_all_stab_undercount(wildcards):
+def get_all_stab_fisher(wildcards):
 	for condition in config['ENCODE_CONDITIONS']:
 		for ssRNA in all_selected_ssRNA_id(condition):
-			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx.stability.{stability_summarize}",
+			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx.stability.{stability_summarize}.fisher_select_cutoff",
 					condition = condition, 
 					params = triplexator_paramspace.instance_patterns,
 					ssRNA = ssRNA,
@@ -812,8 +810,8 @@ def get_all_stab_undercount(wildcards):
 				yield target
 
 
-rule all_stab_undercount:
+rule all_stab_fisher:
 	input:
-		get_all_stab_undercount
+		get_all_stab_fisher
 
 
