@@ -413,3 +413,17 @@ parameter_evaluation-max_length: tpx_paramspace_AUC_cmp
 
 selected_ssRNA.conditions.clean: selected_ssRNA.conditions
 	filter_1col 1 <(cut -f 1 $< | symbol_count | bawk '$$2==1 {print $$1}') < $< > $@
+
+cCRE-%.type: cCRE-%.matrix
+	tr ";" "\t" < $< | unhead | bawk '{type=$$5; if(type=="Low-DNase"){type=$$6} print $$4,type}' > $@
+
+cCRE-%.type.bed: cCRE-%-vs-H9.type cCRE-%.bed
+	translate -a $< 4 < $^2 > $@
+cCRE-%.neg_pos.bed: cCRE-%-vs-H9.matrix cCRE-%.type.bed
+	translate -a -r <(tr ";" "\t" < $< | unhead | cut -f 4,5 | bawk '$$2!="Low-DNase" {print $$1,"pos"} $$2=="Low-DNase" {print $$1,"neg"}') 4 < $^2 > $@
+
+cCRE-%.type.bed: cCRE-%-vs-H1.type cCRE-%.bed
+	translate -a $< 4 < $^2 > $@
+cCRE-%.neg_pos.bed: cCRE-%-vs-H1.matrix cCRE-%.type.bed
+	translate -a -r <(tr ";" "\t" < $< | unhead | cut -f 4,5 | bawk '$$2!="Low-DNase" {print $$1,"pos"} $$2=="Low-DNase" {print $$1,"neg"}') 4 < $^2 > $@
+

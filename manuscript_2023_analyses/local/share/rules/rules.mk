@@ -387,10 +387,10 @@ bestAUC_params.tsv: tpx_paramspace_AUC_cmp
 raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestAUC_params.matrix_reduce: bestAUC_params.tsv
 	matrix_reduce -t 'tpx_paramspace/*_*_unpairedWindow/*.neg_pos_rand.bed/min_length~10/max_length~*/error_rate~20/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic' | filter_1col 1 <(bawk '{print $$1";"$$2";"$$1";"$$5";"$$7";"$$8";"$$9}' $< | unhead) | tr ";" "\t" | bawk '{print $$1,$$8";"$$9,$$10~25}' | grep -v "Stability" > $@
 
-.META: raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestAUC_params.matrix_reduce
+.META: raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestParams_bestPredictor.matrix_reduce
 	1	ssRNA	AC018781.1
 	2	DuplexID	chirp_peak_31;AC018781.1
-	3       tpx_count_custom
+	3	tpx_count_custom
 	4	neg_pos
 	5	tpx_count_standard
 	6	t_pot_norm	
@@ -410,3 +410,9 @@ raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestAUC_params.
 
 parameter_evaluation-max_length: tpx_paramspace_AUC_cmp
 	cat $< | round_table -p 3 | find_best -m 1 12 | cut -f -10,12 | sort | uniq | collapsesets 5 | collapsesets 10 > $@
+
+raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestParams_bestPredictor.matrix_reduce: bestParams_bestPredictor.tsv
+	matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/min_length~*/max_length~-1/error_rate~20/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic' | filter_1col 1 <(cut -f1 $<) | tr ";" "\t" | bawk '{print $$1,$$9";"$$10,$$11~26}' | grep -v "Stability" > $@
+
+bestParams_bestPredictor.tsv: tpx_paramspace_AUC_cmp
+	bawk '$$5==-1' $< | find_best -m 1 12 | cut -f -10,12 | sort | uniq | collapsesets 3 | bawk '$$1!="LINC01605" {split($$3,a,";"); print $$1";"$$2";"a[1]";"$$1";"$$4";"$$7";"$$8";"$$9,$$1,$$10}' > $@

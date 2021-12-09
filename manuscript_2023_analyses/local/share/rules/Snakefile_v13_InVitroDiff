@@ -7,7 +7,7 @@ configfile: "config.yaml"
 ######################
 #  General Parameters
 
-NCPUS=os.environ.get("NCPUS",4)
+NCPUS=os.environ.get("NCPUS",8)
 PWD=os.environ.get("PWD")
 REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
 BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"bioinfotree/task/"
@@ -198,6 +198,7 @@ rule all_tpx_paramspace:
 			window=config["RNAPLFOLD_WINDOW"]
 		)
 
+
 rule triplexator_param_exploration:
 	input:
 		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta",
@@ -316,7 +317,7 @@ rule stability_best:
 	input:
 		"{file_path}/raw.tpx.stability"
 	output:
-		"{file_path}/raw.best.tpx.stability"
+		"{file_path}/raw.tpx.stability.best"
 	shell: """
 		find_best 4 14 < {input} > {output}
 	"""
@@ -344,7 +345,7 @@ rule stability_tot_undercount:
 rule summary_covered_by_tts_stability:
 	input:
 		summary			 = "{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts",
-		stability_best           = "{file_path}/raw.best.tpx.stability.header_added",
+		stability_best           = "{file_path}/raw.tpx.stability.best.header_added",
 		stability_tot_overcount  = "{file_path}/raw.tpx.stability.tot_overcount",
 		stability_tot_undercount = "{file_path}/raw.tpx.stability.tot_undercount"
 	output:
@@ -533,14 +534,12 @@ rule longTarget_best_score_complete:
 
 rule longTarget_best_score_complete_active:
 	input:
-		cCRE_bed="cCRE.bed",
-		tpx_best_complete="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.gz",
-		cond_neg_pos_bed="{condition}.{neg_pos}.bed"
+		cCRE_bed="cCRE-{condition}.neg_pos.bed",
+		tpx_scored="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.{stability_summarize}"
 	output:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos,\w+}.gz"
+		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.{stability_summarize}.type.pos_neg"
 	shell:"""
-		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		zcat {input.tpx_best_complete} | translate -a -r -k <(cut -f 4- {input.cond_neg_pos_bed}) 2 | gzip > {output}
+		unhead {input.tpx_scored} | translate -a -r <(cut -f 4- {input.cCRE_bed}) 1 > {output}
 	"""
 
 rule fisher_select_cutoff:
@@ -642,7 +641,7 @@ rule assoc_genehancer:
 	12      Orientation
 	13      Guanine_rate
 
-.META: *.tpx.stability.gz *.tpx.stability
+.META: *.tpx.stability.gz *.tpx.stability *.tpx.stability.best
 	1	ssRNA
 	2	TFO_start
 	3	TFO_end
@@ -780,4 +779,40 @@ rule cCRE_bed:
 	shell:"""
 		cut -f 1 {input} | unhead | tr ";" "\t" > {output}
 	"""
+rule cCRE_bed_type_pre:
+	input:
+		"cCRE-{cond_vs_stem}.matrix"
+	output:
+		"cCRE-{cond_vs_stem}.type"
+	shell:"""
+		unhead {input} | tr ";" "\t" | bawk '{{type=$5; if(type=="Low-DNase"){{type=$6}} print $4,type}}' > {output}
+	"""
+
+#rule cCRE_bed_type:
+#	input:
+#		cond_stam_type_pre="cCRE-{condition}-vs-{staminal}.type"
+#		cond_bed="cCRE-{condition}.bed"
+#	output:
+#		"cCRE-{condition}.type.bed"
+#	shell:"""
+#		translate -a {input.cond_stam_type_pre} 4 < {input.cond_bed} > {output}
+#	"""
+
+def get_all_stab_undercount(wildcards):
+	for condition in config['ENCODE_CONDITIONS']:
+		for ssRNA in all_selected_ssRNA_id(condition):
+			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx.stability.tot_undercount",
+					condition = condition, 
+					params = triplexator_paramspace.instance_patterns,
+					ssRNA = ssRNA,
+					single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+					window=config["RNAPLFOLD_WINDOW"]
+				):
+				yield target
+
+
+rule all_stab_undercount:
+	input:
+		get_all_stab_undercount
+
 
