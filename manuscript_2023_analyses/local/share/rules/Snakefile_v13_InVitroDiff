@@ -801,12 +801,13 @@ rule cCRE_bed_type_pre:
 def get_all_stab_undercount(wildcards):
 	for condition in config['ENCODE_CONDITIONS']:
 		for ssRNA in all_selected_ssRNA_id(condition):
-			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx.stability.tot_undercount",
+			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx.stability.{stability_summarize}",
 					condition = condition, 
 					params = triplexator_paramspace.instance_patterns,
 					ssRNA = ssRNA,
 					single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
-					window=config["RNAPLFOLD_WINDOW"]
+					window=config["RNAPLFOLD_WINDOW"],
+					stability_summarize=config['STABILITY_SUMMARIZE_METHODS']
 				):
 				yield target
 
