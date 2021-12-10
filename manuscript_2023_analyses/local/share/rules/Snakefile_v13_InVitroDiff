@@ -359,8 +359,11 @@ rule stability_norm_undercount:
 	shell:"""
 		bawk '{{print $Duplex_ID,$Stability_tot_undercount}}' {input.tot_undercount} \
 		| translate -a -r {input.duplex_length} 1 \
-		| bawk 'BEGIN{{print "Duplex_ID","Stability_norm_undercount"}} NR>1 {{print $1,$2/$3}}' > {output}
+		| bawk 'NR>1{{print $1,$2/$3}}' \
+		| enumerate_rows -n -r | bawk 'BEGIN{{print "Duplex_ID","Stability_norm_undercount"}} NR>1 {{printf("%s\\t%.2f\\n", $1,$3)}}' > {output}
 	"""
+
+
 
 rule summary_covered_by_tts_stability_logistic_full:
 	input:
@@ -551,9 +554,10 @@ rule fisher_select_cutoff:
 	output:
 		"{path}/raw.tpx.stability.{stability_summarize}.type.neg_pos.fisher_select_cutoff"
 	shell:"""
-		bawk '{{$2=sprintf("%d",$2); print $3,$2,$4}}' {input} | fisher_select_cutoff > {output}
+		bawk '{{print $3,$2,$4}}' {input} | fisher_select_cutoff > {output}
 	"""
-
+#For stability.tot_undercount
+#bawk '{{$2=sprintf("%d",$2); print $3,$2,$4}}' {input} | fisher_select_cutoff > {output}
 
 rule fisher_best_cutoff:
 	input:
