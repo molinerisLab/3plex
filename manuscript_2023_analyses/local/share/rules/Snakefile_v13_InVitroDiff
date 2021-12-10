@@ -213,10 +213,10 @@ rule triplexator_param_exploration:
 
 rule summary_neg_pos:
 	input:
-		summary="{path}raw.tpx.summary",
-		neg_pos_bed="{dsDNA}.bed"
+		summary="{path1}/cCRE-{dsDNA}.bed/{path2}/raw.tpx.summary",
+		neg_pos_bed="cCRE-{dsDNA}.bed"
 	output:
-		"{path}raw.tpx.summary.neg_pos"
+		"{path1}/cCRE-{dsDNA}.bed/{path2}/raw.tpx.summary.neg_pos"
 	shell: """
 		translate -a -r -v -e 0 {input.summary} 4 < {input.neg_pos_bed} |  bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_length"}} {{print $4,$6,$8,$9,$3-$2}}' > {output}
 	"""
@@ -325,6 +325,41 @@ rule summary_covered_by_tts_stability:
 		| translate -a -r -v -e 0 {input.stability_tot_undercount} 1 > {output}.tmp
 		bawk 'NR==1 {{print $0,"Stability_norm_overcount","Stability_norm_undercount" }} NR>1 {{print $0,$Stability_tot_overcount/$Duplex_length, $Stability_tot_undercount/$Duplex_length}}' {output}.tmp > {output}
 		rm {output}.tmp
+	"""
+
+#rule stability_norm_undercount:
+#	input:
+#		stability_tot_undercount = "{file_path}/raw.tpx.stability.tot_undercount",
+#		summary			 = "{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"
+#	output:
+#		"{file_path}/raw.tpx.stability.norm_undercount"
+#	shell: """
+#		cat {input.summary} \
+#		| translate -a -r -v -e 0 {input.stability_tot_undercount} 1 \
+#		| unhead | bawk 'BEGIN{{print "Duplex_ID","Stability_norm_undercount"}} {{print $1,$12/$6}}' > {output}
+#	"""
+
+
+rule duplex_length:
+	input:
+		"cCRE-{condition}.bed"
+	output:
+		"cCRE-{condition}.duplex_length"
+	shell:"""
+		bawk 'BEGIN{{print "Duplex_ID","Duplex_length"}} {{print $4,$3-$2}}' {input} > {output}
+	"""
+
+
+rule stability_norm_undercount:
+	input:
+		duplex_length="cCRE-{condition}.duplex_length",
+		tot_undercount="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.tot_undercount"
+	output:
+		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.norm_undercount"
+	shell:"""
+		bawk '{{print $Duplex_ID,$Stability_tot_undercount}}' {input.tot_undercount} \
+		| translate -a -r {input.duplex_length} 1 \
+		| bawk 'BEGIN{{print "Duplex_ID","Stability_norm_undercount"}} NR>1 {{print $1,$2/$3}}' > {output}
 	"""
 
 rule summary_covered_by_tts_stability_logistic_full:
