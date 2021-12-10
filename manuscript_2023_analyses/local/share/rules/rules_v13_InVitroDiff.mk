@@ -413,6 +413,8 @@ parameter_evaluation-max_length: tpx_paramspace_AUC_cmp
 
 selected_ssRNA.conditions.clean: selected_ssRNA.conditions
 	filter_1col 1 <(cut -f 1 $< | symbol_count | bawk '$$2==1 {print $$1}') < $< > $@
+selected_ssRNA.conditions.up_down.balanced.clean: selected_ssRNA.conditions.up_down.balanced
+	filter_1col 1 <(cut -f 1 $< | symbol_count | bawk '$$2==1 {print $$1}') < $< > $@
 
 cCRE-%.type: cCRE-%.matrix
 	tr ";" "\t" < $< | unhead | bawk '{type=$$5; if(type=="Low-DNase"){type=$$6} print $$4,type}' > $@
