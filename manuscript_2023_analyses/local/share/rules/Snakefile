@@ -181,8 +181,6 @@ rule cCRE_bed:
 
 TRIPLEXATOR_ALN_2_ONE_LINE=""
 if config["TRIPLEXATOR_ALN"]==1:
-	TRIPLEXATOR_ALN_2_ONE_LINE=	"""unhead {output.tpx} -f {output.tpx}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output.tpx}.tmp;""" + \
-					"""mv {output.tpx}.head {output.tpx}; cat {output.tpx}.tmp >> {output.tpx}; rm {output.tpx}.tmp """
 
 
 
@@ -209,7 +207,7 @@ rule triplexator_param_exploration:
 	params:
 		params_instance=triplexator_paramspace.instance
 	output:
-		tpx	="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx",
+		tpx	="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.stability.gz",
 		summary ="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary"
 	wildcard_constraints:
 		single_strandedness_cutoff	= "\d+",
@@ -228,9 +226,10 @@ rule triplexator_param_exploration:
 			-fr {wildcards.filter_repeat} \
 			-c  {wildcards.consecutive_errors} \
 			-fm 0 -of {config[TRIPLEXATOR_ALN]} -o raw.tpx -rm 2 -p {NCPUS} -ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file}"
-		""" + \
-		TRIPLEXATOR_ALN_2_ONE_LINE + \
-		"""
+		cd $(dirname {output.tpx});
+		unhead raw.tpx -f raw.tpx.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output.tpx}.tmp;
+		cat raw.tpx.head {output.tpx}.tmp | gzip >{output.tpx}
+		rm raw.tpx raw.tpx.head {output.tpx}.tmp
 	"""
 
 
