@@ -228,10 +228,11 @@ rule triplexator_param_exploration:
 			-fm 0 -of {config[TRIPLEXATOR_ALN]} -o raw.tpx -rm 2 -p {NCPUS} -ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file}"
 		cd $(dirname {output.tpx});
 		unhead raw.tpx -f raw.tpx.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output.tpx}.tmp;
-		cat raw.tpx.head {output.tpx}.tmp | gzip >{output.tpx}
+		cat {output.tpx}.tmp | ../../local/src/tpx_thermal_stability.py | gzip > {output.tpx}
 		rm raw.tpx raw.tpx.head {output.tpx}.tmp
 	"""
-
+# cat raw.tpx.head {output.tpx}.tmp | gzip > {output.tpx}
+# rm raw.tpx raw.tpx.head {output.tpx}.tmp
 
 rule summary_neg_pos:
 	input:
@@ -245,7 +246,7 @@ rule summary_neg_pos:
 
 rule custom_summary:
 	input:
-		tpx="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx",
+		tpx="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.stability.gz",
 		summary_neg_pos="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.summary.neg_pos",
 		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta"
 	output:
@@ -256,9 +257,9 @@ rule custom_summary:
 		max_length="-*\d+"
 	shell: """
 		unhead {input.summary_neg_pos} \
-		| translate -a -v -e 0 -z <(unhead {input.tpx} | cut -f 4 | symbol_count) 1 \
+		| translate -a -v -e 0 -z <(zcat {input.tpx} | unhead | cut -f 4 | symbol_count) 1 \
 		| append_each_row "$(unhead {input.ssRNA_file} | tr -d "N\\n" | wc -c)"  \
-        	| ../../local/src/tiplexator_t_pot_norm.py -l {wildcards.min_length} -L {wildcards.max_length} > {output}
+        | ../../local/src/tiplexator_t_pot_norm.py -l {wildcards.min_length} -L {wildcards.max_length} > {output}
 	"""
 
 # Changed from:
@@ -270,7 +271,7 @@ rule custom_summary:
 #		"tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"
 rule summary_covered_by_tts:
 	input:
-		tpx="{path}/raw.tpx",
+		tpx="{path}/raw.tpx.stability.gz",
 		summary="{path}/raw.tpx.custom_summary.neg_pos",
 	output:
 		"{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"	
@@ -285,37 +286,37 @@ rule summary_covered_by_tts:
 		| bawk 'NR==1 {{print $0,"TTS_covered_frac"}} NR>1 {{ print $0,$10/$6}}'> {output}
 	"""
 
-rule tpx_stabilty_generic:
-	input:
-		"{file_path}.tpx"
-	output:
-		"{file_path}.tpx.stability"
-	shell:"""
-		cat {input} | unhead | ../../local/src/tpx_thermal_stability.py > {output}
-	"""
+#rule tpx_stabilty_generic:
+#	input:
+#		"{file_path}.tpx.gz"
+#	output:
+#		"{file_path}.tpx.stability"
+#	shell:"""
+#		cat {input} | unhead | ../../local/src/tpx_thermal_stability.py > {output}
+#	"""
 
 rule stability_best:
 	input:
-		"{file_path}/raw.tpx.stability"
+		"{file_path}/raw.tpx.stability.gz"
 	output:
 		"{file_path}/raw.best.tpx.stability"
 	shell: """
-		find_best 4 14 < {input} > {output}
+		zcat {input} | find_best 4 14 > {output}
 	"""
 
 rule stability_tot_overcount:
 	input:
-		"{file_path}/raw.tpx.stability"
+		"{file_path}/raw.tpx.stability.gz"
 	output:
 		"{file_path}/raw.tpx.stability.tot_overcount"
 	shell: """
-		cut -f 4,14 < {input} | bsort | stat_base -g -t \
+		zcat {input} | cut -f 4,14 | bsort | stat_base -g -t \
 		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_overcount"}} {{print}}' > {output}
 	"""
 
 rule stability_tot_undercount:
 	input:
-		"{file_path}/raw.tpx.stability"
+		"{file_path}/raw.tpx.stability.gz"
 	output:
 		"{file_path}/raw.tpx.stability.tot_undercount"
 	shell: """
@@ -484,22 +485,22 @@ rule mask_fasta_singleNt:
 #	"""
 
 
-rule gzip_precomputed_tpx_file:
-	input:
-		raw="{file_name}.tpx.raw",
-		filtered="{file_name}.tpx",
-		summary="{file_name}.tpx.raw.summary"
-	output:
-		raw="precomputed_tpx/{file_name}.tpx.raw.gz",
-		filtered="precomputed_tpx/{file_name}.tpx.gz",
-		summary="precomputed_tpx/{file_name}.tpx.raw.summary.gz"
-	shell:"""
-		mkdir -p precomputed_tpx;
-		gzip < {input.raw} > {output.raw};
-		gzip < {input.filtered} > {output.filtered};
-		gzip < {input.summary} > {output.summary};
-		rm {input.raw} {input.filtered} {input.summary}
-	"""
+#rule gzip_precomputed_tpx_file:
+#	input:
+#		raw="{file_name}.tpx.raw",
+#		filtered="{file_name}.tpx",
+#		summary="{file_name}.tpx.raw.summary"
+#	output:
+#		raw="precomputed_tpx/{file_name}.tpx.raw.gz",
+#		filtered="precomputed_tpx/{file_name}.tpx.gz",
+#		summary="precomputed_tpx/{file_name}.tpx.raw.summary.gz"
+#	shell:"""
+#		mkdir -p precomputed_tpx;
+#		gzip < {input.raw} > {output.raw};
+#		gzip < {input.filtered} > {output.filtered};
+#		gzip < {input.summary} > {output.summary};
+#		rm {input.raw} {input.filtered} {input.summary}
+#	"""
 
 
 #rule link_tpx:
