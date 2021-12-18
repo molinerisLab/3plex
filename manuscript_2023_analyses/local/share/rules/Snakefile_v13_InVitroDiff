@@ -152,7 +152,7 @@ rule all_tpx_paramspace:
 			window=config["RNAPLFOLD_WINDOW"]
 		)
 
-rule triplexator_param_exploration:
+rule triplexator_param_exploration_ivan:
 		input:
 			ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta",
 			dsDNA_file="{dsDNA}.fa"
@@ -178,10 +178,41 @@ rule triplexator_param_exploration:
 						-c  {wildcards.consecutive_errors} \
 						-fm 0 -of {config[TRIPLEXATOR_ALN]} -o raw.tpx -rm 2 -p {NCPUS} -ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file}"
 				cd $(dirname {output.tpx});
-				unhead raw.tpx -f raw.tpx.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output.tpx}.tmp;
+				unhead raw.tpx -f raw.tpx.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > raw.tpx.stability.gz.tmp; cd -;
 				cat {output.tpx}.tmp | ../../local/src/tpx_thermal_stability.py | gzip > {output.tpx}
-				rm raw.tpx raw.tpx.head {output.tpx}.tmp
+				cd $(dirname {output.tpx});
+				rm raw.tpx raw.tpx.head raw.tpx.stability.gz.tmp
 			"""
+
+#rule triplexator_param_exploration:
+#		input:
+#			ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta",
+#			dsDNA_file="{dsDNA}.fa"
+#		params:
+#			params_instance=triplexator_paramspace.instance
+#		output:
+#			tpx_tmp  =temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx"),
+#			tpx_stab ="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.stability.gz",
+#			summary  ="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary"
+#		wildcard_constraints:
+#			single_strandedness_cutoff      = "\d+",
+#			window                          = "\w+",
+#			ssRNA                           = "[^/]+",
+#			dsDNA                           = "[^/]+"
+#		shell: """
+#				docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
+#				triplexator \
+#						-l  {wildcards.min_length} \
+#						-L  {wildcards.max_length} \
+#						-e  {wildcards.error_rate} \
+#						-g  {wildcards.guanine_rate} \
+#						-fr {wildcards.filter_repeat} \
+#						-c  {wildcards.consecutive_errors} \
+#						-fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx_tmp} -rm 2 -p {NCPUS} -ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file}"
+#				unhead {output.tpx_tmp} -f raw.tpx.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output.tpx_stab}.tmp;
+#				cat {output.tpx_stab}.tmp | ../../local/src/tpx_thermal_stability.py | gzip > {output.tpx_stab}
+#				rm raw.tpx.head {output.tpx_stab}.tmp
+#			"""
 # cat raw.tpx.head {output.tpx}.tmp | gzip > {output.tpx}
 # rm raw.tpx raw.tpx.head {output.tpx}.tmp
 
@@ -261,11 +292,11 @@ rule summary_covered_by_tts:
 		"""
 #rule tpx_stabilty_generic:
 #	input:
-#		"{file_path}.tpx"
+#		"{file_path}.tpx.gz"
 #	output:
-#		"{file_path}.tpx.stability"
+#		"{file_path}.tpx.stability.gz"
 #	shell:"""
-#		cat {input} | unhead | ../../local/src/tpx_thermal_stability.py > {output}
+#		zcat {input} | unhead | ../../local/src/tpx_thermal_stability.py > {output}
 #	"""
 
 rule stability_best:
