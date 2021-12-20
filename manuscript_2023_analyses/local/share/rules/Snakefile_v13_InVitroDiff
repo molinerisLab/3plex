@@ -327,6 +327,15 @@ rule stability_best_summarize:
 		bawk '{{print $Duplex_ID,$Stability}}' {input} > {output}
 	"""
 
+rule tpx_score_best_summarize:
+	input:
+		"{file_path}/raw.tpx.stability.gz"
+	output:
+		"{file_path}/raw.tpx.tpx_score.best"
+	shell: """
+		bawk '{{print $Duplex_ID,$Score}}' {input} | find_best 1 2 > {output}
+	"""
+
 rule stability_tot_undercount:
 	input:
 		"{file_path}/raw.tpx.stability.gz"
@@ -565,21 +574,21 @@ rule longTarget_best_score_complete:
 	""" 
 
 
-rule longTarget_best_score_complete_active:
+rule dsDNA_scored_neg_pos:
 	input:
 		cCRE_bed="cCRE-{condition}.neg_pos.bed",
-		tpx_scored="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.{stability_summarize}"
+		dsDNA_scored="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.{summarize}"
 	output:
-		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.{stability_summarize}.type.neg_pos"
+		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.{summarize}.type.neg_pos"
 	shell:"""
-		unhead {input.tpx_scored} | translate -a -r <(cut -f 4- {input.cCRE_bed}) 1 > {output}
+		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 {input.dsDNA_scored} 1 > {output}
 	"""
 
 rule fisher_select_cutoff:
 	input:
-		"{path}/raw.tpx.stability.{stability_summarize}.type.neg_pos"
+		"{path}/raw.tpx.{summarize}.type.neg_pos"
 	output:
-		"{path}/raw.tpx.stability.{stability_summarize}.type.neg_pos.fisher_select_cutoff"
+		"{path}/raw.tpx.{summarize}.type.neg_pos.fisher_select_cutoff"
 	shell:"""
 		bawk '{{print $3,$2,$4}}' {input} | fisher_select_cutoff > {output}
 	"""
@@ -833,13 +842,13 @@ rule cCRE_bed_type_pre:
 def get_all_stab_fisher(wildcards):
 	for condition in config['ENCODE_CONDITIONS']:
 		for ssRNA in all_selected_ssRNA_id(condition):
-			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx.stability.{stability_summarize}.type.neg_pos.fisher_select_cutoff",
+			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx.{summarize}.type.neg_pos.fisher_select_cutoff",
 					condition = condition, 
 					params = triplexator_paramspace.instance_patterns,
 					ssRNA = ssRNA,
 					single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
 					window=config["RNAPLFOLD_WINDOW"],
-					stability_summarize=config['STABILITY_SUMMARIZE_METHODS']
+					summarize=config['TPXcCRE_SCORE_SUMMARIZE_METHODS']
 				):
 				yield target
 
