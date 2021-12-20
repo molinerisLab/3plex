@@ -1,0 +1,22 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+setwd("/sto1/epigen/TPXcCRE/dataset/v13_InVitroDiff")
+
+library(ggplot2)
+library(dplyr)
+z<-read.table("tpx_paramspace.fisher_select_cutoff.matrix.best.up_down", header = T)
+z$mark_seqc<-as.factor(z$mark_seqc)
+
+ggplot(data=z %>% filter(min_length==10 & cCRE_type=="dELS" & condition=="NPC_H9"), aes(x=reorder(ssRNA,-TPXcCRE_score), y=TPXcCRE_score, fill=mark_seqc))+geom_col()+facet_grid(condition~cCRE_type,scales="free_x")+theme_bw()+theme(text =element_text(size=11),axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+geom_hline(yintercept=log10(0.05),linetype="dashed")+geom_hline(yintercept=-log10(0.05), linetype="dashed")+geom_hline(yintercept=0, linetype="dotted")
+
+
+#ggplot(data=z_sel, aes(x=reorder(lncRNA,-score), y=score, color=upregulated, size=len))+geom_point()+facet_wrap(~cCRE,scales="free_x",ncol=1)+theme_bw()+theme(text =element_text(size=18),axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+geom_hline(yintercept=log10(0.05),linetype="dashed")+geom_hline(yintercept=-log10(0.05), linetype="dashed")+geom_hline(yintercept=0, linetype="dotted")
+
+```
+
+
+

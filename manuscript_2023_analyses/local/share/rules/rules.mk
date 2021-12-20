@@ -416,3 +416,7 @@ raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestParams_best
 
 bestParams_bestPredictor.tsv: tpx_paramspace_AUC_cmp
 	bawk '$$5==-1' $< | find_best -m 1 12 | cut -f -10,12 | sort | uniq | collapsesets 3 | bawk '$$1!="LINC01605" {split($$3,a,";"); print $$1";"$$2";"a[1]";"$$1";"$$4";"$$7";"$$8";"$$9,$$1,$$10}' > $@
+
+tpx_paramspace_AUC_cmp.signif_t_pot_norm: tpx_paramspace_AUC_cmp
+	bawk '$$5==-1 && $$11=="t_pot_norm" && $$1!="LINC01605"' $< | find_best -m 1 12 | sort | uniq | collapsesets 3 > $@
+

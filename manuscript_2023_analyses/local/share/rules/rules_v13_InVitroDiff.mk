@@ -429,3 +429,33 @@ cCRE-%.type.bed: cCRE-%-vs-H1.type cCRE-%.bed
 cCRE-%.neg_pos.bed: cCRE-%-vs-H1.matrix cCRE-%.type.bed
 	translate -a -r <(tr ";" "\t" < $< | unhead | cut -f 4,5 | bawk '$$2!="Low-DNase" {print $$1,"pos"} $$2=="Low-DNase" {print $$1,"neg"}') 4 < $^2 > $@
 
+tpx_paramspace.fisher_select_cutoff.matrix:
+	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/cCRE-*.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.*.type.neg_pos.fisher_select_cutoff' | tr ";" "\t" > $@
+
+tpx_paramspace.fisher_select_cutoff.matrix.best: tpx_paramspace.fisher_select_cutoff.matrix
+	find_best -s -r 1:11 18 < $< | tr ";" "\t" > $@
+
+.META: tpx_paramspace.fisher_select_cutoff.matrix tpx_paramspace.fisher_select_cutoff.matrix.best
+	1	ssRNA	AC004797.1
+	2	secondary_structure	0
+	3	condition	HEP_H9
+	4	min_length	10
+	5	max_length	-1
+	6	error_rate	20
+	7	guanine_rate	10
+	8	filter_repeat	off
+	9	consecutive_errors	1
+	10	score_type	stability.norm_undercount
+	11	cCRE_type	dELS
+	12	score_cutoff	0.98
+	13	greater_positive
+	14	lower_positive
+	15	greater_negative
+	16	lower_negative
+	17	oddsratio	2.345776
+	18	Pvalue	2.07884e-24
+	19	TPXcCRE_score	23.682180
+
+tpx_paramspace.fisher_select_cutoff.matrix.best.up_down: selected_ssRNA.conditions.up_down.balanced.clean tpx_paramspace.fisher_select_cutoff.matrix.best.header_added
+	translate -a <(bawk 'BEGIN{print "ssRNA", "condition", "staminal", "mark_seqc", "logFC"} {print}' $<) 1 < $^2 > $@
+
