@@ -1,0 +1,49 @@
+TRIPLEXATOR_MIN_LEN: 8
+
+TRIPLEXATOR_SCORE_CUTOFF: 8
+
+TRIPLEXATOR_DOCKER: "v1.3.2_l6"
+# v1.3.2_l6 | v0.02
+
+TRIPLEXATOR_ALN: 1
+# 1 | 0
+
+OUTCOMES_COL_NAME: "neg_pos"
+
+PREDICTORS_COL_NAMES:
+        - "Stability_norm_undercount"
+        - "Stability_norm_overcount"
+        - "Stability_best"
+        - "t_pot_custom"
+        - "t_pot_norm"
+        - "PROB__fitted_model"
+       
+RNAPLFOLD_WINDOW_SIZE: 200
+
+RNAPLFOLD_SPAN_SIZE: 150
+
+RNAPLFOLD_UNPAIRED_WINDOW: 8
+
+SINGLE_STRANDEDNESS_CUTOFF:
+        - "0"
+#        - "10"
+#        - "20"
+#        - "50"
+
+RNAPLFOLD_WINDOW:
+        - "unpairedWindow"
+#       - "singleNt"
+#
+
+ENCODE_DIR: /sto1/ref/bioinfotree/task/encode-screen/dataset/v13
+ENCODE_CONDITIONS:
+        - HEP_H9
+        - NPC_H9
+        - MESEND_H1
+        - MESENC_H1
+
+TPXcCRE_SCORE_SUMMARIZE_METHODS:
+        - stability.norm_undercount
+        - stability.best
+        - tpx_score.best
+
