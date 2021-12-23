@@ -1,7 +1,6 @@
 from snakemake.utils import Paramspace
 import pandas as pd
 
-
 configfile: "config.yaml"
 
 ######################
@@ -52,6 +51,7 @@ PREDICTORS_COL_NAMES=os.environ.get("PREDICTORS_COL_NAMES",config["PREDICTORS_CO
 # More parameters are specified in config.yaml
 
 
+include: "config.sk"
 
 #####################
 #  Generic rules
@@ -73,42 +73,19 @@ rule header_added:
 #  Rules
 
 
-def all_selected_ssRNA_id(input_condition=None):
-	with open("selected_ssRNA.conditions.up_down.balanced.clean", mode='rt') as fh:
-		for line in fh:
-			(ssRNA, condition, staminal, up_down, logFC) = line.rstrip().split("\t")
-			if input_condition is not None and condition!=input_condition:
-				continue
-			yield ssRNA
-
-def get_all_triplexator_selected_input(wildcards):
-	for condition in config['ENCODE_CONDITIONS']:
-		for ssRNA in all_selected_ssRNA_id(condition):
-			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx",
-					condition = condition, 
-					params = triplexator_paramspace.instance_patterns,
-					ssRNA = ssRNA,
-					single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
-					window=config["RNAPLFOLD_WINDOW"]
-				):
-				yield target
-
-rule all_triplexator:
-	input:
-		get_all_triplexator_selected_input
 
 
-rule cCRE_fasta:
-	input:
-		assembly=GENCODE_DIR+"/GRCh38.primary_assembly.genome.clean_id.fa",
-		cCRE_bed="{path}.bed"
-	output:
-		"{path}.bed.fa"
+#rule cCRE_fasta:
+#	input:
+#		assembly=GENCODE_DIR+"/GRCh38.primary_assembly.genome.clean_id.fa",
+#		cCRE_bed="{path}.bed"
+#	output:
+#		"{path}.bed.fa"
 #	priority: 100
-	shell:"""
-		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}
-	"""
+#	shell:"""
+#		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+#		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}
+#	"""
 
 rule get_fasta:
 	input:  
@@ -123,8 +100,6 @@ rule get_fasta:
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		get_fasta -i {wildcards.GeneID} < {input} > {output}
 	"""
-
-ruleorder: cCRE_fasta > get_fasta
 
 rule get_longest_transcripts:
 	input:
@@ -142,7 +117,7 @@ rule get_longest_transcripts:
 #  Triplex scoring methods  #
 #############################
 
-# target:
+# this rules make sense only in v8
 rule all_tpx_paramspace:
 	input:
 		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp", \
@@ -152,7 +127,7 @@ rule all_tpx_paramspace:
 			window=config["RNAPLFOLD_WINDOW"]
 		)
 
-rule triplexator_param_exploration_ivan:
+rule triplexator_param_exploration:
 		input:
 			ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta",
 			dsDNA_file="{dsDNA}.fa"
@@ -183,61 +158,6 @@ rule triplexator_param_exploration_ivan:
 				cd $(dirname {output.tpx});
 				rm raw.tpx raw.tpx.head raw.tpx.stability.gz.tmp
 			"""
-
-#rule triplexator_param_exploration:
-#		input:
-#			ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta",
-#			dsDNA_file="{dsDNA}.fa"
-#		params:
-#			params_instance=triplexator_paramspace.instance
-#		output:
-#			tpx_tmp  =temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx"),
-#			tpx_stab ="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.stability.gz",
-#			summary  ="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary"
-#		wildcard_constraints:
-#			single_strandedness_cutoff      = "\d+",
-#			window                          = "\w+",
-#			ssRNA                           = "[^/]+",
-#			dsDNA                           = "[^/]+"
-#		shell: """
-#				docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
-#				triplexator \
-#						-l  {wildcards.min_length} \
-#						-L  {wildcards.max_length} \
-#						-e  {wildcards.error_rate} \
-#						-g  {wildcards.guanine_rate} \
-#						-fr {wildcards.filter_repeat} \
-#						-c  {wildcards.consecutive_errors} \
-#						-fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx_tmp} -rm 2 -p {NCPUS} -ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file}"
-#				unhead {output.tpx_tmp} -f raw.tpx.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output.tpx_stab}.tmp;
-#				cat {output.tpx_stab}.tmp | ../../local/src/tpx_thermal_stability.py | gzip > {output.tpx_stab}
-#				rm raw.tpx.head {output.tpx_stab}.tmp
-#			"""
-# cat raw.tpx.head {output.tpx}.tmp | gzip > {output.tpx}
-# rm raw.tpx raw.tpx.head {output.tpx}.tmp
-
-
-#rule triplexator:
-#	input:
-#		ssRNA_file="{ssRNA}.fa",
-#		dsDNA_file="{dsDNA}.fa"
-#	output:
-#		tpx="{ssRNA}-{dsDNA}.tpx.raw_%s" % TRIPLEXATOR_PARAM.replace(" ",""), 
-#		summary="{ssRNA}-{dsDNA}.tpx.raw_%s.summary" % TRIPLEXATOR_PARAM.replace(" ","")
-#	#log: 
-#	#	"logs/{ssRNA}-{dsDNA}.tpx.log"
-#	#shadow: "shallow"
-#	shell: """
-#		mkdir -p logs;
-#		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
-#		triplexator {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
-#		""" + \
-#		TRIPLEXATOR_ALN_2_ONE_LINE + \
-#		"""
-#		mv {output.tpx}.log logs/
-#	"""
-
-
 
 rule summary_neg_pos:
 	input:
