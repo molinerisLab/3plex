@@ -414,7 +414,7 @@ parameter_evaluation-max_length: tpx_paramspace_AUC_cmp
 selected_ssRNA.conditions.clean: selected_ssRNA.conditions
 	filter_1col 1 <(cut -f 1 $< | symbol_count | bawk '$$2==1 {print $$1}') < $< > $@
 selected_ssRNA.conditions.up_down.balanced.clean: selected_ssRNA.conditions.up_down.balanced
-	filter_1col 1 <(cut -f 1 $< | symbol_count | bawk '$$2==1 {print $$1}') < $< > $@
+	filter_1col -v 1 <(bawk '$$4==1 {print $$1}' $< | symbol_count | bawk '$$2>1 {print $$1}') < $< > $@
 
 cCRE-%.type: cCRE-%.matrix
 	tr ";" "\t" < $< | unhead | bawk '{type=$$5; if(type=="Low-DNase"){type=$$6} print $$4,type}' > $@
@@ -432,8 +432,10 @@ cCRE-%.neg_pos.bed: cCRE-%-vs-H1.matrix cCRE-%.type.bed
 tpx_paramspace.fisher_select_cutoff.matrix:
 	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/cCRE-*.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.*.type.neg_pos.fisher_select_cutoff' | tr ";" "\t" > $@
 
+
+
 tpx_paramspace.fisher_select_cutoff.matrix.best: tpx_paramspace.fisher_select_cutoff.matrix
-	find_best -s -r 1:11 18 < $< | tr ";" "\t" > $@
+	find_best -r 1:2:3:4:5:6:7:8:9:10:11 18 < $< | tr ";" "\t" > $@
 
 .META: tpx_paramspace.fisher_select_cutoff.matrix tpx_paramspace.fisher_select_cutoff.matrix.best
 	1	ssRNA	AC004797.1
@@ -456,6 +458,6 @@ tpx_paramspace.fisher_select_cutoff.matrix.best: tpx_paramspace.fisher_select_cu
 	18	Pvalue	2.07884e-24
 	19	TPXcCRE_score	23.682180
 
-tpx_paramspace.fisher_select_cutoff.matrix.best.up_down: selected_ssRNA.conditions.up_down.balanced.clean tpx_paramspace.fisher_select_cutoff.matrix.best.header_added
-	translate -a <(bawk 'BEGIN{print "ssRNA", "condition", "staminal", "mark_seqc", "logFC"} {print}' $<) 1 < $^2 > $@
+tpx_paramspace.fisher_select_cutoff.matrix.best.up_down: tpx_paramspace.fisher_select_cutoff.matrix.best.header_added selected_ssRNA.conditions.up_down.balanced.clean
+	bawk '{print $$ssRNA";"$$condition,$$2,$$4~19}' $< | translate -a -k <(bawk 'BEGIN{print "ssRNA;condition", "staminal", "mark_seqc", "logFC"} {print $$1";"$$2,$$3~5}' $^2) 1 | tr ";" "\t" > $@
 
