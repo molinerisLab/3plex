@@ -517,11 +517,11 @@ rule longTarget_best_score_complete:
 rule dsDNA_scored_neg_pos:
 	input:
 		cCRE_bed="cCRE-{condition}.neg_pos.bed",
-		dsDNA_scored="{path1}/cCRE-ALLcond.bed/{path2}/raw.tpx.{summarize}"
+		dsDNA_scored="{path1}/cCRE-ALLcond.bed/{path2}/raw.tpx.{summarize}.gz"
 	output:
 		"{path1}/cCRE-ALLcond.bed/{path2}/raw.tpx.{summarize}.{condition}.neg_pos.gz"
 	shell:"""
-		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 {input.dsDNA_scored} 1 | gzip > {output}
+		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 <(zcat {input.dsDNA_scored}) 1 | gzip > {output}
 	"""
 
 rule fisher_select_cutoff:
@@ -547,7 +547,7 @@ rule fisher_best_cutoff:
 rule fisher_best_cutoff_cut:
 	input:
 		neg_pos="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.gz",
-		cutoff="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+		cutoff="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best.gz"
 	output:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.best_cut.gz"
 	shell:"""

@@ -21,7 +21,7 @@ rule all_triplexator:
 
 rule all_stab_fisher:
 	input:
-		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-ALLcond.bed/{params}/raw.tpx.{summarize}.{condition}.neg_pos.fisher_select_cutoff",
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-ALLcond.bed/{params}/raw.tpx.{summarize}.{condition}.neg_pos.fisher_select_cutoff.gz",
 			condition = config["ENCODE_CONDITIONS"], 
 			params = triplexator_paramspace.instance_patterns,
 			ssRNA = all_selected_ssRNA_id(),
