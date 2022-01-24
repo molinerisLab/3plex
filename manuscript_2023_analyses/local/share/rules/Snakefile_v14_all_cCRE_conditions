@@ -501,22 +501,32 @@ rule longTarget_best_score_complete:
 		zcat {input.tpx_best} | tab2matrix -e 0 -C <(cut -f 4 {input.cCRE_bed}) | matrix2tab | gzip > {output}
 	""" 
 
+# v8 and v13
+#rule dsDNA_scored_neg_pos:
+#	input:
+#		cCRE_bed="cCRE-{condition}.neg_pos.bed",
+#		dsDNA_scored="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.{summarize}"
+#	output:
+#		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.{summarize}.type.neg_pos"
+#	shell:"""
+#		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 {input.dsDNA_scored} 1 > {output}
+#	"""
 
 rule dsDNA_scored_neg_pos:
 	input:
 		cCRE_bed="cCRE-{condition}.neg_pos.bed",
-		dsDNA_scored="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.{summarize}"
+		dsDNA_scored="{path1}/cCRE-ALLcond.bed/{path2}/raw.tpx.{summarize}"
 	output:
-		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.{summarize}.type.neg_pos"
+		"{path1}/cCRE-ALLcond.bed/{path2}/raw.tpx.{summarize}.{condition}.neg_pos"
 	shell:"""
 		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 {input.dsDNA_scored} 1 > {output}
 	"""
 
 rule fisher_select_cutoff:
 	input:
-		"{path}/raw.tpx.{summarize}.type.neg_pos"
+		"{path}/raw.tpx.{summarize}.{condition}.neg_pos"
 	output:
-		"{path}/raw.tpx.{summarize}.type.neg_pos.fisher_select_cutoff"
+		"{path}/raw.tpx.{summarize}.{condition}.neg_pos.fisher_select_cutoff"
 	shell:"""
 		bawk '{{print $3,$2,$4}}' {input} | fisher_select_cutoff > {output}
 	"""
@@ -748,41 +758,4 @@ rule cCRE_bed:
 	shell:"""
 		cut -f 1 {input} | unhead | tr ";" "\t" > {output}
 	"""
-rule cCRE_bed_type_pre:
-	input:
-		"cCRE-{cond_vs_stem}.matrix"
-	output:
-		"cCRE-{cond_vs_stem}.type"
-	shell:"""
-		unhead {input} | tr ";" "\t" | bawk '{{type=$5; if(type=="Low-DNase"){{type=$6}} print $4,type}}' > {output}
-	"""
-
-#rule cCRE_bed_type:
-#	input:
-#		cond_stam_type_pre="cCRE-{condition}-vs-{staminal}.type"
-#		cond_bed="cCRE-{condition}.bed"
-#	output:
-#		"cCRE-{condition}.type.bed"
-#	shell:"""
-#		translate -a {input.cond_stam_type_pre} 4 < {input.cond_bed} > {output}
-#	"""
-
-def get_all_stab_fisher(wildcards):
-	for condition in config['ENCODE_CONDITIONS']:
-		for ssRNA in all_selected_ssRNA_id(condition):
-			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx.{summarize}.type.neg_pos.fisher_select_cutoff",
-					condition = condition, 
-					params = triplexator_paramspace.instance_patterns,
-					ssRNA = ssRNA,
-					single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
-					window=config["RNAPLFOLD_WINDOW"],
-					summarize=config['TPXcCRE_SCORE_SUMMARIZE_METHODS']
-				):
-				yield target
-
-
-rule all_stab_fisher:
-	input:
-		get_all_stab_fisher
-
 
