@@ -10,8 +10,9 @@ configfile: "config.yaml"
 NCPUS=os.environ.get("NCPUS",4)
 PWD=os.environ.get("PWD")
 REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
-BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"bioinfotree/task/"
-CONDA_ACTIVATE="set +u; source %s/miniconda2/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
+BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"/bioinfotree/task/"
+#CONDA_ACTIVATE="set +u; source %s/miniconda2/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
+CONDA_ACTIVATE="" 
 
 
 #####################
@@ -98,7 +99,7 @@ rule get_fasta:
         #        "../../local/share/images/bit.wip-rnaseq.0.4.img"
 	threads: 1
 	shell: """
-		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		get_fasta -i {wildcards.GeneID} < {input} > {output}
 	"""
 
@@ -121,8 +122,11 @@ rule get_longest_transcripts:
 		GENCODE_DIR+"/gencode.v32.transcripts.fa.gz"
 	output:
 		"longest_transcripts.fa"
+	container:
+        	"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		{CONDA_ACTIVATE} bit_rnaseq_2.8; 
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8; 
+		hostname
 		zcat {input} | fasta2oneline | tr "|" "\t" | bawk '$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > {output}
 	"""
 
@@ -156,8 +160,9 @@ rule triplexator_param_exploration:
 			window                          = "\w+",
 			ssRNA                           = "[^/]+",
 			dsDNA                           = "[^/]+"
+		container:
+			"../../local/share/images/triplexator_v1.3.2.img"
 		shell: """
-				docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
 				mkdir -p $(dirname {output.tpx}); cd $(dirname {output.tpx});\
 				triplexator \
 						-l  {wildcards.min_length} \
@@ -166,7 +171,9 @@ rule triplexator_param_exploration:
 						-g  {wildcards.guanine_rate} \
 						-fr {wildcards.filter_repeat} \
 						-c  {wildcards.consecutive_errors} \
-						-fm 0 -of {config[TRIPLEXATOR_ALN]} -o raw.tpx -rm 2 -p {NCPUS} -ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file}"
+						-fm 0 -of {config[TRIPLEXATOR_ALN]} \
+						-rm 2 -p {NCPUS} \
+						-ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file} -o raw.tpx
 				cd $(dirname {output.tpx});
 				unhead raw.tpx -f raw.tpx.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > raw.tpx.stability.gz.tmp; cd -;
 				cat {output.tpx}.tmp | ../../local/src/tpx_thermal_stability.py | gzip > {output.tpx}
