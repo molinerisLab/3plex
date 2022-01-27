@@ -1,0 +1,1 @@
+../../../../local/share/rules/rules_single_lncRNA.mk

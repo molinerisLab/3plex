@@ -11,7 +11,7 @@ NCPUS=os.environ.get("NCPUS",10)
 PWD=os.environ.get("PWD")
 REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
 BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"bioinfotree/task/"
-CONDA_ACTIVATE="set +u; source %s/miniconda2/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
+CONDA_ACTIVATE="set +u; source %s/miniconda*/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
 
 
 #####################
