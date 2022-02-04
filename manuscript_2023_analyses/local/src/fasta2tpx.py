@@ -24,38 +24,41 @@ def main():
 	if len(args) != 0:
 		exit('Unexpected argument number.')
 
-	hits = SearchIO.read(stdin,"fasta-m10")
-	
-	for hit in hits:
-		for hps in hit.hsps:
-#			print(hps)
-#			print(">{}\t{}\t{}\t{}\t{}".format(hps.query_id, hps.hit_id, hps.bitscore, hps.evalue, hps.z_score))
-			for fragment in hps.fragments:
-				query_id	= fragment.query_id
-				target_id	= fragment.hit_id
-				query_start	= fragment.query_start
-				query_end	= fragment.query_end
-				target_start	= fragment.hit_start
-				target_end	= fragment.hit_end
-				query_strand	= fragment.query_strand
-				target_strand	= fragment.hit_strand
-				query_fragment	= fragment.query.seq
-				target_fragment = fragment.hit.seq
-				similarity 	= fragment.aln_annotation['similarity']
-			
-				print("\t".join((str(s) for s in (
-					query_id,
-					target_id,
-					query_start,
-					query_end,	
-					target_start,
-					target_end,
-					query_strand,
-					target_strand,	
-					query_fragment,	
-					target_fragment, 
-					similarity
-				))))
+	many_query = SearchIO.parse(stdin,"fasta-m10")
+	for single_query_hits in many_query:
+#		hits = SearchIO.read(stdin,"fasta-m10")
+		
+		for hit in single_query_hits:
+			for hsp in hit.hsps:
+				if options.verbose:
+					print(hsp)
+	#			print(">{}\t{}\t{}\t{}\t{}".format(hsp.query_id, hsp.hit_id, hsp.bitscore, hsp.evalue, hsp.z_score))
+				for fragment in hsp.fragments:
+					query_id	= fragment.query_id
+					target_id	= fragment.hit_id
+					query_start	= fragment.query_start
+					query_end	= fragment.query_end
+					target_start	= fragment.hit_start
+					target_end	= fragment.hit_end
+					query_strand	= fragment.query_strand
+					target_strand	= fragment.hit_strand
+					query_fragment	= fragment.query.seq
+					target_fragment = fragment.hit.seq
+					similarity 	= fragment.aln_annotation['similarity']
+				
+					print("\t".join((str(s) for s in (
+						query_id,
+						target_id,
+						query_start,
+						query_end,	
+						target_start,
+						target_end,
+						query_strand,
+						target_strand,	
+						query_fragment,	
+						target_fragment, 
+						similarity
+					))))
 
 
 	
