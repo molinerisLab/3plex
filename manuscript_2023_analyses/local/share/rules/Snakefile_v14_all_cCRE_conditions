@@ -7,12 +7,11 @@ configfile: "config.yaml"
 ######################
 #  General Parameters
 
-NCPUS=os.environ.get("NCPUS",4)
 PWD=os.environ.get("PWD")
 REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
 BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"/bioinfotree/task/"
 #CONDA_ACTIVATE="set +u; source %s/miniconda2/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
-CONDA_ACTIVATE="" 
+CONDA_ACTIVATE="echo " 
 
 
 #####################
@@ -93,13 +92,14 @@ rule get_fasta:
 	input:  
 		"longest_transcripts.fa"
 	output: 
-	#	temp("{GeneID,[\w\.-]+}.fa")
 		"{GeneID,[\w\.-]+}.fa"
-        #container:
-        #        "../../local/share/images/bit.wip-rnaseq.0.4.img"
+		#"{GeneID,[\w\.-]+}.fa"
+	group: "input_fasta_preparation_and_triplexator"
+	container:
+        	"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	threads: 1
 	shell: """
-		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		get_fasta -i {wildcards.GeneID} < {input} > {output}
 	"""
 
@@ -109,7 +109,8 @@ rule cCRE_fasta:
 		cCRE_bed="{path}.bed"
 	output:
 		"{path}.bed.fa"
-#	priority: 100
+	container:
+        	"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}
@@ -153,8 +154,8 @@ rule triplexator_param_exploration:
 		params:
 			params_instance=triplexator_paramspace.instance
 		output:
-			tpx     ="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.stability.gz",
-			summary ="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary"
+			tpx     = temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx"),
+			summary = temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary")
 		wildcard_constraints:
 			single_strandedness_cutoff      = "\d+",
 			window                          = "\w+",
@@ -162,6 +163,8 @@ rule triplexator_param_exploration:
 			dsDNA                           = "[^/]+"
 		container:
 			"../../local/share/images/triplexator_v1.3.2.img"
+		threads: 12
+		group: "input_fasta_preparation_and_triplexator"
 		shell: """
 				mkdir -p $(dirname {output.tpx}); cd $(dirname {output.tpx});\
 				triplexator \
@@ -172,23 +175,35 @@ rule triplexator_param_exploration:
 						-fr {wildcards.filter_repeat} \
 						-c  {wildcards.consecutive_errors} \
 						-fm 0 -of {config[TRIPLEXATOR_ALN]} \
-						-rm 2 -p {NCPUS} \
+						-rm 2 -p {threads} \
 						-ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file} -o raw.tpx
-				cd $(dirname {output.tpx});
-				unhead raw.tpx -f raw.tpx.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > raw.tpx.stability.gz.tmp; cd -;
-				cat {output.tpx}.tmp | ../../local/src/tpx_thermal_stability.py | gzip > {output.tpx}
-				cd $(dirname {output.tpx});
-				rm raw.tpx raw.tpx.head raw.tpx.stability.gz.tmp
-			"""
+				echo triplexator retstatus: $?
+		"""
+
+rule triplexator_stability:
+	input:
+		"{path}.tpx"
+	output:
+		"{path}.tpx.stability.gz"
+	container:
+        	"../../local/share/images/bit.wip-rnaseq.0.5.img"
+	threads: 1
+	group: "input_fasta_preparation_and_triplexator"
+	shell: """
+		unhead {input} -f {input}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output}.tmp
+		cat {output}.tmp | ../../local/src/tpx_thermal_stability.py | gzip > {output}
+		rm {input}.head {output}.tmp
+	"""
+
 
 rule gzip_tpx_summary:
 	input:
 		"{file_path}/raw.tpx.summary"
 	output:
 		"{file_path}/raw.tpx.summary.gz"
+	group: "input_fasta_preparation_and_triplexator"
 	shell:"""
 		gzip < {input} > {output};
-		rm {input}
 	"""
 
 rule summary_neg_pos:
@@ -388,6 +403,7 @@ rule compute_AUC_comparison:
 # 2D structure #
 ################
 
+
 rule RNAplfold_lunp:
 	input:
 		"{ssRNA}.fa"
@@ -417,6 +433,19 @@ rule RNAplfold_lunp_unpairedWindow_modif_zscore:
 WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2
 if(config["RNAPLFOLD_UNPAIRED_WINDOW"] % 2 != 0):
 	WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2 + 0.5
+
+ruleorder: mask_fasta_unpairedWindow_shortcut > mask_fasta_unpairedWindow
+
+rule mask_fasta_unpairedWindow_shortcut:
+	input:
+		"{ssRNA}.fa"
+	output:
+		temp("{ssRNA}_ss0_unpairedWindow.fasta")
+	threads: 1
+	group: "input_fasta_preparation_and_triplexator"
+	shell: """
+		ln -sf {input} {output}
+	"""
 
 rule mask_fasta_unpairedWindow:
 	input:
