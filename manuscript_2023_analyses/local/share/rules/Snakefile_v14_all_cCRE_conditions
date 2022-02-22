@@ -294,7 +294,7 @@ rule tpx_score_best_summarize:
 	output:
 		"{file_path}/raw.tpx.tpx_score.best.gz"
 	shell: """
-		bawk '{{print $Duplex_ID,$Score}}' {input} | find_best 1 2 | gzip > {output}
+		bawk '{{print $Duplex_ID,$Score}}' {input} | find_best -s 1 2 | gzip > {output}
 	"""
 
 rule stability_tot_undercount:
@@ -305,6 +305,15 @@ rule stability_tot_undercount:
 	shell: """
 		bawk '{{print $Duplex_ID,$TTS_start,$TTS_end,$Stability}}' {input} | bedtools sort | bedtools merge -c 4 -o max | cut -f 1,4 | bsort | stat_base -g -t \
 		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_undercount"}} {{print}}' | gzip > {output}
+	"""
+
+rule triplexator_t_pot:
+	input:
+		"{file_path}/raw.tpx.summary.gz"
+	output:
+		"{file_path}/raw.tpx.triplexator_t_pot.gz"
+	shell:"""
+		bawk 'NR>1 {{print $1,$4}}' {input} | gzip > {output}
 	"""
 
 rule summary_covered_by_tts_stability:
@@ -342,6 +351,8 @@ rule duplex_length:
 		"cCRE-{condition}.bed"
 	output:
 		"cCRE-{condition}.duplex_length"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
 		bawk 'BEGIN{{print "Duplex_ID","Duplex_length"}} {{print $4,$3-$2}}' {input} > {output}
 	"""
@@ -353,6 +364,8 @@ rule stability_norm_undercount:
 		tot_undercount="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.tot_undercount.gz"
 	output:
 		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.norm_undercount.gz"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
 		bawk '{{print $Duplex_ID,$Stability_tot_undercount}}' {input.tot_undercount} \
 		| translate -a -r {input.duplex_length} 1 \
@@ -535,7 +548,7 @@ rule tpx_stability_tfo_profile:
 	output:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.cut_{stability_cutoff}.tfo_profile"
 	shell:"""	
-		bawk '$Stability>={wildcards.stability_cutoff} {{print $Duplex_ID,$Stability,$1,$2,$3,$4}}' {input} | find_best 1 2 | cut -f 3- | bedtools sort | bedtools merge -c 4 -o count_distinct > {output}
+		bawk '$Stability>={wildcards.stability_cutoff} {{print $Duplex_ID,$Stability,$1,$2,$3,$4}}' {input} | find_best -s 1 2 | cut -f 3- | bedtools sort | bedtools merge -c 4 -o count_distinct > {output}
 	"""
 
 
@@ -556,6 +569,8 @@ rule dsDNA_scored_neg_pos:
 		dsDNA_scored="{path1}/cCRE-ALLcond.bed/{path2}/raw.tpx.{summarize}.gz"
 	output:
 		"{path1}/cCRE-ALLcond.bed/{path2}/raw.tpx.{summarize}.{condition}.neg_pos.gz"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
 		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 <(zcat {input.dsDNA_scored}) 1 | gzip > {output}
 	"""
@@ -565,9 +580,12 @@ rule fisher_select_cutoff:
 		"{path}/raw.tpx.{summarize}.{condition}.neg_pos.gz"
 	output:
 		"{path}/raw.tpx.{summarize}.{condition}.neg_pos.fisher_select_cutoff.gz"
+#	container:
+#		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		bawk '{{print $3,$2,$4}}' {input} | fisher_select_cutoff | gzip > {output}
+		awk '{{print $3,$2,$4}}' {input} | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 $(which fisher_select_cutoff) | gzip > {output}
 	"""
+
 #For stability.tot_undercount
 #bawk '{{$2=sprintf("%d",$2); print $3,$2,$4}}' {input} | fisher_select_cutoff > {output}
 
@@ -576,6 +594,8 @@ rule fisher_best_cutoff:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.gz"
 	output:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best.gz"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
 		zcat {input} | find_best -r 1 9 | gzip > {output}
 	"""
