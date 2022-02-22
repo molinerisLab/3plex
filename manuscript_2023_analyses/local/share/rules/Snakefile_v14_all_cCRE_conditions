@@ -583,7 +583,7 @@ rule fisher_select_cutoff:
 #	container:
 #		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		awk '{{print $3,$2,$4}}' {input} | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 $(which fisher_select_cutoff) | gzip > {output}
+		bawk '{{print $3,$2,$4}}' {input} | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 $(which fisher_select_cutoff) | gzip > {output}
 	"""
 
 #For stability.tot_undercount
