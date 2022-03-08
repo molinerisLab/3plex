@@ -14,6 +14,13 @@ def get_all_triplexator_selected_input(wildcards):
 				window=config["RNAPLFOLD_WINDOW"]
 			):
 			yield target
+		for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-ALLcond.bed/{params}/raw.tpx.summary.gz",
+				params = triplexator_paramspace.instance_patterns,
+				ssRNA = ssRNA,
+				single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+				window=config["RNAPLFOLD_WINDOW"]
+			):
+			yield target
 
 rule all_triplexator:
 	input:
