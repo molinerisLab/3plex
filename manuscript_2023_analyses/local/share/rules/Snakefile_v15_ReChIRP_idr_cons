@@ -1,6 +1,7 @@
 from snakemake.utils import Paramspace
 import pandas as pd
 
+# ciao
 
 configfile: "config.yaml"
 
@@ -138,24 +139,24 @@ rule get_longest_transcripts:
 #############################
 
 # this rules make sense only in v8
-rule all_tpx_paramspace:
-	input:
-		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp", \
-			params = triplexator_paramspace.instance_patterns,
-			ssRNA = all_selected_ssRNA_id(),
-			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
-			window=config["RNAPLFOLD_WINDOW"]
-		)
+#rule all_tpx_paramspace:
+#	input:
+#		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp", \
+#			params = triplexator_paramspace.instance_patterns,
+#			ssRNA = all_selected_ssRNA_id(),
+#			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+#			window=config["RNAPLFOLD_WINDOW"]
+#		)
 
 rule triplexator_param_exploration:
 		input:
 			ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta",
-			dsDNA_file="{dsDNA}.fa"
+			dsDNA_file="{dsDNA}.bed.fa"
 		params:
 			params_instance=triplexator_paramspace.instance
 		output:
-			tpx     = temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx"),
-			summary = temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary")
+			tpx     = temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx"),
+			summary = temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary")
 		wildcard_constraints:
 			single_strandedness_cutoff      = "\d+",
 			window                          = "\w+",
@@ -208,10 +209,13 @@ rule gzip_tpx_summary:
 
 rule summary_neg_pos:
 	input:
-		summary="{path1}/cCRE-{dsDNA}.bed/{path2}/raw.tpx.summary.gz",
-		neg_pos_bed="cCRE-{dsDNA}.bed"
+		summary="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary.gz",
+		#summary="{path1}/cCRE-{dsDNA}.bed/{path2}/raw.tpx.summary.gz",
+		neg_pos_bed="{dsDNA}.bed"
+		#neg_pos_bed="cCRE-{dsDNA}.bed"
 	output:
-		"{path1}/cCRE-{dsDNA}.bed/{path2}/raw.tpx.summary.neg_pos.gz"
+		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary.neg_pos.gz"
+		#"{path1}/cCRE-{dsDNA}.bed/{path2}/raw.tpx.summary.neg_pos.gz"
 	shell: """
 		translate -a -r -v -e 0 <(zcat {input.summary}) 4 < {input.neg_pos_bed} |  \
 		bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_length"}} {{print $4,$6,$8,$9,$3-$2}}' | gzip > {output}

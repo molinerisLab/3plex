@@ -29,3 +29,7 @@ ALL_neg_pos_rand.bed: $(addsuffix .neg_pos_rand.bed,$(ALL_ssRNA))
 	cut -f -4 $^ > $@
 ALL_neg_pos.bed: $(addsuffix .neg_pos.bed,$(ALL_ssRNA))
 	cut -f -4 $^ > $@
+
+selected_ssRNA:
+	@echo 'Human lncRNAs with idr peaks number > 100'
+	@echo 'See this table: https://docs.google.com/spreadsheets/d/1iQGctC1ldu1oTwmaLEsrs8cB0ik3JWYCrBkvoDKZDpk/edit#gid=0'
