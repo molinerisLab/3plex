@@ -1,0 +1,11 @@
+cluster: "qsub -V -l select=1:ncpus={threads} -o logs -e logs" 
+restart-times: 0
+max-jobs-per-second: 10
+max-status-checks-per-second: 10
+jobs: 3
+rerun-incomplete: true  # recomended for cluster submissions
+keep-going: true
+latency-wait: 10
+#        "name"      : "JOBNAME.{rule}.{wildcards}",
+ #       "output"    : "logs/cluster/{rule}.{wildcards}.out",
+  #      "error"     : "logs/cluster/{rule}.{wildcards}.err"

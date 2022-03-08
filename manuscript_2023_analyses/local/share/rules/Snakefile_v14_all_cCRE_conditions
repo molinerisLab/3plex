@@ -266,7 +266,7 @@ rule stability_best:
 	output:
 		"{file_path}/raw.best.tpx.stability.gz"
 	shell: """
-		zcat {input} | find_best 4 14 | gzip > {output}
+		zcat {input} | find_best -s 4 14 | sort -k1,1 --parallel=4 -S5% | find_best -s 4 14 | gzip > {output}
 	"""
 
 rule stability_tot_overcount:
