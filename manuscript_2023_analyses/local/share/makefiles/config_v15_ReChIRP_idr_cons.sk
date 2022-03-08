@@ -30,6 +30,8 @@ rule all_stab_fisher:
 			summarize=config['TPXcCRE_SCORE_SUMMARIZE_METHODS']
 		)
 
+# Before running this rule run the following:
+# for ssRNA in $(cat selected_ssRNA); do bmake ${ssRNA}.neg_pos_rand.bed; done
 
 rule all_tpx_paramspace:
 	input:
