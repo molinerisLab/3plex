@@ -20,7 +20,7 @@ GetOptions (
 	'c|max_consecutive_errors=i' => \$max_consecutive_errors,
 	'l|min_len=i' => \$min_len,
 	'e|error_rate=f' => \$error_rate,
-	'v|verbose' => \$verbose,
+	'v|verbose=i' => \$verbose,
 	'n|no_trim' => \$no_trim
 
 ) or die($usage);
@@ -82,7 +82,8 @@ while(<>){
 					$target_id,
 					$tts_start,
 					$tts_end,
-					$match,$l,$e,$_,$pos;
+					$query_strand,
+					$match,$l,$e,$_;
 			}elsif(not $no_trim){
 				trim_error_rate(
 					$query_id,
@@ -91,7 +92,8 @@ while(<>){
                                         $target_id,
                                         $tts_start,
                                         $tts_end,
-                                        $match,$l,$e,$_,$pos
+					$query_strand,
+                                        $match,$l,$e,$_
 				);
 				
 			}
@@ -108,37 +110,52 @@ sub trim_error_rate{
 	my $target_id = shift;
 	my $tts_start = shift;
 	my $tts_end = shift;
+	my $query_strand = shift;
 	my $match = shift;
 	my $l = shift;
 	my $e = shift;
 	my $_ = shift;
-	my $pos = shift;
 
 	#trim_error_rate_F(0,0,$_);
 	#trim_error_rate_R(0,0,$_);
 	my $trimmed=trim_error_rate_norecursion($_);
-	print "best",@{$trimmed}
+	if(defined($trimmed)){
+		my ($start_shift,$end_shift,$sub_pattern,$sub_l,$sub_e) = @{$trimmed};
+		
+
+
+		if($verbose){
+			print 	$query_id."-untrimm",
+				$tfo_start,
+				$tfo_end,
+				$target_id,
+				$tts_start,
+				$tts_end,
+				$query_strand,
+				$match,$l,$e,$_;
+		}
+
+		if($query_strand>0){
+			$tfo_end    = $tfo_start + $end_shift;
+			$tfo_start += $start_shift;
+		}else{
+			$tfo_start = $tfo_end - $end_shift;
+			$tfo_end   = $tfo_end - $start_shift;
+		}
+
+		$tts_end    =  $tts_start + $end_shift;
+		$tts_start +=  $start_shift;
+
+		print 	$query_id,
+			$tfo_start,
+			$tfo_end,
+			$target_id,
+			$tts_start,
+			$tts_end,
+			$query_strand,
+			$match,$sub_l,$sub_e,$sub_pattern;
+	}
 }
-
-
-#	my $best_side=undef;
-#	if(defined($F_e) and defined($R_e)){
-#		$best_side="F";
-#		if($R_e>$F_e){
-#			$best_side="R";
-#		}
-#	}elsif(defined($F_e)){
-#		$best_side="F";
-#	}elsif(defined($R_e)){
-#		$best_side="R";
-#	}
-#	
-#	
-#	if($best_side eq "F" and $query_strand>0){
-#		$tfo_star+=$F_shift;
-#		$
-#	}
-
 
 sub trim_error_rate_norecursion{
 	my $_ = shift;
@@ -160,7 +177,7 @@ sub trim_error_rate_norecursion{
 
 			my $e=($s_l-$match)/$s_l;
 			my @retval=($start,$end,"($s)",$s_l,$e);
-			print @retval if $verbose;
+			print @retval if $verbose>=2;
 
 			if($e<=$error_rate){
 				push @trimming, \@retval;
@@ -177,59 +194,4 @@ sub trim_error_rate_norecursion{
 	}
 
 	return $trimming[0]
-}
-
-sub trim_error_rate_F{
-	my $start_shift = shift;
-	my $end_shift = shift;
-	my $_ = shift;
-
-	my @trimming=();
-
-	s/:/ /;
-	s/^(\s+)//g;
-	die("someting wrong in recursion") if not $1;
-	$start_shift+=length($1);
-	my $match = () = $_ =~ /:/g;
-	my $l=length;
-
-	return if $l<=$min_len;
-
-	my $e=($l-$match)/$l;
-	if($e<=$error_rate){
-		my @retval=($start_shift,$end_shift,$_,$l,$e);
-		print @retval if $verbose;
-		push @trimming, \@retval;
-		return
-	}else{
-		trim_error_rate_F($start_shift,$end_shift,$_);
-		trim_error_rate_R($start_shift,$end_shift,$_);
-	}
-}
-
-sub trim_error_rate_R{
-	my $start_shift = shift;
-	my $end_shift = shift;
-	my $_ = shift;
-	$_=reverse($_);
-	s/:/ /;
-	$_=reverse($_);
-	s/(\s+)$//g;
-	$end_shift+=length($1);
-	die("sometin wrong in recursion") if not $1;
-	my $match = () = $_ =~ /:/g;
-	my $l=length;
-
-	return if $l<=$min_len;
-
-	my $e=($l-$match)/$l;
-	if($e<=$error_rate){
-		my @retval=($start_shift,$end_shift,$_,$l,$e);
-		print @retval if $verbose;
-		push @trimming, \@retval;
-		return
-	}else{
-		trim_error_rate_F($start_shift,$end_shift,$_);
-		trim_error_rate_R($start_shift,$end_shift,$_);
-	}
 }

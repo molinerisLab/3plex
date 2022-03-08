@@ -2,7 +2,6 @@
 
 from sys import stdin, stderr
 from argparse import ArgumentParser
-#from optparse import OptionParser
 import pandas as pd
 
 
@@ -33,7 +32,7 @@ def main():
 	parser.add_argument('-u', '--usecols', dest='usecols', type=int, nargs='+', default=None, help='Return a subset of the columns; if list-like, all elements must either be positional (i.e. integer indices into the document columns) or strings that correspond to column names [default: None]')
 	parser.add_argument('-n', '--names', dest='names', nargs='+', default=None, help='List of column names to use [default: None]')
 	parser.add_argument('-c', '--complevel', dest='complevel', type=int, default=8, help='Specifies a compression level for data. A value of 0 or None disables compression [default: 8]')
-	parser.add_argument('--header', dest='header', action='store_true', default=None, help='If specified the first line will be considered the table header [default: None]')
+	parser.add_argument('--header', dest='header', action='store_true', default=None, help='If specified, the first line will be considered the table header [default: None]')
 
 	args = parser.parse_args()
 	
@@ -45,12 +44,12 @@ def main():
 	names = args.names
 	complevel = args.complevel # add check for 0 < complevel < 9
 	header = args.header
-
+	
+	if(header):
+		header = 0
+	
 	# read data from STDIN and store in pandas dataframe
-	if(names != None):
-		df = pd.read_table(stdin, usecols = usecols, index_col = False, header = header, names = names)
-	else:
-		df = pd.read_table(stdin, usecols = usecols, index_col = False, header = header)
+	df = pd.read_table(stdin, usecols = usecols, index_col = False, header = header, names = names)
 	
 	# write the contained data to an HDF5 file using HDFStore
 	df.to_hdf('/dev/stdout', key = 'group_1', complevel = complevel, mode = 'w')

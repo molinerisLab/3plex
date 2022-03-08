@@ -43,6 +43,7 @@ my %ssRNA_hoogsteen_words = ();
 hoogsteen_words_both_strand($ssRNA);
 
 if($verbose){
+	print join("\n",hoogsteen_full_both_strand($ssRNA));
 	my $i=0;
 	while(my ($k,$v) = each(%ssRNA_hoogsteen_words)){
 		$i++;
@@ -110,6 +111,27 @@ sub hoogsteen_words_single_strand{
 		substr($s,0,1,"");
 		$word = substr($s,0,$len);
 	}
+}
+
+sub hoogsteen_full_both_strand{
+	my $s_FORWARD=shift;
+	my $s_REVCOMP=reverse($s_FORWARD);
+	   $s_REVCOMP=~tr/ACGT/TGCA/;
+	return (hoogsteen_full_single_strand($s_FORWARD),hoogsteen_full_single_strand($s_REVCOMP))
+	
+}
+
+sub hoogsteen_RNA_full_single_strand{
+	my $s=shift;
+	my $s_rule_f1=$s;
+	my $s_rule_f2=$s;
+	my $s_rule_r1=reverse($s);
+	my $s_rule_r2=$s_rule_r1;
+	$s_rule_f1=~tr/ACGT/NNGA/;   	#TA-U & CG-G          http://docs.google.com/presentation/d/1qDIVgZI-TZd9SLyOtSRUROcL0qhrEhp816pzFUmbnBQ/
+	$s_rule_f2=~tr/ACGT/NGNA/;	#TA-U & CG-C+
+	$s_rule_r1=~tr/ACGT/ANGN/;	#TA-A & CG-G
+	$s_rule_r2=~tr/ACGT/NNGA/;	#TA-U & CG-G
+	return ($s_rule_f1, $s_rule_f1, $s_rule_r1, $s_rule_r2)
 }
 
 

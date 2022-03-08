@@ -26,16 +26,16 @@ RNAPLFOLD_UNPAIRED_WINDOW: 8
 
 SINGLE_STRANDEDNESS_CUTOFF:
         - "0"
-#        - "10"
-#        - "20"
-#        - "50"
+        - "10"
+        - "20"
+        - "50"
 
 RNAPLFOLD_WINDOW:
         - "unpairedWindow"
-#       - "singleNt"
-#
+        - "singleNt"
 
 ENCODE_DIR: /sto1/ref/bioinfotree/task/encode-screen/dataset/v13
+
 ENCODE_CONDITIONS:
         - HEP_H9
         - NPC_H9

@@ -299,9 +299,9 @@ rule tpx_score_best_summarize:
 
 rule stability_tot_undercount:
 	input:
-		"{file_path}/raw.tpx.stability.gz"
+		"{file_path}.tpx.stability.gz"
 	output:
-		"{file_path}/raw.tpx.stability.tot_undercount.gz"
+		"{file_path}.tpx.stability.tot_undercount.gz"
 	shell: """
 		bawk '{{print $Duplex_ID,$TTS_start,$TTS_end,$Stability}}' {input} | bedtools sort | bedtools merge -c 4 -o max | cut -f 1,4 | bsort | stat_base -g -t \
 		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_undercount"}} {{print}}' | gzip > {output}

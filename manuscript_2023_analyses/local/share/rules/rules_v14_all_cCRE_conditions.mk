@@ -1,4 +1,4 @@
-##########################
+########################
 #
 #     General param
 #
@@ -16,6 +16,7 @@ DOCKER_GROUP?=$(shell stat i-c %g $(PWD))
 DOCKER_DATA_DIR?=$(PRJ_ROOT)
 
 
+FASTA_KTUP?=6
 
 #######################################
 #
@@ -461,3 +462,36 @@ tpx_paramspace.fisher_select_cutoff.matrix.best: tpx_paramspace.fisher_select_cu
 tpx_paramspace.fisher_select_cutoff.matrix.best.up_down: tpx_paramspace.fisher_select_cutoff.matrix.best.header_added selected_ssRNA.conditions.up_down.balanced.clean
 	bawk '{print $$ssRNA";"$$condition,$$2,$$4~19}' $< | translate -a -k <(bawk 'BEGIN{print "ssRNA;condition", "staminal", "mark_seqc", "logFC"} {print $$1";"$$2,$$3~5}' $^2) 1 | tr ";" "\t" > $@
 
+%.fa.nin: %.fa
+	makeblastdb -in $< -dbtype nucl
+
+%.fa.hoogsteen: %.fa
+	../../local/src/word_count_RNA_hoogsteen.pl < $< > $@
+
+
+AC009055.2.fa.hoogsteen-cCRE-ALLcond.fasta_out: AC009055.2.fa.hoogsteen cCRE-ALLcond.bed.fa
+	conda activate /sto1/ref/miniconda2/envs/bit_rnaseq_2.8/envs/blast/;\	
+	fasta36 -n -b 1000000 -d 10000000 -z -1 -m 9C -T $(NCPU) $< $^2 $(FASTA_KTUP) > $@
+
+	#fasta36 -3 -n -b 1000000 -d 10000000 -z -1 -m 2 -T $(NCPU) $< $^2 > $@
+
+%.fa.hoogsteen-EH38E1935892.fasta_m10: %.fa.hoogsteen EH38E1935892.fa
+	conda activate /sto1/ref/miniconda2/envs/bit_rnaseq_2.8/envs/blast/;\
+	fasta36 -n -b 1000000 -d 10000000 -T 28 -m 10 $< $^2 3 > $@
+%.fa.hoogsteen-EH38E1935892.fasta_m9c: %.fa.hoogsteen EH38E1935892.fa
+	conda activate /sto1/ref/miniconda2/envs/bit_rnaseq_2.8/envs/blast/;\
+	fasta36 -n -b 1000000 -d 10000000 -T 28 -m 9c $< $^2 3 > $@
+
+%.fa.hoogsteen-EH38E1935892.fasta_m10.parsed: %.fa.hoogsteen-EH38E1935892.fasta_m10
+	conda activate /sto1/ref/miniconda2/envs/bit_rnaseq_2.8/envs/blast/;\
+	../../local/src/fasta2tpx.py < $< > $@
+%.fa.hoogsteen-EH38E1935892.fasta_m10.parsed.tpx_pre: %.fa.hoogsteen-EH38E1935892.fasta_m10.parsed
+	../../local/src/break_aln.pl -l 1 < $< > $@
+
+AC003681.1_EH38E1935892_triplexator.tpx: EH38E1935892.fa AC003681.1.fa
+	docker run -u `id -u`:10001 --rm -v /sto1:/sto1 -v /sto1:/sto1 triplexator:v1.3.2_l6 bash -c "cd /sto1/epigen/TPXcCRE/dataset/v14_all_cCRE_conditions; \
+	triplexator -l 8 -L -1 -e 20 -g 10 -fr off -c 1 -fm 0 -of 1 -o $@ -rm 2 -p 4 -ss $^2 -ds $<"
+
+CALML3-AS1_EH38E1310212_triplexator.tpx: EH38E1310212.fa CALML3-AS1.fa
+	docker run -u `id -u`:10001 --rm -v /sto1:/sto1 -v /sto1:/sto1 triplexator:v1.3.2_l6 bash -c "cd /sto1/epigen/TPXcCRE/dataset/v14_all_cCRE_conditions; \
+	triplexator -l 8 -L -1 -e 20 -g 10 -fr off -c 1 -fm 0 -of 1 -o $@ -rm 2 -p 4 -ss $^2 -ds $<"
