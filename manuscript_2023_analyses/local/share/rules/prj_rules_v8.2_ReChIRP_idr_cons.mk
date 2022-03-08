@@ -1,5 +1,5 @@
-ChIRP.bed.split: ../../local/share/data/ChIRP_narrowPeaks.bed
-	tr ";" "\t" < $< | grep -v CDKN2B-AS1 | bedtools sort > $@
+ChIRP.bed.split: ../../local/share/data/ReChIRP/idr/idr.conservative_peak.regionPeak.human_matrix.gz
+	zgrep -v 'HAND2-AS1' ../../local/share/data/ReChIRP/idr/idr.conservative_peak.regionPeak.human_matrix.gz | bedtools sort > $@
 
 %.neg_pos.bed: %_onlypos.bed %_neg.bed
 	cat $^ > $@
@@ -13,10 +13,10 @@ ChIRP.bed.split: ../../local/share/data/ChIRP_narrowPeaks.bed
 	| bawk '{print $$0, "neg" }'> $@
 	rm $@.tmp
 
-%.neg_rand.excl.bed: /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/hg38.shuffle_blacklist.bed /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/gap.bed %_onlypos.bed
+%.neg_rand.excl.bed: $(BIOINFO_ROOT)/task/gencode/dataset/hsapiens/32/hg38.shuffle_blacklist.bed $(BIOINFO_ROOT)/task/gencode/dataset/hsapiens/32/gap.bed %_onlypos.bed
 	cut -f -3 $^ |  bedtools sort | bedtools merge > $@
 
-%.neg_rand.bed: %_onlypos.bed /sto1/ref/bioinfotree/task/gencode/dataset/hsapiens/32/chrom.info.no_alt %.neg_rand.excl.bed
+%.neg_rand.bed: %_onlypos.bed $(BIOINFO_ROOT)/task/gencode/dataset/hsapiens/32/chrom.info.no_alt %.neg_rand.excl.bed
 	bedtools shuffle -i $< -g $^2 -excl $^3 | bawk '{$$4="rand_"$$4; $$6="neg"; print}' > $@
 
 

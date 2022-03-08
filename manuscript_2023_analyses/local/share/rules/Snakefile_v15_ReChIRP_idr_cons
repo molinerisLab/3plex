@@ -164,7 +164,7 @@ rule triplexator_param_exploration:
 			dsDNA                           = "[^/]+"
 		container:
 			"../../local/share/images/triplexator_v1.3.2.img"
-		threads: 12
+		threads: 28
 		group: "input_fasta_preparation_and_triplexator"
 		shell: """
 				mkdir -p $(dirname {output.tpx}); cd $(dirname {output.tpx});\
