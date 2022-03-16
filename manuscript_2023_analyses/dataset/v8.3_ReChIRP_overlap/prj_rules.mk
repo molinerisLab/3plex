@@ -1,1 +1,1 @@
-../../local/share/rules/prj_rules_v15_ReChIRP_idr_cons.mk
+../../local/share/rules/prj_rules_v8.3_ReChIRP_overlap.mk
