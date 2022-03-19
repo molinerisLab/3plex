@@ -104,7 +104,7 @@ rule get_fasta:
         	"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	threads: 1
 	shell: """
-		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		{CONDA_ACTIVATE} bit_rnaseq_3.1;
 		get_fasta -i {wildcards.GeneID} < {input} > {output}
 	"""
 
@@ -117,7 +117,7 @@ rule cCRE_fasta:
 	container:
         	"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		{CONDA_ACTIVATE} bit_rnaseq_3.1;
 		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}
 	"""
 
@@ -132,7 +132,7 @@ rule get_longest_transcripts:
 	container:
         	"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		#{CONDA_ACTIVATE} bit_rnaseq_3.1;
 		hostname
 		zcat {input} | fasta2oneline | tr "|" "\t" | bawk '$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > {output}
 	"""
