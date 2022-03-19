@@ -18,10 +18,10 @@ CONDA_ACTIVATE="set +u; source %s/miniconda3/etc/profile.d/conda.sh ; conda acti
 #####################
 #  Gencode Parameters
 
-GENCODE_SPECIES="hsapiens"
-GENCODE_VERSION="32"
-#GENCODE_SPECIES=config["GENCODE_SPECIES"]
-#GENCODE_VERSION=config["GENCODE_VERSION"]
+#GENCODE_SPECIES="hsapiens"
+#GENCODE_VERSION="32"
+GENCODE_SPECIES=config["GENCODE_SPECIES"]
+GENCODE_VERSION=config["GENCODE_VERSION"]
 GENCODE_DIR=BIOINFO_REFERENCE_ROOT+"gencode/dataset/"+GENCODE_SPECIES+"/"+GENCODE_VERSION
 CCRE_DIR=BIOINFO_REFERENCE_ROOT+"encode-screen/dataset/v13/"
 
@@ -136,7 +136,6 @@ rule get_longest_transcripts:
 		hostname
 		zcat {input} | fasta2oneline | tr "|" "\t" | bawk '$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > {output}
 	"""
-
 
 
 #############################
