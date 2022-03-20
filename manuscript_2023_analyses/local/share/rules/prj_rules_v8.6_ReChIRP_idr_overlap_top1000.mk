@@ -9,7 +9,7 @@ ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr_overlap_top1000/all_repro
 
 # idr + overlap top 1000 are considered positive but all the called peaks are considered in the blacklist
 %_ALLpos.bed: ../../local/share/data/ReChIRP/idr_overlap_top1000/all_reproducibility.idr_conservative-idr_optimal_peak-overalp_conservative-overlap_optimal.regionPeak.gz
-	 bawk '$$1 == "7SK" {print $$2~4,"chirp_peak_" NR";"$$1,$$1,"pos"}' $< > $@
+	 bawk '$$1 == $* {print $$2~4,"chirp_peak_" NR";"$$1,$$1,"pos"}' $< > $@
 
 %_neg.bed: ChIRP.bed.split.gz %_onlypos.bed
 	bawk '{print $$1,$$2,$$3,$$4";"$$5,"$*"}' $< > $@.tmp
