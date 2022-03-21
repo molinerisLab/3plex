@@ -461,9 +461,11 @@ rule RNAplfold_lunp_unpairedWindow_modif_zscore:
 		"RNAplfold/{ssRNA}_lunp"
 	output:
 		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
+	#container:
+	#	"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell:"""
-		{CONDA_ACTIVATE} pybigwig; \
-		grep -v '#' {input} | bawk '{{print $(NF)}}' | ../../local/src/distMedian.py > {output}
+		#{CONDA_ACTIVATE} pybigwig;
+		grep -v '#' {input} | bawk '{{print $(NF)}}' | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 ../../local/src/distMedian.py > {output}
 	"""
 
 
@@ -491,6 +493,8 @@ rule mask_fasta_unpairedWindow:
 		fasta="{ssRNA}.fa"
 	output:
 		"{ssRNA}_ss{percentile}_unpairedWindow.fasta"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell:"""
 		PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
 		fasta_mask <(bawk -v perc=$PERC '$1<perc {{print "{wildcards.ssRNA}",NR - 1 + {WINDOW_CENTER}, NR + {WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge) < {input.fasta} > {output}
@@ -503,9 +507,11 @@ rule RNAplfold_lunp_singleNt_modif_zscore:
 		"RNAplfold/{ssRNA}_lunp"
 	output:
 		"RNAplfold/{ssRNA}_lunp.singleNt.modif_zscore"
+	#container:
+	#	"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell: """
-		{CONDA_ACTIVATE} pybigwig; \
-		grep -v '#' {input} | bawk '{{print $2}}' | ../../local/src/distMedian.py > {output}
+		#{CONDA_ACTIVATE} pybigwig;
+		grep -v '#' {input} | bawk '{{print $2}}' | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 ../../local/src/distMedian.py > {output}
 	"""
 
 
@@ -516,6 +522,8 @@ rule mask_fasta_singleNt:
 		fasta="{ssRNA}.fa"
 	output:
 		"{ssRNA}_ss{percentile}_singleNt.fasta"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell:"""
 		PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
 		fasta_mask <(bawk -v perc=$PERC '$1<perc {{print "{wildcards.ssRNA}",NR - 1, NR}}' {input.RNAplfold_prob} | bedtools merge) < {input.fasta} > {output}
