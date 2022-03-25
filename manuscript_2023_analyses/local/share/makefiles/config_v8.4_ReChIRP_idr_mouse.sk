@@ -54,3 +54,13 @@ rule AK156552:
                 cp {input} {output}
         """
 
+ruleorder: DT926623 > cCRE_fasta
+	
+rule DT926623:
+	input:
+		"../../local/share/data/mmusculus/ssRNA_fasta/DT926623.1.fa"
+	output:
+		"DT926623.1.fa"
+	shell: """
+		cp {input} {output}
+	"""
