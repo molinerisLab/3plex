@@ -63,7 +63,7 @@ PREDICTORS_COL_NAMES=os.environ.get("PREDICTORS_COL_NAMES",config["PREDICTORS_CO
 
 include: "config.sk"
 
-container: "../../local/share/images/bit.wip-rnaseq.0.5.img"
+container: "../../local/share/images/bit.wip-rnaseq.0.8.sif"
 
 #####################
 #  Generic rules
@@ -101,7 +101,7 @@ rule get_fasta:
 		#"{GeneID,[\w\.-]+}.fa"
 	group: "input_fasta_preparation_and_triplexator"
 	container:
-        	"../../local/share/images/bit.wip-rnaseq.0.4.img"
+		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	threads: 1
 	shell: """
 		{CONDA_ACTIVATE} bit_rnaseq_3.1;
@@ -115,9 +115,9 @@ rule cCRE_fasta:
 	output:
 		"{path}.bed.fa"
 	container:
-        	"../../local/share/images/bit.wip-rnaseq.0.4.img"
+		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
+#{CONDA_ACTIVATE} bit_rnaseq_3.1;
 	shell:"""
-		{CONDA_ACTIVATE} bit_rnaseq_3.1;
 		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}
 	"""
 
@@ -130,9 +130,9 @@ rule get_longest_transcripts:
 	output:
 		"longest_transcripts.fa"
 	container:
-        	"../../local/share/images/bit.wip-rnaseq.0.4.img"
+		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell:"""
-		#{CONDA_ACTIVATE} bit_rnaseq_3.1;
+		#{CONDA_ACTIVATE} bit_rnaseq_3.1; \
 		hostname
 		zcat {input} | fasta2oneline | tr "|" "\t" | bawk '$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > {output}
 	"""

@@ -327,17 +327,17 @@ TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability.custom_t_pot.neg_po
 %_ss20_unpaired_window.fa: RNAplfold/%_lunp.unpaired_window.modif_zscore %.fa
 	PERC=$$(sort -n $< | awk '{all[NR] = $$0} END{print all[int(NR*0.2 - 0.5)]}'); fasta_mask <(bawk -v perc=$$PERC '$$1<perc {print "TERC",NR-1+4,NR+4}' $< | bedtools merge) < $^2 > $@
 
-tpx_paramspace_AUC_cmp:
-	matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/*/*/*/*/*/*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp' \
+tpx_paramspace_AUC_cmp.gz:
+	matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/*/*/*/*/*/*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz' \
 	| grep -v -w pred_1 | tr ";" "\t" \
 	| perl -lane '$$,="\t"; @F=map{s/.*\~//; $$_} @F; print @F' \
 	| cut -f 1-3,5-  \
-	| bawk '{print $$0; print $$1~9,$$11,$$10,$$13,$$12,$$14}' | sort | uniq > $@
+	| bawk '{print $$0; print $$1~9,$$11,$$10,$$13,$$12,$$14}' | sort | uniq | gzip > $@
 
-tpx_paramspace_AUC: tpx_paramspace_AUC_cmp	
-	cut -f -10,12 $< > $@
+tpx_paramspace_AUC.gz: tpx_paramspace_AUC_cmp.gz	
+	zcat $< | cut -f -10,12 | gzip > $@
 
-.META: tpx_paramspace_AUC_cmp
+.META: tpx_paramspace_AUC_cmp.gz
 	1	ssRNA	AC018781.1
 	2	single_stranddnes_cutoff	ss0
 	3	RNAplfold_window	singleNt
@@ -353,7 +353,7 @@ tpx_paramspace_AUC: tpx_paramspace_AUC_cmp
 	13	AUC2
 	14	pvalue
 
-.META: tpx_paramspace_AUC
+.META: tpx_paramspace_AUC.gz
 	1	ssRNA	AC018781.1
 	2	single_stranddnes_cutoff	ss0
 	3	RNAplfold_window	singleNt
@@ -366,21 +366,21 @@ tpx_paramspace_AUC: tpx_paramspace_AUC_cmp
 	10	predictor
 	11	AUC
 
-PROB__fitted_model_evaluation_fixed_param: tpx_paramspace_AUC_cmp
+PROB__fitted_model_evaluation_fixed_param: tpx_paramspace_AUC_cmp.gz
 	echo -e "lncRNA\tCSS AUC\tT_POT AUC\tP-value" > $@
 	bawk '$$RNAplfold_window=="singleNt" && $$guanine_rate==40 && $$error_rate==20 && $$max_length==-1 && $$min_length==10 && $$single_stranddnes_cutoff=="ss0" && $$filter_repeat=="off" && $$consecutive_errors==3 && $$predictor1=="PROB__fitted_model" && $$predictor2=="t_pot_norm" {pn=1; best_AUC=$$AUC1; if($$AUC1<$$AUC2){pn=2; best_AUC=$$AUC2} print $$0,pn,best_AUC}' $< \
 	| round_table -p 3 | sed 's/PROB__fitted_model/CSS/; s/t_pot_norm/T_POT/' | cut -f 1,12,13,14 >> $@
 
-PROB__fitted_model_evaluation_best_param: tpx_paramspace_AUC_cmp
+PROB__fitted_model_evaluation_best_param: tpx_paramspace_AUC_cmp.gz
 	echo -e "lncRNA\tCSS AUC\tT_POT AUC\tP-value" > $@
 	bawk '$$predictor1=="PROB__fitted_model" && $$predictor2=="t_pot_norm" {pn=1; best_AUC=$$AUC1; if($$AUC1<$$AUC2){pn=2; best_AUC=$$AUC2} print $$0,pn,best_AUC}' $< \
 	| find_best 1 16 \
 	| round_table -p 3 | sed 's/PROB__fitted_model/CSS/; s/t_pot_norm/T_POT/' | cut -f 1,12,13,14,15 >> $@
 
-PROB__fitted_model_unpairedWindow_evaluation_best_param: tpx_paramspace_AUC_cmp
+PROB__fitted_model_unpairedWindow_evaluation_best_param: tpx_paramspace_AUC_cmp.gz
 	bawk '$$RNAplfold_window=="unpairedWindow" && $$predictor1=="PROB__fitted_model"' $< | find_best 1 12 > $@
 
-bestAUC_params.tsv: tpx_paramspace_AUC_cmp
+bestAUC_params.tsv: tpx_paramspace_AUC_cmp.gz
 	bawk '$$RNAplfold_window=="unpairedWindow" && $$predictor1=="PROB__fitted_model"' $< | find_best 1 12 > $@
 
 #	bawk 'BEGIN{print "GeneID","RNA_ss_cutoff","RNAplfold_window","min_length","max_length","error_rate","guanine_rate","filter_repeat","consecutive_errors"} {print}' > $@
@@ -409,8 +409,8 @@ raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestAUC_params.
 	18	PROB__fitted_model
 
 
-parameter_evaluation-max_length: tpx_paramspace_AUC_cmp
-	cat $< | round_table -p 3 | find_best -m 1 12 | cut -f -10,12 | sort | uniq | collapsesets 5 | collapsesets 10 > $@
+parameter_evaluation-max_length: tpx_paramspace_AUC_cmp.gz
+	zcat $< | round_table -p 3 | find_best -m 1 12 | cut -f -10,12 | sort | uniq | collapsesets 5 | collapsesets 10 > $@
 
 selected_ssRNA.conditions.clean: selected_ssRNA.conditions
 	filter_1col 1 <(cut -f 1 $< | symbol_count | bawk '$$2==1 {print $$1}') < $< > $@
