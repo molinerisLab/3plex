@@ -3,7 +3,7 @@
 #     General param
 #
 
-GENCODE_DIR=$(BIOINFO_REFERENCE_ROOT)/gencode/dataset/hsapiens/32
+GENCODE_DIR=$(BIOINFO_REFERENCE_ROOT)/gencode/dataset/mmusculus/M25
 NCPU?=28
 
 
@@ -327,6 +327,14 @@ TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability.custom_t_pot.neg_po
 %_ss20_unpaired_window.fa: RNAplfold/%_lunp.unpaired_window.modif_zscore %.fa
 	PERC=$$(sort -n $< | awk '{all[NR] = $$0} END{print all[int(NR*0.2 - 0.5)]}'); fasta_mask <(bawk -v perc=$$PERC '$$1<perc {print "TERC",NR-1+4,NR+4}' $< | bedtools merge) < $^2 > $@
 
+
+
+
+#################################
+#
+#	v8 ROC analysis
+#
+
 tpx_paramspace_AUC_cmp.gz:
 	matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/*/*/*/*/*/*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz' \
 	| grep -v -w pred_1 | tr ";" "\t" \
@@ -335,7 +343,7 @@ tpx_paramspace_AUC_cmp.gz:
 	| bawk '{print $$0; print $$1~9,$$11,$$10,$$13,$$12,$$14}' | sort | uniq | gzip > $@
 
 tpx_paramspace_AUC.gz: tpx_paramspace_AUC_cmp.gz	
-	zcat $< | cut -f -10,12 | gzip > $@
+	zcat $< | cut -f -10,12 | uniq | gzip > $@
 
 .META: tpx_paramspace_AUC_cmp.gz
 	1	ssRNA	AC018781.1
@@ -365,6 +373,23 @@ tpx_paramspace_AUC.gz: tpx_paramspace_AUC_cmp.gz
 	9	consecutive_errors
 	10	predictor
 	11	AUC
+
+tpx_paramspace_AUC.all_human.gz: ../v8_ChIRP_neg_rand/tpx_paramspace_AUC.gz ../v8.2_ReChIRP_idr_cons/tpx_paramspace_AUC.gz ../v8.3_ReChIRP_overlap/tpx_paramspace_AUC.gz ../v8.6_ReChIRP_idr_overlap_top1000/tpx_paramspace_AUC.gz
+	matrix_reduce -t -l '$^' '../*/tpx_paramspace_AUC.gz' | gzip > $@
+
+.META: tpx_paramspace_AUC.all_human.gz
+	1	selected_peaks
+	2	ssRNA
+	3	single_stranddnes_cutoff
+	4	RNAplfold_window
+	5	min_length
+	6	max_length
+	7	error_rate
+	8	guanine_rate
+	9	filter_repeat
+	10	consecutive_errors
+	11	predictor
+	12	AUC
 
 PROB__fitted_model_evaluation_fixed_param: tpx_paramspace_AUC_cmp.gz
 	echo -e "lncRNA\tCSS AUC\tT_POT AUC\tP-value" > $@
@@ -411,6 +436,14 @@ raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestAUC_params.
 
 parameter_evaluation-max_length: tpx_paramspace_AUC_cmp.gz
 	zcat $< | round_table -p 3 | find_best -m 1 12 | cut -f -10,12 | sort | uniq | collapsesets 5 | collapsesets 10 > $@
+
+bestParams_bestPredictor.tsv: tpx_paramspace_AUC_cmp.gz
+	bawk '$$5==-1' $< | find_best -m 1 12 | cut -f -10,12 | sort | uniq | collapsesets 3 | bawk '$$1!="LINC01605" {split($$3,a,";"); print $$1";"$$2";"a[1]";"$$1";"$$4";"$$7";"$$8";"$$9,$$1,$$10}' > $@
+
+raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestParams_bestPredictor.matrix_reduce: bestParams_bestPredictor.tsv
+	matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/min_length~*/max_length~-1/error_rate~20/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic' | filter_1col 1 <(cut -f1 $<) | tr ";" "\t" | bawk '{print $$1,$$9";"$$10,$$11~26}' | grep -v "Stability" > $@
+
+
 
 selected_ssRNA.conditions.clean: selected_ssRNA.conditions
 	filter_1col 1 <(cut -f 1 $< | symbol_count | bawk '$$2==1 {print $$1}') < $< > $@
@@ -495,3 +528,7 @@ AC003681.1_EH38E1935892_triplexator.tpx: EH38E1935892.fa AC003681.1.fa
 CALML3-AS1_EH38E1310212_triplexator.tpx: EH38E1310212.fa CALML3-AS1.fa
 	docker run -u `id -u`:10001 --rm -v /sto1:/sto1 -v /sto1:/sto1 triplexator:v1.3.2_l6 bash -c "cd /sto1/epigen/TPXcCRE/dataset/v14_all_cCRE_conditions; \
 	triplexator -l 8 -L -1 -e 20 -g 10 -fr off -c 1 -fm 0 -of 1 -o $@ -rm 2 -p 4 -ss $^2 -ds $<"
+
+tpx_paramspace_AUC.all_human.matrix: tpx_paramspace_AUC.all_human.gz
+	bawk '{print $$1";"$$2,$$3~12}' $< | grep -v MIR503HG | find_best 1 11 | tr ";" "\t" | cut -f -2,12 | tab2matrix -t > $@
+
