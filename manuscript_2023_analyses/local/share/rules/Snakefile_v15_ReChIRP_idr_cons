@@ -24,6 +24,8 @@ GENCODE_SPECIES=config["GENCODE_SPECIES"]
 GENCODE_VERSION=config["GENCODE_VERSION"]
 GENCODE_DIR=BIOINFO_REFERENCE_ROOT+"gencode/dataset/"+GENCODE_SPECIES+"/"+GENCODE_VERSION
 CCRE_DIR=BIOINFO_REFERENCE_ROOT+"encode-screen/dataset/v13/"
+GENOME_ASSEMBLY=config["GENOME_ASSEMBLY"]
+GENOME_ASSEMBLY_DIR=GENCODE_DIR+"/"+GENOME_ASSEMBLY
 
 
 ######################
@@ -125,7 +127,7 @@ rule get_fasta_ingore_condition:
 
 rule cCRE_fasta:
 	input:
-		assembly=GENCODE_DIR+"/GRCh38.primary_assembly.genome.clean_id.fa",
+		assembly=GENOME_ASSEMBLY_DIR+".primary_assembly.genome.clean_id.fa",
 		cCRE_bed="{path}.bed"
 	output:
 		"{path}.bed.fa"
