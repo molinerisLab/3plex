@@ -108,6 +108,21 @@ rule get_fasta:
 		get_fasta -i {wildcards.GeneID} < {input} > {output}
 	"""
 
+rule get_fasta_ingore_condition:
+	input:  
+		"longest_transcripts.fa"
+	output: 
+		"{GeneID,[\w\.-]+}@{condition}.fa"
+		#"{GeneID,[\w\.-]+}.fa"
+	group: "input_fasta_preparation_and_triplexator"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
+	threads: 1
+	shell: """
+		{CONDA_ACTIVATE} bit_rnaseq_3.1;
+		get_fasta -i {wildcards.GeneID} < {input} > {output}
+	"""
+
 rule cCRE_fasta:
 	input:
 		assembly=GENCODE_DIR+"/GRCh38.primary_assembly.genome.clean_id.fa",
@@ -125,8 +140,7 @@ ruleorder: cCRE_fasta > get_fasta
 
 rule get_longest_transcripts:
 	input:
-		#GENCODE_DIR+"/gencode.v32.transcripts.fa.gz" # human
-		GENCODE_DIR+"/transcripts.fa.gz" # mouse
+		GENCODE_DIR+"/transcripts.fa.gz"
 	output:
 		"longest_transcripts.fa"
 	container:
