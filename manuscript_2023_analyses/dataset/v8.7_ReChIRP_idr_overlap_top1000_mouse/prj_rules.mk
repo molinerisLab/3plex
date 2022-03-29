@@ -1,0 +1,1 @@
+../../local/share/rules/prj_rules_v8.7_ReChIRP_idr_overlap_top1000_mouse.mk
