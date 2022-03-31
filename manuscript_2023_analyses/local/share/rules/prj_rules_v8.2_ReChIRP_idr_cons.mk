@@ -1,13 +1,13 @@
-ChIRP.bed.split: ../../local/share/data/ReChIRP/idr/idr.conservative_peak.regionPeak.human_matrix.gz
-	zgrep -v 'HAND2-AS1' ../../local/share/data/ReChIRP/idr/idr.conservative_peak.regionPeak.human_matrix.gz | bedtools sort > $@
+ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr/idr.conservative_peak.regionPeak.human_matrix.gz
+	zcat ../../local/share/data/ReChIRP/idr/idr.conservative_peak.regionPeak.human_matrix.gz | bedtools sort | gzip > $@
 
 %.neg_pos.bed: %_onlypos.bed %_neg.bed
 	cat $^ > $@
 
-%_onlypos.bed: ChIRP.bed.split
+%_onlypos.bed: ChIRP.bed.split.gz
 	bawk '$$5=="$*" || $$5~/$*.intersec/ {print $$1,$$2,$$3,$$4";"$$5,$$5,"pos"}' $< > $@
 
-%_neg.bed: ChIRP.bed.split %_onlypos.bed
+%_neg.bed: ChIRP.bed.split.gz %_onlypos.bed
 	bawk '{print $$1,$$2,$$3,$$4";"$$5,"$*"}' $< > $@.tmp
 	bedtools intersect -a $@.tmp -b $^2 -v \
 	| bawk '{print $$0, "neg" }'> $@
