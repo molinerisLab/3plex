@@ -125,6 +125,8 @@ rule get_fasta_ingore_condition:
 		get_fasta -i {wildcards.GeneID} < {input} > {output}
 	"""
 
+ruleorder: get_fasta_ingore_condition > cCRE_fasta
+
 rule cCRE_fasta:
 	input:
 		assembly=GENOME_ASSEMBLY_DIR+".primary_assembly.genome.clean_id.fa",
@@ -465,7 +467,7 @@ rule RNAplfold_lunp:
 	container:
 		"../../local/share/images/viennarna.2.5.0.simg"
 	shell: """
-		{CONDA_ACTIVATE} rnaFoldRand_v0.1; \
+		#{CONDA_ACTIVATE} rnaFoldRand_v0.1
 		mkdir -p RNAplfold;\
 		RNAplfold -W {config[RNAPLFOLD_WINDOW_SIZE]} -L {config[RNAPLFOLD_SPAN_SIZE]} -u {config[RNAPLFOLD_UNPAIRED_WINDOW]} -o < {input}; \
 		mv {wildcards.ssRNA}_lunp {output.lunp}; mv {wildcards.ssRNA}_basepairs {output.basepairs}
