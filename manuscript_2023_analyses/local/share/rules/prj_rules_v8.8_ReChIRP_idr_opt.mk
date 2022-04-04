@@ -1,5 +1,5 @@
-ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr/idr.conservative_peak.regionPeak.human_matrix.gz
-	zcat ../../local/share/data/ReChIRP/idr/idr.conservative_peak.regionPeak.human_matrix.gz | bedtools sort | gzip > $@
+ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr/idr.optimal_peak.regionPeak.human_matrix.gz
+	zcat $< | bedtools sort | gzip > $@
 
 %.neg_pos.bed: %_onlypos.bed %_neg.bed
 	cat $^ > $@
