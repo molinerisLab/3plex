@@ -1,5 +1,5 @@
-ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr/idr.conservative_peak.regionPeak.human_matrix.gz
-	zcat ../../local/share/data/ReChIRP/mmusculus/idr/idr.conservative_peak.regionPeak.mouse_matrix.gz | bedtools sort | gzip > $@
+ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/mmusculus/idr/idr.optimal_peak.regionPeak.mouse_matrix.gz 
+	zcat $< | bedtools sort | gzip > $@
 
 %.neg_pos.bed: %_onlypos.bed %_neg.bed
 	cat $^ > $@
@@ -13,17 +13,17 @@ ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr/idr.conservative_peak.reg
 	| bawk '{print $$0, "neg" }'> $@
 	rm $@.tmp
 
-%.neg_rand.excl.bed: ../../local/share/data/ReChIRP/mmusculus/mm10.shuffle_blacklist.bed ../../local/share/data/ReChIRP/mmusculus/gap.bed %_onlypos.bed
+%.neg_rand.excl.bed: $(GENCODE_DIR)/mm10.shuffle_blacklist.bed $(GENCODE_DIR)/gap.bed %_onlypos.bed
 	cut -f -3 $^ |  bedtools sort | bedtools merge > $@
 
-%.neg_rand.bed: %_onlypos.bed ../../local/share/data/ReChIRP/mmusculus/chrom.info.no_alt %.neg_rand.excl.bed
+%.neg_rand.bed: %_onlypos.bed $(GENCODE_DIR)/chrom.info.no_alt %.neg_rand.excl.bed
 	bedtools shuffle -i $< -g $^2 -excl $^3 | bawk '{$$4="rand_"$$4; $$6="neg"; print}' > $@
 
 
 %.neg_pos_rand.bed: %_onlypos.bed %.neg_rand.bed
 	cat $^ > $@
 
-ALL_ssRNA=$(shell cat selected_ssRNA_id)
+ALL_ssRNA=$(shell cat selected_ssRNA)
 
 ALL_neg_pos_rand.bed: $(addsuffix .neg_pos_rand.bed,$(ALL_ssRNA))
 	cut -f -4 $^ > $@
