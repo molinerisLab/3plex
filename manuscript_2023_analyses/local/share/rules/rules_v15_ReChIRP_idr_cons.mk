@@ -532,3 +532,104 @@ CALML3-AS1_EH38E1310212_triplexator.tpx: EH38E1310212.fa CALML3-AS1.fa
 tpx_paramspace_AUC.all_human.matrix: tpx_paramspace_AUC.all_human.gz
 	bawk '{print $$1";"$$2,$$3~12}' $< | grep -v MIR503HG | find_best 1 11 | tr ";" "\t" | cut -f -2,12 | tab2matrix -t > $@
 
+tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks.gz: tpx_paramspace_AUC.all_human_noSingleNt.gz ../../local/share/data/CLEAN_all_reproducibility.regionPeak.counts_matrix.overlap_custom.overlap_conservative_qTh005.bed_peaks.tsv
+	zcat $< | grep -v LINC01605 | translate -a <(cut -f2- $^2) 2 | sort | uniq | gzip > $@
+tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.gz: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks.gz
+	bawk '{if($$1 == "v8.2_ReChIRP_idr_cons"){print $$1~3,$$5,$$9~17}else if($$1 == "v8.3_ReChIRP_overlap"){print $$1~3,$$7,$$9~17} else if($$1 == "v8.6_ReChIRP_idr_overlap_top1000"){print $$1~3,1000,$$9~17} else if($$1 == "v8_ChIRP_neg_rand") {print $$1~3,$$8~17}}' $< | gzip > $@
+
+.META: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.gz
+	1	peak_method	v8.2_ReChIRP_idr_cons
+	2	ssRNA	7SK
+	3	exp_method	ChIRP-seq
+	4	n_peaks	249
+	5	singleStrandedness	ss0
+	6	min_len	10
+	7	max_len	-1
+	8	error_rate	10
+	9	guanine_rate	10
+	10	repeat_filter	off
+	11	consecutive_error	1
+	12	predictor	PROB__fitted_model
+	13	AUC	0.5
+
+tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.gz: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.gz /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/qc_params.tsv
+	zcat $< | translate -a -k <(cut -f2- $^2 | grep -v 'AC018781') 2 | gzip > $@
+ssRNA_frip_type.tsv: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.gz
+	zcat $< | cut -f2,4,5,8,9 | sort | uniq | bawk '{a = $$1; print a";overlap."$$2,a";overlap."$$3,a";idr."$$4,a";idr."$$5}' | tr "\t" "\n" > $@
+tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip.gz: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.gz /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/ssRNA_firp_samples.tsv ssRNA_frip_type.tsv
+	zcat $< | translate -a -d <(translate -a -v -e NA $^2 1 < $^3 | tr ";" "\t") 2 | tr ";" "\t" | cut -f1-11,14,15,18- | gzip > $@
+
+.META: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip.gz
+	1	peak_method	v8.2_ReChIRP_idr_cons
+	2	ssRNA	7SK
+	3	overlap.opt_set	overlap.pooled-pr1_vs_pooled-pr2
+	4	overlap.opt.frip	0.3111992763582027
+	5	overlap.cons_set	overlap.rep1_vs_rep2
+	6	overlap.cons.frip	0.033778479652571976
+	7	idr.opt_set	idr.pooled-pr1_vs_pooled-pr2
+	8	idr.opt.frip	0.22089077906436314
+	9	idr.cons_set	idr.rep1_vs_rep2
+	10	idr.cons.frip	0.004493715610772667
+	11	paired_end	False
+	12	overlap.rescue_ratio	11.979719917012448
+	13	overlap.self_consistency_ratio	1.3578253351920213
+	14	idr.rescue_ratio	482.2570281124498
+	15	idr.self_consistency_ratio	1.376415139595126
+	16	exp_method	ChIRP-seq
+	17	n_peaks	249
+	18	singleStrandedness	ss0
+	19	min_len	10
+	20	max_len	-1
+	21	error_rate	10
+	22	guanine_rate	10
+	23	repeat_filter	off
+	24	consecutive_error	1
+	25	predictor	PROB__fitted_model
+	26	AUC	0.5
+
+tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.gz: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip.gz
+	bawk '{if($$1 == "v8.2_ReChIRP_idr_cons"){print $$1~2,$$10,$$14~26}else if($$1 == "v8.3_ReChIRP_overlap"){print $$1~2,$$6,$$12,$$13,$$16~26} else if($$1 == "v8.6_ReChIRP_idr_overlap_top1000"){print $$1~2,($$4+$$6+$$8+$$10)/4,($$12+$$14)/2,($$13+$$15)/2,$$16~26} else if($$1 == "v8_ChIRP_neg_rand") {print $$1~2,"NA","NA","NA",$$16~26}}' $< | expandsets 3 4 5 | gzip > $@
+
+.META: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.gz
+	1	peak_method	v8.6_ReChIRP_idr_overlap_top1000
+	2	ssRNA	7SK
+	3	frip	0.3111992763582027
+	4	rescue_ratio	11.979719917012448
+	5	self_consistency_ratio	1.3578253351920213
+	6	exp_method	ChIRP-seq
+	7	n_peaks	1000
+	8	singleStrandedness	ss0
+	9	min_len	10
+	10	max_len	-1
+	11	error_rate	10
+	12	guanine_rate	10
+	13	repeat_filter	off
+	14	consecutive_error	1
+	15	predictor	PROB__fitted_model
+	16	AUC	0.5
+
+tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.gz: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.gz
+	zcat $< | cut -f1-5,7-9,11- | gzip > $@
+
+.META: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.gz
+	1	peak_method	v8.2_ReChIRP_idr_cons
+	2	ssRNA	7SK
+	3	frip	0.004493715610772667
+	4	rescue_ratio	482.2570281124498
+	5	self_consistency_ratio	1.376415139595126
+	6	n_peaks	249
+	7	singleStrandedness	ss0
+	8	min_len	10
+	9	error_rate	10
+	10	guanine_rate	10
+	11	repeat_filter	off
+	12	consecutive_error	1
+	13	predictor	PROB__fitted_model
+	14	AUC	0.5
+
+tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.anova_exclude.gz: ./anova_perm.sh
+	export OPENBLAS_NUM_THREADS=1; seq 1 10000 | parallel -j 50 --group $< > $@.tmp; \
+	grep -v '^>' $@.tmp | gzip > $@; \
+	rm $@.tmp 
+tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.true_prediction: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.header_added.gz
+	bmodel -i -a $< 'AUC~peak_method+ssRNA+frip+rescue_ratio+self_consistency_ratio+n_peaks+singleStrandedness+min_len+error_rate+guanine_rate+repeat_filter+consecutive_error+predictor' | grep -v '^>' > $@
