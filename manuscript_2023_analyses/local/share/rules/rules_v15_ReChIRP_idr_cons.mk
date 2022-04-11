@@ -535,7 +535,7 @@ tpx_paramspace_AUC.all_human.matrix: tpx_paramspace_AUC.all_human.gz
 tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks.gz: tpx_paramspace_AUC.all_human_noSingleNt.gz ../../local/share/data/CLEAN_all_reproducibility.regionPeak.counts_matrix.overlap_custom.overlap_conservative_qTh005.bed_peaks.tsv
 	zcat $< | grep -v LINC01605 | translate -a <(cut -f2- $^2) 2 | sort | uniq | gzip > $@
 tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.gz: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks.gz
-	bawk '{if($$1 == "v8.2_ReChIRP_idr_cons"){print $$1~3,$$5,$$9~17}else if($$1 == "v8.3_ReChIRP_overlap"){print $$1~3,$$7,$$9~17} else if($$1 == "v8.6_ReChIRP_idr_overlap_top1000"){print $$1~3,1000,$$9~17} else if($$1 == "v8_ChIRP_neg_rand") {print $$1~3,$$8~17}}' $< | gzip > $@
+	b{ramspace_AUC.all_human_noSingleNt.method.Npeaks.gzawk '{if($$1 == "v8.2_ReChIRP_idr_cons")print $$1~3,$$5,$$9~17}else if($$1 == "v8.3_ReChIRP_overlap"){print $$1~3,$$7,$$9~17} else if($$1 == "v8.6_ReChIRP_idr_overlap_top1000"){print $$1~3,1000,$$9~17} else if($$1 == "v8_ChIRP_neg_rand") {print $$1~3,$$8~17}}' $< | gzip > $@
 
 .META: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.gz
 	1	peak_method	v8.2_ReChIRP_idr_cons
@@ -633,3 +633,6 @@ tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_ver
 	rm $@.tmp 
 tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.true_prediction: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.header_added.gz
 	bmodel -i -a $< 'AUC~peak_method+ssRNA+frip+rescue_ratio+self_consistency_ratio+n_peaks+singleStrandedness+min_len+error_rate+guanine_rate+repeat_filter+consecutive_error+predictor' | grep -v '^>' > $@
+
+tpx_paramspace_AUC.all_human_noSingleNt.gz: ../v8.2_ReChIRP_idr_cons/tpx_paramspace_AUC.gz ../v8.3_ReChIRP_overlap/tpx_paramspace_AUC.gz ../v8.6_ReChIRP_idr_overlap_top1000/tpx_paramspace_AUC.gz
+	matrix_reduce -t -l '$^' '../*/tpx_paramspace_AUC.gz' | bawk '$$4 != "singleNt" {print $$1~3,$$5~13}' | gzip > $@
