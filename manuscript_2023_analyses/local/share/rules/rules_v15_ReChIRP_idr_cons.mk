@@ -634,5 +634,8 @@ tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_ver
 tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.true_prediction: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.header_added.gz
 	bmodel -i -a $< 'AUC~peak_method+ssRNA+frip+rescue_ratio+self_consistency_ratio+n_peaks+singleStrandedness+min_len+error_rate+guanine_rate+repeat_filter+consecutive_error+predictor' | grep -v '^>' > $@
 
-tpx_paramspace_AUC.all_human_noSingleNt.gz: ../v8.2_ReChIRP_idr_cons/tpx_paramspace_AUC.gz ../v8.3_ReChIRP_overlap/tpx_paramspace_AUC.gz ../v8.6_ReChIRP_idr_overlap_top1000/tpx_paramspace_AUC.gz
+tpx_paramspace_AUC.all_human_noSingleNt.gz: ../v8.2_ReChIRP_idr_cons/tpx_paramspace_AUC.gz ../v8.3_ReChIRP_overlap/tpx_paramspace_AUC.gz ../v8.6_ReChIRP_idr_overlap_top1000/tpx_paramspace_AUC.gz ../v8.8_ReChIRP_idr_opt/tpx_paramspace_AUC.gz
+	matrix_reduce -t -l '$^' '../*/tpx_paramspace_AUC.gz' | bawk '$$4 != "singleNt" {print $$1~3,$$5~13}' | gzip > $@
+
+tpx_paramspace_AUC.all_mouse_noSingleNt.gz: ../v8.4_ReChIRP_idr_mouse/tpx_paramspace_AUC.gz ../v8.5_ReChIRP_overlap_mouse/tpx_paramspace_AUC.gz ../v8.7_ReChIRP_idr_overlap_top1000_mouse/tpx_paramspace_AUC.gz ../v8.9_ReChIRP_idr_opt_mouse/tpx_paramspace_AUC.gz
 	matrix_reduce -t -l '$^' '../*/tpx_paramspace_AUC.gz' | bawk '$$4 != "singleNt" {print $$1~3,$$5~13}' | gzip > $@
