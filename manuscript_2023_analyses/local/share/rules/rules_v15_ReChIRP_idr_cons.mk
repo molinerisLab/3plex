@@ -532,10 +532,10 @@ CALML3-AS1_EH38E1310212_triplexator.tpx: EH38E1310212.fa CALML3-AS1.fa
 tpx_paramspace_AUC.all_human.matrix: tpx_paramspace_AUC.all_human.gz
 	bawk '{print $$1";"$$2,$$3~12}' $< | grep -v MIR503HG | find_best 1 11 | tr ";" "\t" | cut -f -2,12 | tab2matrix -t > $@
 
-tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks.gz: tpx_paramspace_AUC.all_human_noSingleNt.gz ../../local/share/data/CLEAN_all_reproducibility.regionPeak.counts_matrix.overlap_custom.overlap_conservative_qTh005.bed_peaks.tsv
+tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks.gz: tpx_paramspace_AUC.all_%_noSingleNt.gz ../../local/share/data/CLEAN_all_reproducibility.regionPeak.counts_matrix.overlap_custom.overlap_conservative_qTh005.bed_peaks.tsv
 	zcat $< | grep -v LINC01605 | translate -a <(cut -f2- $^2) 2 | sort | uniq | gzip > $@
 tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.gz: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks.gz
-	b{ramspace_AUC.all_human_noSingleNt.method.Npeaks.gzawk '{if($$1 == "v8.2_ReChIRP_idr_cons")print $$1~3,$$5,$$9~17}else if($$1 == "v8.3_ReChIRP_overlap"){print $$1~3,$$7,$$9~17} else if($$1 == "v8.6_ReChIRP_idr_overlap_top1000"){print $$1~3,1000,$$9~17} else if($$1 == "v8_ChIRP_neg_rand") {print $$1~3,$$8~17}}' $< | gzip > $@
+	bawk '{if($$1 == "v8.2_ReChIRP_idr_cons"){print $$1~3,$$5,$$9~17}else if($$1 == "v8.3_ReChIRP_overlap"){print $$1~3,$$7,$$9~17} else if($$1 == "v8.6_ReChIRP_idr_overlap_top1000"){print $$1~3,1000,$$9~17} else if($$1 == "v8_ChIRP_neg_rand") {print $$1~3,$$8~17} else if($$1 == "v8.8_ReChIRP_idr_opt") {print $$1~3,$$6,$$9~17}}' $< | gzip > $@
 
 .META: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.gz
 	1	peak_method	v8.2_ReChIRP_idr_cons
@@ -552,14 +552,14 @@ tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.gz: tpx_paramspace
 	12	predictor	PROB__fitted_model
 	13	AUC	0.5
 
-tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.gz: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.gz /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/qc_params.tsv
+tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.qc_params.gz: tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.gz /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/qc_params.tsv
 	zcat $< | translate -a -k <(cut -f2- $^2 | grep -v 'AC018781') 2 | gzip > $@
-ssRNA_frip_type.tsv: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.gz
+ssRNA_frip_type.%.tsv: tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.qc_params.gz
 	zcat $< | cut -f2,4,5,8,9 | sort | uniq | bawk '{a = $$1; print a";overlap."$$2,a";overlap."$$3,a";idr."$$4,a";idr."$$5}' | tr "\t" "\n" > $@
-tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip.gz: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.gz /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/ssRNA_firp_samples.tsv ssRNA_frip_type.tsv
+tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.qc_params.frip.gz: tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.qc_params.gz /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/ssRNA_firp_samples.tsv ssRNA_frip_type.%.tsv
 	zcat $< | translate -a -d <(translate -a -v -e NA $^2 1 < $^3 | tr ";" "\t") 2 | tr ";" "\t" | cut -f1-11,14,15,18- | gzip > $@
 
-.META: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip.gz
+.META: tpx_paramspace_AUC.all_*_noSingleNt.method.Npeaks_version.qc_params.frip.gz
 	1	peak_method	v8.2_ReChIRP_idr_cons
 	2	ssRNA	7SK
 	3	overlap.opt_set	overlap.pooled-pr1_vs_pooled-pr2
@@ -588,9 +588,9 @@ tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip.gz:
 	26	AUC	0.5
 
 tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.gz: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip.gz
-	bawk '{if($$1 == "v8.2_ReChIRP_idr_cons"){print $$1~2,$$10,$$14~26}else if($$1 == "v8.3_ReChIRP_overlap"){print $$1~2,$$6,$$12,$$13,$$16~26} else if($$1 == "v8.6_ReChIRP_idr_overlap_top1000"){print $$1~2,($$4+$$6+$$8+$$10)/4,($$12+$$14)/2,($$13+$$15)/2,$$16~26} else if($$1 == "v8_ChIRP_neg_rand") {print $$1~2,"NA","NA","NA",$$16~26}}' $< | expandsets 3 4 5 | gzip > $@
+	bawk '{if($$1 == "v8.2_ReChIRP_idr_cons"){print $$1~2,$$10,$$14~26}else if($$1 == "v8.3_ReChIRP_overlap"){print $$1~2,$$6,$$12,$$13,$$16~26} else if($$1 == "v8.6_ReChIRP_idr_overlap_top1000"){print $$1~2,($$4+$$6+$$8+$$10)/4,($$12+$$14)/2,($$13+$$15)/2,$$16~26} else if($$1 == "v8_ChIRP_neg_rand") {print $$1~2,"NA","NA","NA",$$16~26} else if($$1 == "v8.8_ReChIRP_idr_opt"){print $$1~2,$$8,$$14~26}}' $< | expandsets 3 4 5 | gzip > $@
 
-.META: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.gz
+.META: tpx_paramspace_AUC.all_*_noSingleNt.method.Npeaks_version.qc_params.frip_version.gz
 	1	peak_method	v8.6_ReChIRP_idr_overlap_top1000
 	2	ssRNA	7SK
 	3	frip	0.3111992763582027
@@ -608,10 +608,10 @@ tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_ver
 	15	predictor	PROB__fitted_model
 	16	AUC	0.5
 
-tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.gz: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.gz
+tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.gz: tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.qc_params.frip_version.gz
 	zcat $< | cut -f1-5,7-9,11- | gzip > $@
 
-.META: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.gz
+.META: tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.gz
 	1	peak_method	v8.2_ReChIRP_idr_cons
 	2	ssRNA	7SK
 	3	frip	0.004493715610772667
@@ -634,6 +634,7 @@ tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_ver
 tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.true_prediction: tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.qc_params.frip_version.finale.header_added.gz
 	bmodel -i -a $< 'AUC~peak_method+ssRNA+frip+rescue_ratio+self_consistency_ratio+n_peaks+singleStrandedness+min_len+error_rate+guanine_rate+repeat_filter+consecutive_error+predictor' | grep -v '^>' > $@
 
+<<<<<<< HEAD
 tpx_paramspace_AUC.all_human_noSingleNt.gz: ../v8.2_ReChIRP_idr_cons/tpx_paramspace_AUC.gz ../v8.3_ReChIRP_overlap/tpx_paramspace_AUC.gz ../v8.6_ReChIRP_idr_overlap_top1000/tpx_paramspace_AUC.gz ../v8.8_ReChIRP_idr_opt/tpx_paramspace_AUC.gz
 	matrix_reduce -t -l '$^' '../*/tpx_paramspace_AUC.gz' | bawk '$$4 != "singleNt" {print $$1~3,$$5~13}' | gzip > $@
 
@@ -673,3 +674,39 @@ best_single_params.peak_method.matrix.gz:
 best_single_params.predictors.matrix.gz:
 	@echo 'The -l argument does not work, I pasted the lines of the file manually'
 	matrix_reduce -t -l '<(ls $$(bawk '{print "../*/tpx_paramspace/"$$2"_"$$3"_unpairedWindow/"$$2".neg_pos_rand.bed/min_length~"$$4"/max_length~-1/error_rate~"$$6"/guanine_rate~"$$7"/filter_repeat~"$$8"/consecutive_errors~"$$9"/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz"}' best_parameter_settings.tsv) | tr "\n" " ")' '../*/tpx_paramspace/*_*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~-1/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz' | bawk '{split($$1,a,";"); print a[2], $$2~18}' | grep -v AUC | gzip > $@
+
+#tpx_paramspace_AUC.all_human_noSingleNt.gz: ../v8.2_ReChIRP_idr_cons/tpx_paramspace_AUC.gz ../v8.3_ReChIRP_overlap/tpx_paramspace_AUC.gz ../v8.6_ReChIRP_idr_overlap_top1000/tpx_paramspace_AUC.gz ../v8.8_ReChIRP_idr_opt/tpx_paramspace_AUC.gz
+#	matrix_reduce -t -l '$^' '../*/tpx_paramspace_AUC.gz' | bawk '$$4 != "singleNt" {print $$1~3,$$5~13}' | gzip > $@
+
+#tpx_paramspace_AUC.all_mouse_noSingleNt.gz: ../v8.4_ReChIRP_idr_mouse/tpx_paramspace_AUC.gz ../v8.5_ReChIRP_overlap_mouse/tpx_paramspace_AUC.gz ../v8.7_ReChIRP_idr_overlap_top1000_mouse/tpx_paramspace_AUC.gz ../v8.9_ReChIRP_idr_opt_mouse/tpx_paramspace_AUC.gz
+#	matrix_reduce -t -l '$^' '../*/tpx_paramspace_AUC.gz' | bawk '$$4 != "singleNt" {print $$1~3,$$5~13}' | gzip > $@
+
+tpx_paramspace_AUC.all_human_noSingleNt_noBed.gz:
+	@echo 'Equivalent of tpx_paramspace_AUC.all_human_noSingleNt.gz on peralta'
+best_parameter_settings.tsv: tpx_paramspace_AUC.all_human_noSingleNt.gz
+	zcat $< | grep -v LINC01605 | grep -v AC018781 | find_best 2 11 > $@
+best_parameter_settings.selected_files.tsv: best_parameter_settings.tsv
+	bawk '{print "../"$$1"/tpx_paramspace/"$$2"_"$$3"_unpairedWindow/"$$2".neg_pos_rand.bed/min_length~"$$4"/max_length~-1/error_rate~"$$6"/guanine_rate~"$$7"/filter_repeat~"$$8"/consecutive_errors~"$$9"/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz"}' $< > $@
+best_single_params.matrix.gz:
+	@echo 'Manually added v8_ChIRP_neg_rand values'
+best_general_params.peak_method.matrix.gz: ../raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions.gz general_parameter_settings_versions.tsv human_lncRNA
+	bawk '{print $$3";"$$4";"$$5";"$$6";"$$7";"$$8";"$$9,$$1,$$2,$$9,$$11}' $< | filter_1col 1 $^2 | cut -f2- | sort | uniq | filter_1col 2 $^3 | bawk '{print $$1,$$2";"$$3,$$4}' | tab2matrix -e 0 | matrix2tab | tr ";" "\t" | gzip > $@
+best_general_params.predictors.matrix.gz: ../raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions.gz general_parameter_settings_predictors.tsv
+	bawk '{print $$1";"$$3";"$$4";"$$5";"$$6";"$$7";"$$8,$$2,$$9,$$11}' $< | filter_1col 1 $^2 | cut -f2- | sort | uniq | gzip > $@
+best_single_params.peak_method.matrix.gz: ../raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions.gz best_parameter_settings.tsv
+	bawk '{print $$2";"$$3";"$$4";"$$5";"$$6";"$$7";"$$8";"$$9,$$1,$$2,$$9,$$11}' $< | filter_1col 1 <(cut -f2-4,6-10 $^2 | tr "\t" ";") | cut -f2- | sort | uniq | bawk '{print $$1,$$2";"$$3,$$4}' | tab2matrix -e 0 | matrix2tab | tr ";" "\t" | gzip > $@
+best_single_params.predictors.matrix.gz: ../raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions.gz best_parameter_settings.tsv
+	bawk '{print $$1";"$$2";"$$3";"$$4";"$$5";"$$6";"$$7";"$$8,$$2,$$9,$$11}' $< | filter_1col 1 <(cut -f1-4,6-9 $^2 | tr "\t" ";") | cut -f2- | sort | uniq | gzip > $@
+best_general_params.min_len.matrix.gz: ../raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions.gz general_parameter_settings.tsv
+	bawk '{print $$1";"$$3";"$$5";"$$6";"$$7";"$$8";"$$9,$$2,$$4,$$11}' $< | filter_1col 1 <(cut -f1-2,4- $^2 | tr "\t" ";") | cut -f2- | sort | uniq | gzip > $@
+best_single_params.min_len.matrix.gz: ../raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions.gz best_parameter_settings.tsv
+	bawk '{print $$1";"$$2";"$$3";"$$5";"$$6";"$$7";"$$8";"$$9,$$2,$$4,$$11}' $< | filter_1col 1 <(cut -f1-3,6-10 $^2 | tr "\t" ";") | cut -f2- | sort | uniq | gzip > $@
+best_general_params.singleStrandedness.matrix.gz: ../raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions.gz general_parameter_settings.tsv
+	bawk '{print $$1";"$$4";"$$5";"$$6";"$$7";"$$8";"$$9,$$2,$$3,$$11}' $< | filter_1col 1 <(cut -f1,3- $^2 | tr "\t" ";") | cut -f2- | sort | uniq | gzip > $@
+best_single_params.singleStrandedness.matrix.gz: ../raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions.gz best_parameter_settings.tsv
+	bawk '{print $$1";"$$2";"$$4";"$$5";"$$6";"$$7";"$$8";"$$9,$$2,$$3,$$11}' $< | filter_1col 1 <(cut -f1,2,4,6-10 $^2 | tr "\t" ";") | cut -f2- | sort | uniq | gzip > $^3
+tpx_paramspace_AUC.all_mouse_noSingleNt.method.Npeaks_version.gz: tpx_paramspace_AUC.all_mouse_noSingleNt.method.Npeaks.gz
+	bawk '{if($$1 == "v8.4_ReChIRP_idr_mouse"){print $$1~3,$$5,$$9~17}else if($$1 == "v8.5_ReChIRP_overlap_mouse"){print $$1~3,$$7,$$9~17} else if($$1 == "v8.7_ReChIRP_idr_overlap_top1000_mouse"){print $$1~3,1000,$$9~17} else if($$1 == "v8.9_ReChIRP_idr_opt_mouse") {print $$1~3,$$6,$$9~17}}' $< | gzip > $^2
+tpx_paramspace_AUC.all_mouse_noSingleNt.method.Npeaks_version.qc_params.frip_version.gz: tpx_paramspace_AUC.all_mouse_noSingleNt.method.Npeaks_version.qc_params.frip.gz
+	bawk '{if($$1 == "v8.4_ReChIRP_idr_mouse"){print $$1~2,$$10,$$14~26}else if($$1 == "v8.5_ReChIRP_overlap_mouse"){print $$1~2,$$6,$$12,$$13,$$16~26} else if($$1 == "v8.7_ReChIRP_idr_overlap_top1000_mouse"){print $$1~2,($$4+$$6+$$8+$$10)/4,($$12+$$14)/2,($$13+$$15)/2,$$16~26} else if($$1 == "v8.8_ReChIRP_idr_opt"){print $$1~2,$$8,$$14~26}}' $< | expandsets 3 4 5 | gzip > $@
+
