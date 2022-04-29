@@ -639,3 +639,37 @@ tpx_paramspace_AUC.all_human_noSingleNt.gz: ../v8.2_ReChIRP_idr_cons/tpx_paramsp
 
 tpx_paramspace_AUC.all_mouse_noSingleNt.gz: ../v8.4_ReChIRP_idr_mouse/tpx_paramspace_AUC.gz ../v8.5_ReChIRP_overlap_mouse/tpx_paramspace_AUC.gz ../v8.7_ReChIRP_idr_overlap_top1000_mouse/tpx_paramspace_AUC.gz ../v8.9_ReChIRP_idr_opt_mouse/tpx_paramspace_AUC.gz
 	matrix_reduce -t -l '$^' '../*/tpx_paramspace_AUC.gz' | bawk '$$4 != "singleNt" {print $$1~3,$$5~13}' | gzip > $@
+
+tpx_paramspace_AUC.idr_overlap_top1000.best_general_params.gz:
+	matrix_reduce -t 'tpx_paramspace/*_ss0_unpairedWindow/*.neg_pos_rand.bed/min_length~8/max_length~-1/error_rate~20/guanine_rate~40/filter_repeat~off/consecutive_errors~1/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz' | grep -v Duplex_ID | bawk '{split($$1,a,";"); print a[1],$$2~18}' | gzip > $@
+
+.META: tpx_paramspace_AUC.idr_overlap_top1000.best_general_params.gz
+	1	ssRNA
+	2	Duplex_ID
+	3	tpx_count_custom
+	4	neg_pos
+	5	tpx_count_standard
+	6	t_pot_norm
+	7	Duplex_length
+	8	oligolength
+	9	triplexator_norm_factor
+	10	t_pot_custom
+	11	TTS_covered_len
+	12	TTS_covered_frac
+	13	Stability_best
+	14	Stability_tot_overcount
+	15	Stability_tot_undercount
+	16	Stability_norm_overcount
+	17	Stability_norm_undercount
+	18	PROB__fitted_model
+
+
+best_single_params.matrix.gz: best_parameter_settings.selected_files.tsv
+	@echo 'The -l argument does not work, I pasted the lines of the file manually'
+	matrix_reduce -t -l '<(cat $< | tr "\n" " ")' '../*/tpx_paramspace/*_*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_^Cngth~-1/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz' | bawk '{split($$1,a,";"); print a[2], $$2~18}' | grep -v 'Duplex_ID' | gzip > $@
+best_single_params.peak_method.matrix.gz:
+	@echo 'The -l argument does not work, I pasted the lines of the file manually'
+	matrix_reduce -t -l '<(ls $$(bawk '{print "../*/tpx_paramspace/"$$2"_"$$3"_unpairedWindow/"$$2".neg_pos_rand.bed/min_length~"$$4"/max_length~-1/error_rate~"$$6"/guanine_rate~"$$7"/filter_repeat~"$$8"/consecutive_errors~"$$9"/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz"}' best_parameter_settings.tsv) | tr "\n" " ")' '../*/tpx_paramspace/*_*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~-1/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz' | bawk '{split($$1,a,";"); print a[2], $$2~18}' | grep -v AUC | gzip > $@
+best_single_params.predictors.matrix.gz:
+	@echo 'The -l argument does not work, I pasted the lines of the file manually'
+	matrix_reduce -t -l '<(ls $$(bawk '{print "../*/tpx_paramspace/"$$2"_"$$3"_unpairedWindow/"$$2".neg_pos_rand.bed/min_length~"$$4"/max_length~-1/error_rate~"$$6"/guanine_rate~"$$7"/filter_repeat~"$$8"/consecutive_errors~"$$9"/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz"}' best_parameter_settings.tsv) | tr "\n" " ")' '../*/tpx_paramspace/*_*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~-1/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz' | bawk '{split($$1,a,";"); print a[2], $$2~18}' | grep -v AUC | gzip > $@
