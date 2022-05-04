@@ -553,7 +553,8 @@ tpx_paramspace_AUC.all_human_noSingleNt.method.Npeaks_version.gz: tpx_paramspace
 	13	AUC	0.5
 
 tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.qc_params.gz: tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.gz /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/qc_params.tsv
-	zcat $< | translate -a -k <(cut -f2- $^2 | grep -v 'AC018781') 2 | gzip > $@
+	zcat $< | translate -a -k <(cut -f2- $^2) 2 | gzip > $@
+#	zcat $< | translate -a -k <(cut -f2- $^2 | grep -v 'AC018781') 2 | gzip > $@
 ssRNA_frip_type.%.tsv: tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.qc_params.gz
 	zcat $< | cut -f2,4,5,8,9 | sort | uniq | bawk '{a = $$1; print a";overlap."$$2,a";overlap."$$3,a";idr."$$4,a";idr."$$5}' | tr "\t" "\n" > $@
 tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.qc_params.frip.gz: tpx_paramspace_AUC.all_%_noSingleNt.method.Npeaks_version.qc_params.gz /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/ssRNA_firp_samples.tsv ssRNA_frip_type.%.tsv
