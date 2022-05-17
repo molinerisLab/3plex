@@ -1,4 +1,9 @@
 
+def all_selected_ssRNA_id():
+	with open("selected_ssRNA", mode='rt') as fh:
+		for line in fh:
+			ssRNA = line.rstrip()
+			yield ssRNA
 def all_selected_ssRNA_id(input_condition=None):
 	with open("selected_ssRNA.conditions.up_down.balanced.clean", mode='rt') as fh:
 		for line in fh:
@@ -22,3 +27,23 @@ def get_all_triplexator_selected_input(wildcards):
 rule all_triplexator:
 	input:
 		get_all_triplexator_selected_input
+
+rule all_stab_fisher:
+	input:
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-ALLcond.bed/{params}/raw.tpx.{summarize}.{condition}.neg_pos.fisher_select_cutoff.gz",
+			condition = config["ENCODE_CONDITIONS"], 
+			params = triplexator_paramspace.instance_patterns,
+			ssRNA = all_selected_ssRNA_id(),
+			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+			window=config["RNAPLFOLD_WINDOW"],
+			summarize=config['TPXcCRE_SCORE_SUMMARIZE_METHODS']
+		)
+
+rule all_tpx_paramspace:
+	input:
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz", 
+			params = triplexator_paramspace.instance_patterns,
+			ssRNA = all_selected_ssRNA_id(),
+			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+			window=config["RNAPLFOLD_WINDOW"]
+		)

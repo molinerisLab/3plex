@@ -1,0 +1,2 @@
+selected_ssRNA: /sto1/epigen/ENCODE_RNAseq/dataset/NPC_H9/DGE/selected_lncRNA
+	cp $< $@
