@@ -1,9 +1,11 @@
+#!
+
 library("pROC")
 library("ggplot2")
 library("ggpubr")
 library("ggsci")
 
-setwd("/sto1/epigen/TPXcCRE/dataset/v8_ChIRP_neg_rand")
+#setwd("/sto1/epigen/TPXcCRE/dataset/v8_ChIRP_neg_rand")
 
 z<-read.table("raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.bestParams_bestPredictor.matrix_reduce.header_added"
               , header = T)

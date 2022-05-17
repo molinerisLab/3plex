@@ -36,3 +36,6 @@ selected_ssRNA:
 
 pippo:
 	echo $(GENCODE_DIR)
+
+lncSmad7_onlypos.bed: /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/overlap.conservative.qTh005.mouse.regionPeak.gz
+	bawk '$$5=="lncSmad7" || $$5~/lncSmad7.intersec/ {print $$1,$$2,$$3,$$4";"$$5,$$5,"pos"}' $< > $@

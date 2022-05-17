@@ -75,10 +75,11 @@ plot.roc(df$neg_pos
          , print.auc.col="#1c61b6"
          , col="#1c61b6"
          , print.auc.pattern="comb pAUC (100-90%% SP):\n%.3f%%"
-         , 
 )
 
 
 
 
-+ z$Stability_tot_undercount
+
+
+

@@ -40,3 +40,6 @@ selected_ssRNA:
 
 pippo:
 	echo $(GENCODE_DIR)
+
+lncSmad7_onlypos.bed: /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/all_reproducibility.idr_conservative-idr_optimal_peak-overalp_conservative-overlap_optimal.regionPeak.top1000.gz
+	bawk '$$2=="lncSmad7" {print $$4,$$5,$$6,"chirp_peak_"NR";"$$2,$$2,"pos"}' $< > $@

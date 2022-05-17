@@ -37,3 +37,6 @@ ALL_neg_pos.bed: $(addsuffix .neg_pos.bed,$(ALL_ssRNA))
 selected_ssRNA:
 	@echo 'Human lncRNAs with idr peaks number > 100'
 	@echo 'See this table: https://docs.google.com/spreadsheets/d/1iQGctC1ldu1oTwmaLEsrs8cB0ik3JWYCrBkvoDKZDpk/edit#gid=0'
+
+AC018781.1_onlypos.bed: /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/all_reproducibility.idr_conservative-idr_optimal_peak-overalp_conservative-overlap_optimal.regionPeak.top1000.gz
+	bawk '$$2=="AC018781.1" {print $$4,$$5,$$6,"chirp_peak_"NR";"$$2,$$2,"pos"}' $< > $@
