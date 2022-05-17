@@ -113,6 +113,7 @@ rule cCRE_fasta:
         	"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		whoami
 		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}
 	"""
 
@@ -471,7 +472,6 @@ rule mask_fasta_unpairedWindow:
 		fasta_mask <(bawk -v perc=$PERC '$1<perc {{print "{wildcards.ssRNA}",NR - 1 + {WINDOW_CENTER}, NR + {WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge) < {input.fasta} > {output}
 	"""
 
-
 # Single nt base pairing probability
 rule RNAplfold_lunp_singleNt_modif_zscore:
 	input:
@@ -582,6 +582,7 @@ rule fisher_select_cutoff:
 		"{path}/raw.tpx.{summarize}.{condition}.neg_pos.fisher_select_cutoff.gz"
 #	container:
 #		"../../local/share/images/bit.wip-rnaseq.0.4.img"
+# probabily run in bit_rnaseq_2.7 environment form shell, then python3.10 called manually
 	shell:"""
 		bawk '{{print $3,$2,$4}}' {input} | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 $(which fisher_select_cutoff) | gzip > {output}
 	"""

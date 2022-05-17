@@ -65,6 +65,18 @@ rule DT926623:
 		cp {input} {output}
 	"""
 
+ruleorder: lncSmad7 > cCRE_fasta
+
+rule lncSmad7:
+	input:
+		"../../local/share/data/mmusculus/ssRNA_fasta/lncSmad7.fa"
+	output:
+		"lncSmad7.fa"
+	shell: """
+		cp {input} {output}
+	"""
+
+
 ruleorder: cCRE_fasta_condition > get_fasta_ingore_condition
 ruleorder: cCRE_fasta_condition > cCRE_fasta
  

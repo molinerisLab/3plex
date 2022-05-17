@@ -641,8 +641,8 @@ tpx_paramspace_AUC.all_human_noSingleNt.gz: ../v8.2_ReChIRP_idr_cons/tpx_paramsp
 tpx_paramspace_AUC.all_mouse_noSingleNt.gz: ../v8.4_ReChIRP_idr_mouse/tpx_paramspace_AUC.gz ../v8.5_ReChIRP_overlap_mouse/tpx_paramspace_AUC.gz ../v8.7_ReChIRP_idr_overlap_top1000_mouse/tpx_paramspace_AUC.gz ../v8.9_ReChIRP_idr_opt_mouse/tpx_paramspace_AUC.gz
 	matrix_reduce -t -l '$^' '../*/tpx_paramspace_AUC.gz' | bawk '$$4 != "singleNt" {print $$1~3,$$5~13}' | gzip > $@
 
-tpx_paramspace_AUC.idr_overlap_top1000.best_general_params.gz:
-	matrix_reduce -t 'tpx_paramspace/*_ss0_unpairedWindow/*.neg_pos_rand.bed/min_length~8/max_length~-1/error_rate~20/guanine_rate~40/filter_repeat~off/consecutive_errors~1/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz' | grep -v Duplex_ID | bawk '{split($$1,a,";"); print a[1],$$2~18}' | gzip > $@
+#tpx_paramspace_AUC.idr_overlap_top1000.best_general_params.gz:
+#	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~-1/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz' | grep -v Duplex_ID | bawk '{split($$1,a,";"); print a[1],$$2~18}' | gzip > $@
 
 .META: tpx_paramspace_AUC.idr_overlap_top1000.best_general_params.gz
 	1	ssRNA
@@ -711,3 +711,5 @@ best_single_params.matrix.gz:
 # tpx_paramspace_AUC.all_mouse_noSingleNt.method.Npeaks_version.qc_params.frip_version.gz: tpx_paramspace_AUC.all_mouse_noSingleNt.method.Npeaks_version.qc_params.frip.gz
 # 	bawk '{if($$1 == "v8.4_ReChIRP_idr_mouse"){print $$1~2,$$10,$$14~26}else if($$1 == "v8.5_ReChIRP_overlap_mouse"){print $$1~2,$$6,$$12,$$13,$$16~26} else if($$1 == "v8.7_ReChIRP_idr_overlap_top1000_mouse"){print $$1~2,($$4+$$6+$$8+$$10)/4,($$12+$$14)/2,($$13+$$15)/2,$$16~26} else if($$1 == "v8.8_ReChIRP_idr_opt"){print $$1~2,$$8,$$14~26}}' $< | expandsets 3 4 5 | gzip > $@
 
+tpx_paramspace_AUC.%.gz:
+	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~-1/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz' | grep -v Duplex_ID | tr ";" "\t" | bawk '{print $$1,$$2,$$4~9";"$$10~26}' | gzip > $@

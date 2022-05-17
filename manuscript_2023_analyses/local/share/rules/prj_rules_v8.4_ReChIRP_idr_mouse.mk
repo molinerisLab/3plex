@@ -13,12 +13,11 @@ ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr/idr.conservative_peak.reg
 	| bawk '{print $$0, "neg" }'> $@
 	rm $@.tmp
 
-%.neg_rand.excl.bed: ../../local/share/data/ReChIRP/mmusculus/mm10.shuffle_blacklist.bed ../../local/share/data/ReChIRP/mmusculus/gap.bed %_onlypos.bed
+%.neg_rand.excl.bed: $(GENCODE_DIR)/mm10.shuffle_blacklist.bed $(GENCODE_DIR)/gap.bed %_onlypos.bed
 	cut -f -3 $^ |  bedtools sort | bedtools merge > $@
 
-%.neg_rand.bed: %_onlypos.bed ../../local/share/data/ReChIRP/mmusculus/chrom.info.no_alt %.neg_rand.excl.bed
+%.neg_rand.bed: %_onlypos.bed $(GENCODE_DIR)/chrom.info.no_alt %.neg_rand.excl.bed
 	bedtools shuffle -i $< -g $^2 -excl $^3 | bawk '{$$4="rand_"$$4; $$6="neg"; print}' > $@
-
 
 %.neg_pos_rand.bed: %_onlypos.bed %.neg_rand.bed
 	cat $^ > $@

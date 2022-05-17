@@ -4,10 +4,10 @@ GENCODE_SPECIES: "hsapiens"
 GENCODE_VERSION: "32"
 GENOME_ASSEMBLY: "GRCh38"
 
-TRIPLEXATOR_MIN_LEN: 6
+TRIPLEXATOR_MIN_LEN: 8
 # 6 | 8
 
-TRIPLEXATOR_SCORE_CUTOFF: 6
+TRIPLEXATOR_SCORE_CUTOFF: 8
 # 6 | 8
 
 TRIPLEXATOR_DOCKER: "v1.3.2_l6"
@@ -34,9 +34,9 @@ RNAPLFOLD_UNPAIRED_WINDOW: 8
 
 SINGLE_STRANDEDNESS_CUTOFF:
         - "0"
-#        - "10"
-#       - "20"
-#        - "50"
+        - "10"
+        - "20"
+        - "50"
 
 RNAPLFOLD_WINDOW:
         - "unpairedWindow"
