@@ -334,7 +334,7 @@ tpx_paramspace_AUC_cmp.gz:
 	| bawk '{print $$0; print $$1~9,$$11,$$10,$$13,$$12,$$14}' | sort | uniq | gzip > $@
 
 tpx_paramspace_AUC.gz: tpx_paramspace_AUC_cmp.gz	
-	zcat $< | cut -f -10,12 > $@
+	zcat $< | cut -f -10,12 | gzip > $@
 
 .META: tpx_paramspace_AUC_cmp.gz
 	1	ssRNA	AC018781.1

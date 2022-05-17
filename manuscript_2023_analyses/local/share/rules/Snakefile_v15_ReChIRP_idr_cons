@@ -241,7 +241,7 @@ rule summary_neg_pos:
 	container:
 		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell: """
-		translate -a -r -v -e 0 <(zcat {input.summary} | sort | uniq | bawk 'NF>0 && $1!~/^#/') 4 < {input.neg_pos_bed} |  \
+		translate -a -r -v -e 0 <(zcat {input.summary} | sort | uniq) 4 < {input.neg_pos_bed} |  \
 		bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_length"}} {{print $4,$6,$8,$9,$3-$2}}' | gzip > {output}
 	"""
 
