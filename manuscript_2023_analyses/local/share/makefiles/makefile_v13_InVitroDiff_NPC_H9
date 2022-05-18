@@ -2,4 +2,13 @@ selected_ssRNA: /sto1/epigen/ENCODE_RNAseq/dataset/NPC_H9/DGE/selected_lncRNA
 	bawk '{print $$7,$$3~6}' $< > $@
 
 cCRE-NPC_H9.neg_pos.bed: /sto1/ref/bioinfotree/task/encode-screen/dataset/v13/hg38-NPC_H9vsH9.noCTCF.general_annot.signature_only.noCTCF.specificity.bed
-	bawk '$$specific_of!="no_signature_in_both" && $$specific_of!="common" {pos=0; if($$5=="NPC"){pos=1} print $$1~4,$$cCRE_type,pos,$$0}' $< > $@
+	bawk '$$specific_of!="no_signature_in_both" && $$specific_of!="common" {pos="neg"; if($$5=="NPC"){pos="pos"} print $$1~4,$$cCRE_type,pos}' $< > $@
+
+.META: cCRE-NPC_H9.neg_pos.bed
+	1	chr	chr1
+	2	b	181251
+	3	e	181601
+	4	cCRE_name	EH38E1310153
+	6	cCRE_type	no_signature
+	10	neg_pos	DNase-only
+
