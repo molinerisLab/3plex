@@ -749,3 +749,7 @@ best_single_params.matrix.gz:
 
 tpx_paramspace_AUC.%.gz:
 	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~-1/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz' | grep -v Duplex_ID | tr ";" "\t" | bawk '{print $$1,$$2,$$4~9";"$$10~26}' | gzip > $@
+
+tpx_paramspace_AUC.gz:
+	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC' | tr ";" "\t" | pvalue_correct -a -c 12 | gzip > $@
+

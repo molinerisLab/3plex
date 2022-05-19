@@ -440,6 +440,14 @@ rule summary_covered_by_tts_stability_logistic:
 	"""
 
 
+rule compute_AUC_and_Wilcoxon:
+	input:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.gz"
+	output:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.auc_and_wilcoxon"
+	script:
+		"../../local/src/auc_and_wilcoxon.R"
+
 rule compute_AUC_comparison:
 	input:
 		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz"
@@ -449,6 +457,18 @@ rule compute_AUC_comparison:
 		{CONDA_ACTIVATE} bmodel_env; \
 		zcat {input} \
 		| ../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} -d "<" -O '{wildcards.file_path}/auc_comparison_plot' | gzip > {output}
+	"""
+
+rule compute_AUC_no_comp:
+	input:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.gz"
+	output:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC"
+	container: None
+	shell: """
+		# {CONDA_ACTIVATE} bmodel_env;
+		zcat {input} \
+		| ../../local/src/ROC_no_comp.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} > {output}
 	"""
 
 

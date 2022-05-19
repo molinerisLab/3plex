@@ -53,7 +53,7 @@ cCRE.bed: $(BIOINFO_REFERENCE_ROOT)/encode-screen/dataset/v13/hg38-ccREs.bed
 	ln -s $< $@
 
 %.bed.fa: $(GENCODE_DIR)/GRCh38.primary_assembly.genome.fa %.bed
-	bedtools getfasta -name -fi $< -bed $^2 -fo $@
+	bedtools getfasta -nameOnly -fi $< -bed $^2 -fo $@
 
 %.mask.fa: $(GENCODE_DIR)/GRCh38.primary_assembly.genome.fa %.bed
 	bedtools maskfasta -fi $< -fo $@ -bed $^2

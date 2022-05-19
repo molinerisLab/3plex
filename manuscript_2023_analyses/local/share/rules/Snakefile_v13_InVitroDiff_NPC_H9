@@ -1,16 +1,17 @@
 from snakemake.utils import Paramspace
 import pandas as pd
 
+
 configfile: "config.yaml"
 
 ######################
 #  General Parameters
 
-NCPUS=os.environ.get("NCPUS",4)
 PWD=os.environ.get("PWD")
 REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
-BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"bioinfotree/task/"
-CONDA_ACTIVATE="set +u; source %s/miniconda2/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
+BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"/bioinfotree/task/"
+#CONDA_ACTIVATE="set +u; source %s/miniconda2/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
+CONDA_ACTIVATE="echo " 
 
 
 #####################
@@ -42,6 +43,7 @@ triplexator_paramspace = None
 if os.path.exists('triplexator_params.tsv'):
 	triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\t"))
 
+
 #######################
 # Other Parameters
 
@@ -50,6 +52,11 @@ PREDICTORS_COL_NAMES=os.environ.get("PREDICTORS_COL_NAMES",config["PREDICTORS_CO
 
 # More parameters are specified in config.yaml
 
+##############################################################
+#
+#	END OF PARAMETERS SPECIFICATION
+#
+##############################################################
 
 include: "config.sk"
 
@@ -64,8 +71,15 @@ rule header_added:
 	shell:"""
 		(bawk -M {input} | cut -f 2 | transpose; cat {input} ) > {output}
 	"""
-		
 
+rule header_added_gz:
+	input:
+		"{file}.gz"
+	output:
+		"{file}.header_added.gz"
+	shell:"""
+		(bawk -M {input} | cut -f 2 | transpose; cat {input} ) | gzip > {output}
+	"""
 
 
 
@@ -74,40 +88,47 @@ rule header_added:
 
 
 
-
-#rule cCRE_fasta:
-#	input:
-#		assembly=GENCODE_DIR+"/GRCh38.primary_assembly.genome.clean_id.fa",
-#		cCRE_bed="{path}.bed"
-#	output:
-#		"{path}.bed.fa"
-#	priority: 100
-#	shell:"""
-#		{CONDA_ACTIVATE} bit_rnaseq_2.8;
-#		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}
-#	"""
-
 rule get_fasta:
 	input:  
 		"longest_transcripts.fa"
 	output: 
-	#	temp("{GeneID,[\w\.-]+}.fa")
 		"{GeneID,[\w\.-]+}.fa"
-        #container:
-        #        "../../local/share/images/bit.wip-rnaseq.0.4.img"
+		#"{GeneID,[\w\.-]+}.fa"
+	group: "input_fasta_preparation_and_triplexator"
+	container:
+        	"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	threads: 1
 	shell: """
 		{CONDA_ACTIVATE} bit_rnaseq_2.8;
 		get_fasta -i {wildcards.GeneID} < {input} > {output}
 	"""
 
+rule cCRE_fasta:
+	input:
+		assembly=GENCODE_DIR+"/GRCh38.primary_assembly.genome.clean_id.fa",
+		cCRE_bed="{path}.bed"
+	output:
+		"{path}.bed.fa"
+	container:
+        	"../../local/share/images/bit.wip-rnaseq.0.4.img"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		whoami
+		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}
+	"""
+
+ruleorder: cCRE_fasta > get_fasta
+
 rule get_longest_transcripts:
 	input:
 		GENCODE_DIR+"/gencode.v32.transcripts.fa.gz"
 	output:
 		"longest_transcripts.fa"
+	container:
+        	"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		{CONDA_ACTIVATE} bit_rnaseq_2.8; 
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8; 
+		hostname
 		zcat {input} | fasta2oneline | tr "|" "\t" | bawk '$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > {output}
 	"""
 
@@ -134,15 +155,18 @@ rule triplexator_param_exploration:
 		params:
 			params_instance=triplexator_paramspace.instance
 		output:
-			tpx     ="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.stability.gz",
-			summary ="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary"
+			tpx     = "tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx",
+			summary = "tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary"
 		wildcard_constraints:
 			single_strandedness_cutoff      = "\d+",
 			window                          = "\w+",
 			ssRNA                           = "[^/]+",
 			dsDNA                           = "[^/]+"
+		container:
+			"../../local/share/images/triplexator_v1.3.2_l6.img"
+		threads: 12
+		group: "input_fasta_preparation_and_triplexator"
 		shell: """
-				docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
 				mkdir -p $(dirname {output.tpx}); cd $(dirname {output.tpx});\
 				triplexator \
 						-l  {wildcards.min_length} \
@@ -151,64 +175,82 @@ rule triplexator_param_exploration:
 						-g  {wildcards.guanine_rate} \
 						-fr {wildcards.filter_repeat} \
 						-c  {wildcards.consecutive_errors} \
-						-fm 0 -of {config[TRIPLEXATOR_ALN]} -o raw.tpx -rm 2 -p {NCPUS} -ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file}"
-				cd $(dirname {output.tpx});
-				unhead raw.tpx -f raw.tpx.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > raw.tpx.stability.gz.tmp; cd -;
-				cat {output.tpx}.tmp | ../../local/src/tpx_thermal_stability.py | gzip > {output.tpx}
-				cd $(dirname {output.tpx});
-				rm raw.tpx raw.tpx.head raw.tpx.stability.gz.tmp
-			"""
+						-fm 0 -of {config[TRIPLEXATOR_ALN]} \
+						-rm 2 -p {threads} \
+						-ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file} -o raw.tpx
+				echo triplexator retstatus: $?
+		"""
+
+rule triplexator_stability:
+	input:
+		"{path}.tpx"
+	output:
+		protected("{path}.tpx.stability.gz")
+#	container:
+#       	"../../local/share/images/bit.wip-rnaseq.0.5.img"
+	threads: 1
+	group: "input_fasta_preparation_and_triplexator"
+	shell: """
+		unhead {input} -f {input}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output}.tmp
+		cat {output}.tmp | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 ../../local/src/tpx_thermal_stability.py | gzip > {output}
+		rm {input}.head {output}.tmp
+	"""
+
+
+rule gzip_tpx_summary:
+	input:
+		"{file_path}/raw.tpx.summary"
+	output:
+		protected("{file_path}/raw.tpx.summary.gz")
+	group: "input_fasta_preparation_and_triplexator"
+	shell:"""
+		gzip < {input} > {output};
+	"""
 
 rule summary_neg_pos:
 	input:
-		summary="{path1}/cCRE-{dsDNA}.bed/{path2}/raw.tpx.summary",
+		summary="{path1}/cCRE-{dsDNA}.bed/{path2}/raw.tpx.summary.gz",
 		neg_pos_bed="cCRE-{dsDNA}.bed"
 	output:
-		"{path1}/cCRE-{dsDNA}.bed/{path2}/raw.tpx.summary.neg_pos"
+		"{path1}/cCRE-{dsDNA}.bed/{path2}/raw.tpx.summary.neg_pos.gz"
 	shell: """
-		translate -a -r -v -e 0 {input.summary} 4 < {input.neg_pos_bed} |  bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_length"}} {{print $4,$6,$8,$9,$3-$2}}' > {output}
+		translate -a -r -v -e 0 <(zcat {input.summary}) 4 < {input.neg_pos_bed} |  \
+		bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_length"}} {{print $4,$6,$8,$9,$3-$2}}' | gzip > {output}
 	"""
 
 rule custom_summary:
 	input:
 		tpx="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.stability.gz",
-		summary_neg_pos="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.summary.neg_pos",
+		summary_neg_pos="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.summary.neg_pos.gz",
 		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta"
 	output:
-		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.custom_summary.neg_pos"
+		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.custom_summary.neg_pos.gz"
 	wildcard_constraints:
 			ssRNA="[^/]+",
 			min_length="\d+",
 			max_length="-*\d+"
 	shell: """
-			unhead {input.summary_neg_pos} \
+			zcat {input.summary_neg_pos} \
 			| translate -a -v -e 0 -z <(zcat {input.tpx} | unhead | cut -f 4 | symbol_count) 1 \
-			| append_each_row "$(unhead {input.ssRNA_file} | tr -d "N\\n" | wc -c)"  \
-			| ../../local/src/tiplexator_t_pot_norm.py -l {wildcards.min_length} -L {wildcards.max_length} > {output}
+			| append_each_row "$(unhead {input.ssRNA_file} | tr -d "N\\n" | wc -c)"  | unhead \
+			| ../../local/src/tiplexator_t_pot_norm.py -l {wildcards.min_length} -L {wildcards.max_length} | gzip > {output}
 		"""
 
-# Changed from:
-#input:
-#		tpx="tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx",
-#		summary="tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos",
-#		dsDNA_bed="{dsDNA}.bed"
-#	output:
-#		"tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"
 rule summary_covered_by_tts:
 	input:
 		tpx="{path}/raw.tpx.stability.gz",
-		summary="{path}/raw.tpx.custom_summary.neg_pos"
+		summary="{path}/raw.tpx.custom_summary.neg_pos.gz"
 	output:
-		"{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"
+		"{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.gz"
 	shell: """
-		cat {input.summary} \
+		zcat {input.summary} \
 			| translate -a -r -v -e 0 \
 				<(bawk '{{print $4,$5,$6}}' {input.tpx} | unhead \
 				| bedtools sort | bedtools merge | bawk '{{print $1,$3-$2}}' \
 				| stat_base -g -t \
 				| bawk 'BEGIN{{print "Duplex_ID","TTS_covered_len"}} {{print $1,$2}}' \
 					) 1 \
-			| bawk 'NR==1 {{print $0,"TTS_covered_frac"}} NR>1 {{ print $0,$10/$6}}'> {output}
+			| bawk 'NR==1 {{print $0,"TTS_covered_frac"}} NR>1 {{ print $0,$10/$6}}' | gzip > {output}
 		"""
 #rule tpx_stabilty_generic:
 #	input:
@@ -223,63 +265,72 @@ rule stability_best:
 	input:
 		"{file_path}/raw.tpx.stability.gz"
 	output:
-		"{file_path}/raw.best.tpx.stability"
+		"{file_path}/raw.best.tpx.stability.gz"
 	shell: """
-		zcat {input} | find_best 4 14 > {output}
+		zcat {input} | find_best -s 4 14 | sort -k1,1 --parallel=4 -S5% | find_best -s 4 14 | gzip > {output}
 	"""
 
 rule stability_tot_overcount:
 	input:
 		"{file_path}/raw.tpx.stability.gz"
 	output:
-		"{file_path}/raw.tpx.stability.tot_overcount"
+		"{file_path}/raw.tpx.stability.tot_overcount.gz"
 	shell: """
 		zcat {input} | cut -f 4,14 | bsort | stat_base -g -t \
-		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_overcount"}} {{print}}' > {output}
+		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_overcount"}} {{print}}' | gzip > {output}
 	"""
 
 rule stability_best_summarize:
 	input:
-		"{file_path}/raw.best.tpx.stability"
+		"{file_path}/raw.best.tpx.stability.gz"
 	output:
-		"{file_path}/raw.tpx.stability.best"
+		"{file_path}/raw.tpx.stability.best.gz"
 	shell: """
-		bawk '{{print $Duplex_ID,$Stability}}' {input} > {output}
+		bawk 'BEGIN{{print "Duplex_ID","Stability_best"}} {{print $Duplex_ID,$Stability}}' {input} | gzip > {output}
 	"""
 
 rule tpx_score_best_summarize:
 	input:
 		"{file_path}/raw.tpx.stability.gz"
 	output:
-		"{file_path}/raw.tpx.tpx_score.best"
+		"{file_path}/raw.tpx.tpx_score.best.gz"
 	shell: """
-		bawk '{{print $Duplex_ID,$Score}}' {input} | find_best 1 2 > {output}
+		bawk '{{print $Duplex_ID,$Score}}' {input} | find_best -s 1 2 | gzip > {output}
 	"""
 
 rule stability_tot_undercount:
 	input:
-		"{file_path}/raw.tpx.stability.gz"
+		"{file_path}.tpx.stability.gz"
 	output:
-		"{file_path}/raw.tpx.stability.tot_undercount"
+		"{file_path}.tpx.stability.tot_undercount.gz"
 	shell: """
 		bawk '{{print $Duplex_ID,$TTS_start,$TTS_end,$Stability}}' {input} | bedtools sort | bedtools merge -c 4 -o max | cut -f 1,4 | bsort | stat_base -g -t \
-		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_undercount"}} {{print}}' > {output}
+		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_undercount"}} {{print}}' | gzip > {output}
+	"""
+
+rule triplexator_t_pot:
+	input:
+		"{file_path}/raw.tpx.summary.gz"
+	output:
+		"{file_path}/raw.tpx.triplexator_t_pot.gz"
+	shell:"""
+		bawk 'NR>1 {{print $1,$4}}' {input} | gzip > {output}
 	"""
 
 rule summary_covered_by_tts_stability:
 	input:
-		summary			 = "{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts",
-		stability_best           = "{file_path}/raw.tpx.stability.best.header_added",
-		stability_tot_overcount  = "{file_path}/raw.tpx.stability.tot_overcount",
-		stability_tot_undercount = "{file_path}/raw.tpx.stability.tot_undercount"
+		summary			 = "{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.gz",
+		stability_best           = "{file_path}/raw.tpx.stability.best.gz",
+		stability_tot_overcount  = "{file_path}/raw.tpx.stability.tot_overcount.gz",
+		stability_tot_undercount = "{file_path}/raw.tpx.stability.tot_undercount.gz"
 	output:
-		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.gz"
 	shell: """
-		cat {input.summary} \
-		| translate -a -r -v -e 0 <(bawk '{{if(NR==1){{$Stability="Stability_best"}} print $Duplex_ID,$Stability}}' {input.stability_best}) 1 \
-		| translate -a -r -v -e 0 {input.stability_tot_overcount} 1 \
-		| translate -a -r -v -e 0 {input.stability_tot_undercount} 1 > {output}.tmp
-		bawk 'NR==1 {{print $0,"Stability_norm_overcount","Stability_norm_undercount" }} NR>1 {{print $0,$Stability_tot_overcount/$Duplex_length, $Stability_tot_undercount/$Duplex_length}}' {output}.tmp > {output}
+		zcat {input.summary} \
+		| translate -a -r -v -e 0 <(bawk '{{print $Duplex_ID,$Stability_best}}' {input.stability_best}) 1 \
+		| translate -a -r -v -e 0 <(zcat {input.stability_tot_overcount}) 1 \
+		| translate -a -r -v -e 0 <(zcat {input.stability_tot_undercount}) 1 > {output}.tmp
+		bawk 'NR==1 {{print $0,"Stability_norm_overcount","Stability_norm_undercount" }} NR>1 {{print $0,$Stability_tot_overcount/$Duplex_length, $Stability_tot_undercount/$Duplex_length}}' {output}.tmp | gzip > {output}
 		rm {output}.tmp
 	"""
 
@@ -301,57 +352,63 @@ rule duplex_length:
 		"cCRE-{condition}.bed"
 	output:
 		"cCRE-{condition}.duplex_length"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		bawk 'BEGIN{{print "Duplex_ID","Duplex_length"}} {{print $4,$3-$2}}' {input} > {output}
+		bawk 'BEGIN{{print "Duplex_ID","Duplex_length"}} {{print $4"::"$1":"$2"-"$3,$3-$2}}' {input} | sort | uniq > {output}
 	"""
 
 
 rule stability_norm_undercount:
 	input:
 		duplex_length="cCRE-{condition}.duplex_length",
-		tot_undercount="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.tot_undercount"
+		tot_undercount="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.tot_undercount.gz"
 	output:
-		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.norm_undercount"
+		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.stability.norm_undercount.gz"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
 		bawk '{{print $Duplex_ID,$Stability_tot_undercount}}' {input.tot_undercount} \
 		| translate -a -r {input.duplex_length} 1 \
 		| bawk 'NR>1{{print $1,$2/$3}}' \
-		| enumerate_rows -n -r | bawk 'BEGIN{{print "Duplex_ID","Stability_norm_undercount"}} NR>1 {{printf("%s\\t%.2f\\n", $1,$3)}}' > {output}
+		| enumerate_rows -n -r \
+		| bawk 'BEGIN{{print "Duplex_ID","Stability_norm_undercount"}} NR>1 {{printf("%s\\t%.2f\\n", $1,$3)}}' | gzip > {output}
 	"""
 
 
 
 rule summary_covered_by_tts_stability_logistic_full:
 	input:
-		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.gz"
 	output:
-		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic_full"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic_full.gz"
 	shell: """
-		bmodel -c -s -d -n {input} "neg_pos~Stability_best+Stability_norm_undercount" > {output}
+		bmodel -c -s -d -n {input} "neg_pos~Stability_best+Stability_norm_undercount" | gzip > {output}
 	"""
 
 rule summary_covered_by_tts_stability_logistic:
 	input:
-		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic_full"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic_full.gz"
 	output:
-		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz"
 	shell: """
-		fasta2tab {input} \
+		fasta2tab <(zcat {input}) \
 		| perl -wlane 'BEGIN{{$,="\t"; $neg=0}} \
 			if($neg==1 || ($F[0] eq "coefficients" && $F[1] ne "(Intercept)" && $F[2]<0)){{$neg=1;}} \
 			if($F[0] eq "data_and_prob"){{\
 				 if($F[17] ne "PROB__fitted_model" and $neg){{$F[17]=0}}\
-			 shift(@F); print @F}}' > {output}
+			 shift(@F); print @F}}' | gzip > {output}
 	"""
 
 
 rule compute_AUC_comparison:
 	input:
-		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz"
 	output:
-		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz"
 	shell: """
-		../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} -d "<" -O '{wildcards.file_path}/auc_comparison_plot' < {input} > {output}
+		zcat {input} \
+		| ../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} -d "<" -O '{wildcards.file_path}/auc_comparison_plot' | gzip > {output}
 	"""
 
 
@@ -359,6 +416,7 @@ rule compute_AUC_comparison:
 ################
 # 2D structure #
 ################
+
 
 rule RNAplfold_lunp:
 	input:
@@ -390,6 +448,19 @@ WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2
 if(config["RNAPLFOLD_UNPAIRED_WINDOW"] % 2 != 0):
 	WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2 + 0.5
 
+ruleorder: mask_fasta_unpairedWindow_shortcut > mask_fasta_unpairedWindow
+
+rule mask_fasta_unpairedWindow_shortcut:
+	input:
+		"{ssRNA}.fa"
+	output:
+		temp("{ssRNA}_ss0_unpairedWindow.fasta")
+	threads: 1
+	group: "input_fasta_preparation_and_triplexator"
+	shell: """
+		ln -sf {input} {output}
+	"""
+
 rule mask_fasta_unpairedWindow:
 	input:
 		RNAplfold_prob="RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore",
@@ -400,7 +471,6 @@ rule mask_fasta_unpairedWindow:
 		PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
 		fasta_mask <(bawk -v perc=$PERC '$1<perc {{print "{wildcards.ssRNA}",NR - 1 + {WINDOW_CENTER}, NR + {WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge) < {input.fasta} > {output}
 	"""
-
 
 # Single nt base pairing probability
 rule RNAplfold_lunp_singleNt_modif_zscore:
@@ -445,19 +515,19 @@ rule mask_fasta_singleNt:
 #	"""
 
 
-rule gzip_precomputed_tpx_file:
-	input:
-		tpx="{file_name}.tpx",
-		summary="{file_name}.tpx.summary"
-	output:
-		tpx="precomputed_tpx/{file_name}.tpx.gz",
-		summary="precomputed_tpx/{file_name}.tpx.summary.gz"
-	shell:"""
-		mkdir -p precomputed_tpx;
-		gzip < {input.tpx} > {output.tpx};
-		gzip < {input.summary} > {output.summary};
-		rm {input.tpx} {input.summary}
-	"""
+#rule gzip_precomputed_tpx_file:
+#	input:
+#		tpx="{file_name}.tpx",
+#		summary="{file_name}.tpx.summary"
+#	output:
+#		tpx="precomputed_tpx/{file_name}.tpx.gz",
+#		summary="precomputed_tpx/{file_name}.tpx.summary.gz"
+#	shell:"""
+#		mkdir -p precomputed_tpx;
+#		gzip < {input.tpx} > {output.tpx};
+#		gzip < {input.summary} > {output.summary};
+#		rm {input.tpx} {input.summary}
+#	"""
 
 
 #rule link_tpx:
@@ -478,7 +548,7 @@ rule tpx_stability_tfo_profile:
 	output:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.cut_{stability_cutoff}.tfo_profile"
 	shell:"""	
-		bawk '$Stability>={wildcards.stability_cutoff} {{print $Duplex_ID,$Stability,$1,$2,$3,$4}}' {input} | find_best 1 2 | cut -f 3- | bedtools sort | bedtools merge -c 4 -o count_distinct > {output}
+		bawk '$Stability>={wildcards.stability_cutoff} {{print $Duplex_ID,$Stability,$1,$2,$3,$4}}' {input} | find_best -s 1 2 | cut -f 3- | bedtools sort | bedtools merge -c 4 -o count_distinct > {output}
 	"""
 
 
@@ -493,41 +563,60 @@ rule longTarget_best_score_complete:
 		zcat {input.tpx_best} | tab2matrix -e 0 -C <(cut -f 4 {input.cCRE_bed}) | matrix2tab | gzip > {output}
 	""" 
 
+rule dsDNA_scored_neg_pos_ALLcond:
+	input:
+		cCRE_bed="cCRE-{condition}.neg_pos.bed",
+		dsDNA_scored="{path1}/cCRE-ALLcond.bed/{path2}/raw.tpx.{summarize}.gz"
+	output:
+		"{path1}/cCRE-ALLcond.bed/{path2}/raw.tpx.{summarize}.{condition}.neg_pos.gz"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.4.img"
+	shell:"""
+		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 <(zcat {input.dsDNA_scored}) 1 | gzip > {output}
+	"""
 
 rule dsDNA_scored_neg_pos:
 	input:
 		cCRE_bed="cCRE-{condition}.neg_pos.bed",
-		dsDNA_scored="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.{summarize}"
+		dsDNA_scored="{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.{summarize}.gz"
 	output:
-		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.{summarize}.type.neg_pos"
+		"{path1}/cCRE-{condition}.bed/{path2}/raw.tpx.{summarize}.neg_pos.gz"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 {input.dsDNA_scored} 1 > {output}
+		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 <(zcat {input.dsDNA_scored}) 1 | gzip > {output}
 	"""
 
 rule fisher_select_cutoff:
 	input:
-		"{path}/raw.tpx.{summarize}.type.neg_pos"
+		"{path}/raw.tpx.{summarize}.{condition}.neg_pos.gz"
 	output:
-		"{path}/raw.tpx.{summarize}.type.neg_pos.fisher_select_cutoff"
+		"{path}/raw.tpx.{summarize}.{condition}.neg_pos.fisher_select_cutoff.gz"
+#	container:
+#		"../../local/share/images/bit.wip-rnaseq.0.4.img"
+# probabily run in bit_rnaseq_2.7 environment form shell, then python3.10 called manually
 	shell:"""
-		bawk '{{print $3,$2,$4}}' {input} | fisher_select_cutoff > {output}
+		bawk '{{print $3,$2,$4}}' {input} | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 $(which fisher_select_cutoff) | gzip > {output}
 	"""
+
 #For stability.tot_undercount
 #bawk '{{$2=sprintf("%d",$2); print $3,$2,$4}}' {input} | fisher_select_cutoff > {output}
 
 rule fisher_best_cutoff:
 	input:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff"
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.gz"
 	output:
-		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best.gz"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		find_best -r 1 9 < {input} > {output}
+		zcat {input} | find_best -r 1 9 | gzip > {output}
 	"""
 
 rule fisher_best_cutoff_cut:
 	input:
 		neg_pos="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.gz",
-		cutoff="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+		cutoff="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best.gz"
 	output:
 		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.best_cut.gz"
 	shell:"""
@@ -617,6 +706,10 @@ rule assoc_genehancer:
 	12	Orientation
 	13	Guanine_rate
 	14	Stability
+
+.META: raw.tpx.stability.best.gz
+	1	Duplex_ID
+	2	Stability_best
 
 .META: *.tpx.tts_genom_coords.assoc_genes
 	1	ssRNA
@@ -740,41 +833,4 @@ rule cCRE_bed:
 	shell:"""
 		cut -f 1 {input} | unhead | tr ";" "\t" > {output}
 	"""
-rule cCRE_bed_type_pre:
-	input:
-		"cCRE-{cond_vs_stem}.matrix"
-	output:
-		"cCRE-{cond_vs_stem}.type"
-	shell:"""
-		unhead {input} | tr ";" "\t" | bawk '{{type=$5; if(type=="Low-DNase"){{type=$6}} print $4,type}}' > {output}
-	"""
-
-#rule cCRE_bed_type:
-#	input:
-#		cond_stam_type_pre="cCRE-{condition}-vs-{staminal}.type"
-#		cond_bed="cCRE-{condition}.bed"
-#	output:
-#		"cCRE-{condition}.type.bed"
-#	shell:"""
-#		translate -a {input.cond_stam_type_pre} 4 < {input.cond_bed} > {output}
-#	"""
-
-def get_all_stab_fisher(wildcards):
-	for condition in config['ENCODE_CONDITIONS']:
-		for ssRNA in all_selected_ssRNA_id(condition):
-			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx.{summarize}.type.neg_pos.fisher_select_cutoff",
-					condition = condition, 
-					params = triplexator_paramspace.instance_patterns,
-					ssRNA = ssRNA,
-					single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
-					window=config["RNAPLFOLD_WINDOW"],
-					summarize=config['TPXcCRE_SCORE_SUMMARIZE_METHODS']
-				):
-				yield target
-
-
-rule all_stab_fisher:
-	input:
-		get_all_stab_fisher
-
 
