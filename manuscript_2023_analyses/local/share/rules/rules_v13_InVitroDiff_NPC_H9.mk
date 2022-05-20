@@ -430,7 +430,7 @@ cCRE-%.neg_pos.bed: cCRE-%-vs-H1.matrix cCRE-%.type.bed
 	translate -a -r <(tr ";" "\t" < $< | unhead | cut -f 4,5 | bawk '$$2!="Low-DNase" {print $$1,"pos"} $$2=="Low-DNase" {print $$1,"neg"}') 4 < $^2 > $@
 
 tpx_paramspace.fisher_select_cutoff.matrix:
-	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/cCRE-*.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.*.type.neg_pos.fisher_select_cutoff' | tr ";" "\t" > $@
+	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/cCRE-*.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.*.neg_pos.fisher_select_cutoff.gz' | tr ";" "\t" > $@
 
 
 

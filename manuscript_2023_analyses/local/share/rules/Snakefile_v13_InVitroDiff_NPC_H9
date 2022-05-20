@@ -355,7 +355,7 @@ rule duplex_length:
 	container:
 		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		bawk 'BEGIN{{print "Duplex_ID","Duplex_length"}} {{print $4"::"$1":"$2"-"$3,$3-$2}}' {input} | sort | uniq > {output}
+		bawk 'BEGIN{{print "Duplex_ID","Duplex_length"}} {{print $4,$3-$2}}' {input} | sort | uniq > {output}
 	"""
 
 
@@ -572,7 +572,7 @@ rule dsDNA_scored_neg_pos_ALLcond:
 	container:
 		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 <(zcat {input.dsDNA_scored}) 1 | gzip > {output}
+		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 <(zcat {input.dsDNA_scored} | bsort | uniq) 1 | gzip > {output}
 	"""
 
 rule dsDNA_scored_neg_pos:
@@ -584,7 +584,7 @@ rule dsDNA_scored_neg_pos:
 	container:
 		"../../local/share/images/bit.wip-rnaseq.0.4.img"
 	shell:"""
-		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 <(zcat {input.dsDNA_scored}) 1 | gzip > {output}
+		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 <(zcat {input.dsDNA_scored} | bsort | uniq) 1 | gzip > {output}
 	"""
 
 rule fisher_select_cutoff:
