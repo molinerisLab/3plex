@@ -161,14 +161,14 @@ rule get_longest_transcripts:
 #############################
 
 # this rules make sense only in v8
-#rule all_tpx_paramspace:
-#	input:
-#		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp", \
-#			params = triplexator_paramspace.instance_patterns,
-#			ssRNA = all_selected_ssRNA_id(),
-#			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
-#			window=config["RNAPLFOLD_WINDOW"]
-#		)
+rule all_tpx_paramspace:
+	input:
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC_comp.gz", 
+			params = triplexator_paramspace.instance_patterns,
+			ssRNA = all_selected_ssRNA_id(),
+			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+			window=config["RNAPLFOLD_WINDOW"]
+		)
 
 rule triplexator_param_exploration:
 		input:
@@ -326,15 +326,15 @@ rule stability_best_summarize:
 		bawk 'BEGIN{{print "Duplex_ID","Stability_best"}} {{print $Duplex_ID,$Stability}}' {input} | gzip > {output}
 	"""
 
-rule tpx_score_best_summarize:
+rule score_best_summarize:
 	input:
 		"{file_path}/raw.tpx.stability.gz"
 	output:
-		"{file_path}/raw.tpx.tpx_score.best.gz"
+		"{file_path}/raw.tpx.Score_best.gz"
 	container:
 		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell: """
-		bawk '{{print $Duplex_ID,$Score}}' {input} | find_best 1 2 | gzip > {output}
+		bawk 'BEGIN{{print "Duplex_ID","Score_best"}} {{print $Duplex_ID,$Score}}' {input} | find_best -H 1 2| gzip > {output}
 	"""
 
 rule stability_tot_undercount:
@@ -351,6 +351,7 @@ rule stability_tot_undercount:
 
 rule summary_covered_by_tts_stability:
 	input:
+		score_best		 = "{file_path}/raw.tpx.Score_best.gz",
 		summary			 = "{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.gz",
 		stability_best           = "{file_path}/raw.tpx.stability.best.gz",
 		stability_tot_overcount  = "{file_path}/raw.tpx.stability.tot_overcount.gz",
@@ -363,7 +364,8 @@ rule summary_covered_by_tts_stability:
 		zcat {input.summary} \
 		| translate -a -r -v -e 0 <(bawk '{{print $Duplex_ID,$Stability_best}}' {input.stability_best}) 1 \
 		| translate -a -r -v -e 0 <(zcat {input.stability_tot_overcount}) 1 \
-		| translate -a -r -v -e 0 <(zcat {input.stability_tot_undercount}) 1 > {output}.tmp
+		| translate -a -r -v -e 0 <(zcat {input.stability_tot_undercount}) 1 \
+		| translate -a -r -v -e 0 <(zcat {input.score_best}) 1 > {output}.tmp
 		bawk 'NR==1 {{print $0,"Stability_norm_overcount","Stability_norm_undercount" }} NR>1 {{print $0,$Stability_tot_overcount/$Duplex_length, $Stability_tot_undercount/$Duplex_length}}' {output}.tmp | gzip > {output}
 		rm {output}.tmp
 	"""
@@ -450,9 +452,9 @@ rule compute_AUC_and_Wilcoxon:
 
 rule compute_AUC_comparison:
 	input:
-		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.gz"
 	output:
-		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz"
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC_comp.gz"
 	shell: """
 		{CONDA_ACTIVATE} bmodel_env; \
 		zcat {input} \

@@ -26,6 +26,7 @@ PREDICTORS_COL_NAMES:
         - "t_pot_norm"
 #        - "PROB__fitted_model"
         - "TTS_covered_frac" 
+        - "Score_best"
        
 RNAPLFOLD_WINDOW_SIZE: 200
 

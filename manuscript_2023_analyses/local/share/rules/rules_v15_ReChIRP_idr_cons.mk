@@ -373,6 +373,8 @@ tpx_paramspace_AUC.gz: tpx_paramspace_AUC_cmp.gz
 	9	consecutive_errors
 	10	predictor
 	11	AUC
+	12	Pvalue	Mann Withey
+	13	PvalueAdj BH
 
 tpx_paramspace_AUC.all_human.gz: ../v8_ChIRP_neg_rand/tpx_paramspace_AUC.gz ../v8.2_ReChIRP_idr_cons/tpx_paramspace_AUC.gz ../v8.3_ReChIRP_overlap/tpx_paramspace_AUC.gz ../v8.6_ReChIRP_idr_overlap_top1000/tpx_paramspace_AUC.gz
 	matrix_reduce -t -l '$^' '../*/tpx_paramspace_AUC.gz' | gzip > $@
