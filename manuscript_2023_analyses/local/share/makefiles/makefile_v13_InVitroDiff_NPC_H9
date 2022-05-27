@@ -12,3 +12,10 @@ cCRE-NPC_H9.neg_pos.bed: /sto1/ref/bioinfotree/task/encode-screen/dataset/v13/hg
 	6	cCRE_type	no_signature
 	10	neg_pos	DNase-only
 
+.META: selected_ssRNA
+	1	ssRNA	LINC00467
+	2	logFC	1.4975210749567
+	3	Pvalue	0.000346007521503778
+	4	PvalueAdj	0.000743804134659491
+	5	mark_seqc	1
+

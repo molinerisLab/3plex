@@ -458,9 +458,9 @@ tpx_paramspace.fisher_select_cutoff.matrix.best: tpx_paramspace.fisher_select_cu
 	18	Pvalue	2.07884e-24
 	19	TPXcCRE_score	23.682180
 
-tpx_paramspace.fisher_select_cutoff.matrix.best.up_down: tpx_paramspace.fisher_select_cutoff.matrix.best.header_added selected_ssRNA.conditions.up_down.balanced.clean
-	bawk '{print $$ssRNA";"$$condition,$$2,$$4~19}' $< | translate -a -k <(bawk 'BEGIN{print "ssRNA;condition", "staminal", "mark_seqc", "logFC"} {print $$1";"$$2,$$3~5}' $^2) 1 | tr ";" "\t" > $@
+tpx_paramspace.fisher_select_cutoff.matrix.best.up_down: tpx_paramspace.fisher_select_cutoff.matrix.best.header_added selected_ssRNA.header_added
+	translate -a $^2 1 < $< > $@
 
-tpx_paramspace.fisher_select_cutoff.matrix.up_down: tpx_paramspace.fisher_select_cutoff.matrix.header_added selected_ssRNA.conditions.up_down.balanced.clean
-	bawk '{print $$ssRNA";"$$condition,$$2,$$4~19}' $< | translate -a -k <(bawk 'BEGIN{print "ssRNA;condition", "staminal", "mark_seqc", "logFC"} {print $$1";"$$2,$$3~5}' $^2) 1 | tr ";" "\t" > $@
+tpx_paramspace.fisher_select_cutoff.matrix.up_down: tpx_paramspace.fisher_select_cutoff.matrix.header_added selected_ssRNA.header_added
+	translate -a $^2 1 < $< > $@
 
