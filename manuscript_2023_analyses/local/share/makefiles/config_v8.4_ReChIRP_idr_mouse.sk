@@ -33,16 +33,6 @@ rule all_stab_fisher:
 # Before running this rule run the following:
 # for ssRNA in $(cat selected_ssRNA); do bmake ${ssRNA}.neg_pos_rand.bed; done
 
-rule all_tpx_paramspace:
-	input:
-		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz", \
-			params = triplexator_paramspace.instance_patterns,
-			ssRNA = all_selected_ssRNA_id(),
-			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
-			window=config["RNAPLFOLD_WINDOW"]
-		)
-
-
 ruleorder: AK156552 > cCRE_fasta
 
 rule AK156552:
