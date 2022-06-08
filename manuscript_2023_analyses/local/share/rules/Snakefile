@@ -262,13 +262,6 @@ rule custom_summary:
         | ../../local/src/tiplexator_t_pot_norm.py -l {wildcards.min_length} -L {wildcards.max_length} > {output}
 	"""
 
-# Changed from:
-#input:
-#		tpx="tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx",
-#		summary="tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos",
-#		dsDNA_bed="{dsDNA}.bed"
-#	output:
-#		"tpx_paramspace/{ssRNA,[^/]+}/{dsDNA,[^/]+}.bed/{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"
 rule summary_covered_by_tts:
 	input:
 		tpx="{path}/raw.tpx.stability.gz",
@@ -285,15 +278,6 @@ rule summary_covered_by_tts:
 			) 1 \
 		| bawk 'NR==1 {{print $0,"TTS_covered_frac"}} NR>1 {{ print $0,$10/$6}}'> {output}
 	"""
-
-#rule tpx_stabilty_generic:
-#	input:
-#		"{file_path}.tpx.gz"
-#	output:
-#		"{file_path}.tpx.stability"
-#	shell:"""
-#		cat {input} | unhead | ../../local/src/tpx_thermal_stability.py > {output}
-#	"""
 
 rule stability_best:
 	input:

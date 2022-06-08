@@ -52,7 +52,7 @@ STAT3_GM12878.meme:
 	cat $< | ../../local/src/ROC.R neg_pos score q_value -d "<" -O '$*.auc_comparison_plot' > $@
 
 
-#.SECONDARY: 
+.SECONDARY: 
 
 ### TF binding sites ###
 #
@@ -112,3 +112,24 @@ ALL_TFs.fimo_score_qval.AUC_matrix: $(addsuffix .neg_pos_rand.bed.fimo_score.AUC
 
 ALL_TFs.fimo_score.AUC_tab:$(addsuffix .neg_pos_rand.bed.fimo_score.AUC, $(ALL_TFs))
 	matrix_reduce -t -l '$^' '*.neg_pos_rand.bed.fimo_score.AUC' | grep -v 'pred_1' | bawk 'BEGIN{print "TF_cell_line","fimo_score_AUC"}{print $$1,$$5}' > $@
+
+ALL_TFs.fimo_score.matrix.gz: $(addsuffix .neg_pos_rand.bed.fimo_score, $(ALL_TFs))
+	matrix_reduce -t -l '$^' '*.neg_pos_rand.bed.fimo_score' | gzip > $@
+
+.META: ALL_TFs.fimo_score.matrix.gz
+	1	Gene_ID
+	2	chr
+	3	start
+	4	stop
+	5	peak_name
+	6	motif_id
+	7	motif_alt_id
+	8	motif_start
+	9	motif_stop
+	10	strand
+	11	score
+	12	p_value
+	13	q_value
+	14	matched_sequence
+	15	neg_pos
+
