@@ -1,0 +1,80 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+# Resources
+library(ggplot2)
+library(dplyr)
+library(glmnet)
+
+# working directory
+setwd("/sto1/epigen/TPXcCRE/dataset")
+
+# Dataframe
+df <- read.table("tpx_paramspace_AUC.ALL_noSingleNt.method.Npeaks_version.noPROB_fitted.noT_pot_custom.technique.header_added.gz", header=T)
+
+# Set params as factors and relevel 
+groups_factors <- c("peak_method_all","ssRNA","singleStrandedness","min_len","error_rate","guanine_rate","repeat_filter","consecutive_error","predictor","technique")
+df[,groups_factors] <- lapply(df[,groups_factors] , factor)
+df$predictor <- relevel(df$predictor, ref = "t_pot_norm")
+df$technique <- relevel(df$technique, ref = "ChIRP-seq")
+df$min_len <- relevel(df$min_len, ref = "10")
+df$singleStrandedness <- relevel(df$singleStrandedness, ref = "ss50")
+
+# Remove "stability_norm_overcount"
+df <- df[!grepl("Stability_norm_overcount", df$predictor),]
+df$predictor <- as.factor(as.character(df$predictor))
+
+```
+
+
+
+# Filtro il dataframe per avere solo i lncRNA con evidenze di triplex
+
+```{r}
+# Computational: Epr, DACOR1
+# Experimental: TERC, NEAT1, HOTAIR, Meg3, MEG3, ANRIL, lncSmad7
+# Speculated: Tug1
+
+#triplex_evidence_ssRNA <- c("Eprn", "AC087482.1", "TERC", "NEAT1", "HOTAIR", "MEG3", "Meg3", "CDKN2B-AS1", "lncSmad7")
+triplex_evidence_ssRNA <- c("TERC", "NEAT1", "HOTAIR", "MEG3", "Meg3", "CDKN2B-AS1", "lncSmad7")
+
+df <- df %>% filter(ssRNA %in% triplex_evidence_ssRNA)
+df$ssRNA<-as.factor(as.character(df$ssRNA))
+
+
+
+```
+
+
+# Covert factor to dummy variables
+```{r}
+factor2dummy<-function(data,col_name){
+  mm<-model.matrix(as.formula(paste("~ ", col_name, " - 1")), data)
+  col_index <- which(colnames(data)==col_name)
+  data %>% select_(-col_index) -> data
+  return(cbind(data,mm))
+}
+
+for(variable in groups_factors){
+  df<-factor2dummy(df,variable)
+}
+```
+
+
+# GLMnet
+
+```{r}
+y <- df$AUC
+x <- df %>% select(-AUC)
+x <- as.matrix(x)
+
+cv <- cv.glmnet(x, y, alpha=0)
+
+model <- glmnet(x, y, alpha = 0, lambda = cv$lambda.min)
+
+coef(model)
+```
+
