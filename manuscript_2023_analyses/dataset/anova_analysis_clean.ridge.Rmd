@@ -76,5 +76,23 @@ cv <- cv.glmnet(x, y, alpha=0)
 model <- glmnet(x, y, alpha = 0, lambda = cv$lambda.min)
 
 coef(model)
+write.table(file="glmnet_true_coef", as.data.frame(t(as.matrix(c))), row.names = F, quote = F, sep="\t")
+```
+
+# Permutations
+
+```{r}
+
+y=sample(y)
+c<-coef(glmnet(x, y, alpha = 0, lambda = cv$lambda.min))
+random_coef <- as.data.frame(t(as.matrix(c)))
+
+for(i in seq(1,10000)){
+  y=sample(y)
+  c<-coef(glmnet(x, y, alpha = 0, lambda = cv$lambda.min))
+  random_coef <- rbind(random_coef,as.data.frame(t(as.matrix(c))))
+}
+write.table(file="glmnet_random_coef", random_coef, row.names = F, quote = F, sep="\t")
+
 ```
 
