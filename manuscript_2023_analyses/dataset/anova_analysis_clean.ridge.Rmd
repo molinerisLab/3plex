@@ -30,7 +30,6 @@ df$predictor <- as.factor(as.character(df$predictor))
 ```
 
 
-
 # Filtro il dataframe per avere solo i lncRNA con evidenze di triplex
 
 ```{r}
@@ -49,7 +48,19 @@ df$ssRNA<-as.factor(as.character(df$ssRNA))
 ```
 
 
+# Density plot AUC
+
+```{r}
+for (factor in groups_factors) {
+  p <- ggplot(df, aes(x = AUC)) + 
+    geom_density(aes_string(fill = factor), position = 'identity', alpha = 0.5) +
+  print(p)
+}
+```
+
+
 # Covert factor to dummy variables
+
 ```{r}
 factor2dummy<-function(data,col_name){
   mm<-model.matrix(as.formula(paste("~ ", col_name, " - 1")), data)
@@ -79,6 +90,7 @@ coef(model)
 write.table(file="glmnet_true_coef", as.data.frame(t(as.matrix(c))), row.names = F, quote = F, sep="\t")
 ```
 
+
 # Permutations
 
 ```{r}
@@ -95,4 +107,43 @@ for(i in seq(1,10000)){
 write.table(file="glmnet_random_coef", random_coef, row.names = F, quote = F, sep="\t")
 
 ```
+
+
+# Empirical p-value
+
+```{r}
+random_coef <- read.delim("glmnet_random_coef", header = T)
+true_coef <- read.delim("glmnet_true_coef", header = T)
+
+for (param in colnames(random_coef)) {
+  param_true_coef <- true_coef[,param]
+  if(param_true_coef > 0){
+    empirical_pval <- sum(random_coef[,param] > param_true_coef)/10000
+  } 
+  else {
+    empirical_pval <- sum(random_coef[,param] < param_true_coef)/10000
+  }
+  print(param)
+  print(empirical_pval)
+}
+```
+
+
+# Plot density
+
+```{r}
+pdf(file = "permutation_test_density_plot.pdf",paper = "a4")
+for (param in colnames(random_coef)) {
+  p <- ggplot(random_coef, aes_string(x=param)) + 
+    geom_density() + 
+    geom_vline(data = true_coef, aes_string(xintercept=param), color = "red") +
+    theme_classic()
+  print(p)
+}
+dev.off()
+```
+
+
+
+
 
