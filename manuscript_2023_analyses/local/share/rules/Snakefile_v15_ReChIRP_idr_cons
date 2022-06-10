@@ -217,7 +217,7 @@ rule triplexator_stability:
 	group: "input_fasta_preparation_and_triplexator"
 	shell: """
 		unhead {input} -f {input}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output}.tmp
-		cat {output}.tmp | ../../local/src/tpx_thermal_stability.py | gzip > {output}
+		cat {output}.tmp | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 ../../local/src/tpx_thermal_stability.py | gzip > {output}
 		rm {input}.head {output}.tmp
 	"""
 

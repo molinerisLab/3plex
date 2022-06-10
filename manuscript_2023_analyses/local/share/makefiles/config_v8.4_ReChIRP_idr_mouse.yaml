@@ -34,9 +34,9 @@ RNAPLFOLD_UNPAIRED_WINDOW: 8
 
 SINGLE_STRANDEDNESS_CUTOFF:
         - "0"
-        - "10"
-        - "20"
-        - "50"
+#        - "10"
+#        - "20"
+#        - "50"
 
 RNAPLFOLD_WINDOW:
         - "unpairedWindow"

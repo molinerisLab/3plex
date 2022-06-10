@@ -326,8 +326,10 @@ TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability.custom_t_pot.neg_po
 %_ss20_unpaired_window.fa: RNAplfold/%_lunp.unpaired_window.modif_zscore %.fa
 	PERC=$$(sort -n $< | awk '{all[NR] = $$0} END{print all[int(NR*0.2 - 0.5)]}'); fasta_mask <(bawk -v perc=$$PERC '$$1<perc {print "TERC",NR-1+4,NR+4}' $< | bedtools merge) < $^2 > $@
 
+# matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/*/*/*/*/*/*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp' \
+
 tpx_paramspace_AUC_cmp.gz:
-	matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/*/*/*/*/*/*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp' \
+	matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/*/*/*/*/*/*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC_comp.gz' \
 	| grep -v -w pred_1 | tr ";" "\t" \
 	| perl -lane '$$,="\t"; @F=map{s/.*\~//; $$_} @F; print @F' \
 	| cut -f 1-3,5-  \

@@ -45,7 +45,7 @@ opt<-arguments$options
 ### stdin example: "/sto1/epigen/TPXcCRE/dataset/v8_ChIRP_neg_rand/TERC-cCRE.bed.tpx.raw_-L30-e20-l10-g70-froff.summary.clean.covered_frac.stability.custom_t_pot.neg_pos_rand"
 stdin <- file("stdin")
 open(stdin, blocking=TRUE)
-z<-read.table(stdin,header=T)
+z<-read.table(stdin,header=T, sep="\t")
 
 ### I take the first argument, the outcomes_col_name (the column name of the outcomes of the classification)
 outcomes <- shift_fn(args)
