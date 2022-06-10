@@ -1,9 +1,2 @@
 min_length	max_length	error_rate	guanine_rate	filter_repeat	consecutive_errors
-8	-1	20	40	off	1
-10	-1	20	40	off	1
-8	-1	20	40	off	3
-10	-1	20	40	off	3
-8	-1	20	10	off	1
 10	-1	20	10	off	1
-8	-1	20	10	off	3
-10	-1	20	10	off	3

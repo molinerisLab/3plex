@@ -53,7 +53,7 @@ cCRE.bed: $(BIOINFO_REFERENCE_ROOT)/encode-screen/dataset/v13/hg38-ccREs.bed
 	ln -s $< $@
 
 %.bed.fa: $(GENCODE_DIR)/GRCh38.primary_assembly.genome.fa %.bed
-	bedtools getfasta -name -fi $< -bed $^2 -fo $@
+	bedtools getfasta -nameOnly -fi $< -bed $^2 -fo $@
 
 %.mask.fa: $(GENCODE_DIR)/GRCh38.primary_assembly.genome.fa %.bed
 	bedtools maskfasta -fi $< -fo $@ -bed $^2
@@ -430,7 +430,7 @@ cCRE-%.neg_pos.bed: cCRE-%-vs-H1.matrix cCRE-%.type.bed
 	translate -a -r <(tr ";" "\t" < $< | unhead | cut -f 4,5 | bawk '$$2!="Low-DNase" {print $$1,"pos"} $$2=="Low-DNase" {print $$1,"neg"}') 4 < $^2 > $@
 
 tpx_paramspace.fisher_select_cutoff.matrix:
-	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/cCRE-*.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.*.type.neg_pos.fisher_select_cutoff' | tr ";" "\t" > $@
+	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/cCRE-*.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.*.neg_pos.fisher_select_cutoff.gz' | tr ";" "\t" > $@
 
 
 
@@ -458,9 +458,9 @@ tpx_paramspace.fisher_select_cutoff.matrix.best: tpx_paramspace.fisher_select_cu
 	18	Pvalue	2.07884e-24
 	19	TPXcCRE_score	23.682180
 
-tpx_paramspace.fisher_select_cutoff.matrix.best.up_down: tpx_paramspace.fisher_select_cutoff.matrix.best.header_added selected_ssRNA.header_added
-	translate -a $^2 1 < $< > $@
+tpx_paramspace.fisher_select_cutoff.matrix.best.up_down: tpx_paramspace.fisher_select_cutoff.matrix.best.header_added selected_ssRNA
+	bawk '{print $$ssRNA";"$$condition,$$2,$$4~19}' $< | translate -a -k <(bawk 'BEGIN{print "ssRNA;condition", "staminal", "mark_seqc", "logFC"} {print $$1";"$$2,$$3~5}' $^2) 1 | tr ";" "\t" > $@
 
-tpx_paramspace.fisher_select_cutoff.matrix.up_down: tpx_paramspace.fisher_select_cutoff.matrix.header_added selected_ssRNA.header_added
-	translate -a $^2 1 < $< > $@
+tpx_paramspace.fisher_select_cutoff.matrix.up_down: tpx_paramspace.fisher_select_cutoff.matrix.header_added selected_ssRNA
+	bawk '{print $$ssRNA";"$$condition,$$2,$$4~19}' $< | translate -a -k <(bawk 'BEGIN{print "ssRNA;condition", "staminal", "mark_seqc", "logFC"} {print $$1";"$$2,$$3~5}' $^2) 1 | tr ";" "\t" > $@
 

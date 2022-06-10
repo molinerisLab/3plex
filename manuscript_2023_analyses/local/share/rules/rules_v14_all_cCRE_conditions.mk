@@ -495,3 +495,7 @@ AC003681.1_EH38E1935892_triplexator.tpx: EH38E1935892.fa AC003681.1.fa
 CALML3-AS1_EH38E1310212_triplexator.tpx: EH38E1310212.fa CALML3-AS1.fa
 	docker run -u `id -u`:10001 --rm -v /sto1:/sto1 -v /sto1:/sto1 triplexator:v1.3.2_l6 bash -c "cd /sto1/epigen/TPXcCRE/dataset/v14_all_cCRE_conditions; \
 	triplexator -l 8 -L -1 -e 20 -g 10 -fr off -c 1 -fm 0 -of 1 -o $@ -rm 2 -p 4 -ss $^2 -ds $<"
+
+tpx_paramspace.stability.norm_undercount.fisher_select_cutoff.matrix.gz:
+	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/cCRE-*.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.stability.norm_undercount.*.neg_pos.fisher_select_cutoff.gz' | tr ";" "\t" | gzip > $@
+
