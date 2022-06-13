@@ -542,7 +542,7 @@ tpx_paramspace_AUC.all_human.matrix: tpx_paramspace_AUC.all_human.gz
 # tpx_paramspace analysis
 #
 
-tpx_paramspace_AUC.all_%_noSingleNt.gz: ../raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions.gz %_lncRNA
+tpx_paramspace_AUC.all_%_noSingleNt.gz: raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions_peralta.gz %_lncRNA
 	cp $< $@.tmp.gz; \
 	zcat $@.tmp.gz | filter_1col 2 $^2 | cut -f-9,11 | sort | uniq | gzip > $@; \
 	zgrep t_pot_norm $@.tmp.gz | filter_1col 2 $^2 | cut -f-8,10,12 | sort | uniq | gzip >> $@; \
@@ -726,20 +726,22 @@ tpx_paramspace_AUC.all_mouse_noSingleNt.method.Npeaks_version.qc_params.frip_ver
 	bawk '{if($$1 == "v8.4_ReChIRP_idr_mouse"){print $$1~2,$$10,$$14~26}else if($$1 == "v8.5_ReChIRP_overlap_mouse"){print $$1~2,$$6,$$12,$$13,$$16~26} else if($$1 == "v8.7_ReChIRP_idr_overlap_top1000_mouse"){print $$1~2,($$4+$$6+$$8+$$10)/4,($$12+$$14)/2,($$13+$$15)/2,$$16~26} else if($$1 == "v8.8_ReChIRP_idr_opt"){print $$1~2,$$8,$$14~26}}' $< | expandsets 3 4 5 | gzip > $@
 
 tpx_paramspace_AUC.all_mouse_noSingleNt.method.Npeaks_version.gz: tpx_paramspace_AUC.all_mouse_noSingleNt.method.Npeaks.gz
-	bawk '{if($$1 == "v8.4_ReChIRP_idr_mouse"){print $$1~2,$$4,$$8~15}else if($$1 == "v8.5_ReChIRP_overlap_mouse"){print $$1~2,$$6,$$8~15} else if($$1 == "v8.7_ReChIRP_idr_overlap_top1000_mouse"){print $$1~2,1000,$$8~15} else if($$1 == "v8.9_ReChIRP_idr_opt_mouse") {print $$1~2,$$5,$$8~15} else if($$1 == "v8.11_ReChIRP_bed_mouse"){print $$1~2,$$7~15}}' $< | gzip > $^2
+	bawk '{if($$1 == "v8.4_ReChIRP_idr_mouse"){print $$1~2,$$4,$$8~15}else if($$1 == "v8.5_ReChIRP_overlap_mouse"){print $$1~2,$$6,$$8~15} else if($$1 == "v8.7_ReChIRP_idr_overlap_top1000_mouse"){print $$1~2,1000,$$8~15} else if($$1 == "v8.9_ReChIRP_idr_opt_mouse") {print $$1~2,$$5,$$8~15} else if($$1 == "v8.11_ReChIRP_bed_mouse"){print $$1~2,$$7~15}}' $< | gzip > $@
 
 tpx_paramspace_AUC.all_human_noSingleNt_noBed.gz:
 	@echo 'Equivalent of tpx_paramspace_AUC.all_human_noSingleNt.gz on peralta'
 best_parameter_settings.tsv: tpx_paramspace_AUC.all_human_noSingleNt.gz
 	zcat $< | grep -v LINC01605 | grep -v AC018781 | find_best 2 11 > $@
+
 # best_parameter_settings.selected_files.tsv: best_parameter_settings.tsv
 # 	bawk '{print "../"$$1"/tpx_paramspace/"$$2"_"$$3"_unpairedWindow/"$$2".neg_pos_rand.bed/min_length~"$$4"/max_length~-1/error_rate~"$$6"/guanine_rate~"$$7"/filter_repeat~"$$8"/consecutive_errors~"$$9"/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz"}' $< > $@
+
 best_single_params.matrix.gz:
 	@echo 'Manually added v8_ChIRP_neg_rand values'
 
-tpx_paramspace_AUC.%.gz:
-	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~-1/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz' | grep -v Duplex_ID | tr ";" "\t" | bawk '{print $$1,$$2,$$4~9";"$$10~26}' | gzip > $@
+#tpx_paramspace_AUC.%.gz:
+#	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~-1/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.gz' | grep -v Duplex_ID | tr ";" "\t" | bawk '{print $$1,$$2,$$4~9";"$$10~26}' | gzip > $@
 
-tpx_paramspace_AUC.gz:
-	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC' | tr ";" "\t" | pvalue_correct -a -c 12 | gzip > $@
+#tpx_paramspace_AUC.gz:
+#	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC' | tr ";" "\t" | pvalue_correct -a -c 12 | gzip > $@
 
