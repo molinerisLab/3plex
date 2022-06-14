@@ -42,9 +42,6 @@ triplex_evidence_ssRNA <- c("TERC", "NEAT1", "HOTAIR", "MEG3", "Meg3", "CDKN2B-A
 
 df <- df %>% filter(ssRNA %in% triplex_evidence_ssRNA)
 df$ssRNA<-as.factor(as.character(df$ssRNA))
-
-
-
 ```
 
 
@@ -90,21 +87,49 @@ coef(model)
 write.table(file="glmnet_true_coef", as.data.frame(t(as.matrix(c))), row.names = F, quote = F, sep="\t")
 ```
 
+# GLMnet empirical anova exclude
+
+```{r}
+df %>% select(-AUC) -> df_reduced
+df_reduced[,grep("predictor", colnames(df_reduced), invert=T)] -> x_reduced
+x_reduced <- as.matrix(x_reduced)
+
+cv_reduced <- cv.glmnet(x, y, alpha=0)
+model_reduced <- glmnet(x_reduced, y, alpha = 0, lambda = cv$lambda.min)
+
+r2_full_vs_reduced <- model$dev.ratio - model_reduced$dev.ratio
+
+
+```
+
+
 
 # Permutations
 
 ```{r}
 
 y=sample(y)
-c<-coef(glmnet(x, y, alpha = 0, lambda = cv$lambda.min))
-random_coef <- as.data.frame(t(as.matrix(c)))
+model_full_random <- glmnet(x, y, alpha = 0, lambda = cv$lambda.min)
+c_full_random <- coef(model_full_random)
+model_reduced_random <- glmnet(x_reduced, y, alpha = 0, lambda = cv_reduced$lambda.min)
+r2_full_vs_reduced_random <- model_full_random$dev.ratio - model_reduced_random$dev.ratio
+
+retval_random_coef <- as.data.frame(t(as.matrix(c_full_random)))
+retval_r2_full_vs_reduced_random <- c(r2_full_vs_reduced_random)
 
 for(i in seq(1,10000)){
   y=sample(y)
-  c<-coef(glmnet(x, y, alpha = 0, lambda = cv$lambda.min))
-  random_coef <- rbind(random_coef,as.data.frame(t(as.matrix(c))))
+  model_full_random <- glmnet(x, y, alpha = 0, lambda = cv$lambda.min)
+  c_full_random <- coef(model_full_random)
+  model_reduced_random <- glmnet(x_reduced, y, alpha = 0, lambda = cv_reduced$lambda.min)
+  r2_full_vs_reduced_random <- model_full_random$dev.ratio - model_reduced_random$dev.ratio
+  
+  retval_random_coef <- rbind(retval_random_coef,as.data.frame(t(as.matrix(c_full_random))))
+  retval_r2_full_vs_reduced_random <- c(retval_r2_full_vs_reduced_random,r2_full_vs_reduced_random)
 }
-write.table(file="glmnet_random_coef", random_coef, row.names = F, quote = F, sep="\t")
+
+write.table(file="glmnet_random_coef", retval_random_coef, row.names = F, quote = F, sep="\t")
+write.table(file="glmnet_anova_exclude", as.data.frame(r2_full_vs_reduced_random=retval_r2_full_vs_reduced_random), row.names = F, quote = F, sep="\t")
 
 ```
 

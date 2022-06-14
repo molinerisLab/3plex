@@ -4,18 +4,48 @@ output: html_notebook
 ---
 
 ```{r}
-# Resources
+# Libraries
 library(ggplot2)
 library(ggpubr)
 library(dplyr)
 library(pROC)
 library(ggsci)
 
+
+# Functions
+plot_mean_distance <- function(aov_obj,factor_param, ordered = F) {
+  tky <- as.data.frame(TukeyHSD(aov_obj, factor_param, ordered = ordered)[[factor_param]])
+  tky$pair <- rownames(tky)
+  tky <- tky[order(tky$diff),]
+  print(tky)
+  # Plot pairwise TukeyHSD comparisons and color by significance level
+  p <- ggplot(tky, aes(color=cut(`p adj`, c(0, 0.01, 0.05, 1), label=c("p<0.01","p<0.05","Non-Sig")))) +
+    geom_hline(yintercept=0, lty="11", colour="grey30") +
+    geom_errorbar(aes(pair, ymin=lwr, ymax=upr), width=0.2) +
+    geom_point(aes(pair, diff)) +
+    labs(colour="") +
+    #coord_flip() +
+    theme_classic() +
+    xlab("") + ylab("") +
+    scale_color_manual(values = c("p<0.01" = "#a70000",
+                                    "p<0.05" = "#ff7b7b",
+                                    "Non-Sig" = "grey")) +
+    theme(legend.position = "top")
+  
+  return(p)
+}
+
+
+
 # working directory
 setwd("/sto1/epigen/TPXcCRE/dataset")
 
-# Dataframe
-df <- read.table("tpx_paramspace_AUC.ALL_noSingleNt.method.Npeaks_version.noPROB_fitted.noT_pot_custom.technique.header_added.gz", header=T)
+
+
+# Main dataframe
+df <- read.table("tpx_paramspace_AUC.method.Npeaks_version.technique.header_added.gz", header=T)
+
+
 
 # Set params as factors and relevel 
 groups_factors <- c("peak_method_all","ssRNA","singleStrandedness","min_len","error_rate","guanine_rate","repeat_filter","consecutive_error","predictor","technique")
@@ -26,7 +56,7 @@ df$min_len <- relevel(df$min_len, ref = "10")
 df$singleStrandedness <- relevel(df$singleStrandedness, ref = "ss50")
 
 # Remove "stability_norm_overcount"
-df <- df[!grepl("Stability_norm_overcount", df$predictor),]
+#df <- df[!grepl("Stability_norm_overcount", df$predictor),]
 ```
 
 
@@ -38,10 +68,102 @@ df <- df[!grepl("Stability_norm_overcount", df$predictor),]
 # Experimental: TERC, NEAT1, HOTAIR, Meg3, MEG3, ANRIL, lncSmad7
 # Speculated: Tug1
 
-#triplex_evidence_ssRNA <- c("Eprn", "AC087482.1", "TERC", "NEAT1", "HOTAIR", "MEG3", "Meg3", "CDKN2B-AS1", "lncSmad7")
 triplex_evidence_ssRNA <- c("TERC", "NEAT1", "HOTAIR", "MEG3", "Meg3", "CDKN2B-AS1", "lncSmad7")
 
 df <- df %>% filter(ssRNA %in% triplex_evidence_ssRNA)
+```
+
+
+
+# Linear model with default triplexator parameters
+
+```{r}
+df_min_len <- df %>% filter(singleStrandedness == "ss0"
+                            , guanine_rate == 40
+                            , error_rate == 20
+                            , repeat_filter == "on"
+                            , consecutive_error == 1
+                            , predictor == "t_pot_norm")
+
+groups_min_len <- c("peak_method_all", "ssRNA", "n_peaks", "min_len")
+
+# formula
+formula_min_len <- as.formula(paste("AUC ~ ", paste(groups_min_len, collapse="+")))
+
+# Linear model with all groups
+model_min_len <- lm(formula_min_len, data = df_min_len)
+
+print(formula_min_len)
+summary(model_min_len)
+```
+
+
+
+
+# Anova exclude min_len
+
+```{r}
+null_dist <- read.table("tpx_paramspace_AUC.method.Npeaks_version.technique.triplex_ssRNA.triplexator_default_params.anova_exclude.gz"
+                , header = F
+                , col.names = c("param","pval"))
+
+true_values <- read.table("tpx_paramspace_AUC.method.Npeaks_version.technique.triplex_ssRNA.triplexator_default_params.header_added.true_prediction"
+                          , header = F
+                          , col.names = c("param","pval"))
+
+null_dist_split <- split(x = null_dist, f = null_dist$param)
+
+for (group in names(null_dist_split)) {
+  true_pval <- true_values[which(true_values$param == group),2]
+  empirical_pval <- sum(null_dist_split[[group]][["pval"]] < true_pval)/10000
+  print(group)
+  print(empirical_pval)
+}
+```
+
+
+# Plot mean distance min_len
+
+```{r}
+# https://stackoverflow.com/questions/33644034/how-to-visualize-pairwise-comparisons-with-ggplot2
+
+aov_min_len <- aov(formula_min_len, data = df_min_len)
+print(aov_min_len)
+print(summary(aov_min_len))
+
+pairwise_groups <- c("min_len")
+
+for(group in pairwise_groups){
+  print(group)
+  print(plot_mean_distance(aov_min_len,group, ordered = F))
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+# Filtro lunghezza 12 e 16
+
+```{r}
+df <- df %>% filter(min_len != 12 & min_len != 16)
+df$min_len <- droplevels(df$min_len)
+
+
+#df$min_len <- as.numeric(df$min_len)
+#df$min_len <- as.factor(df$min_len)
+
+
+# table(df$min_len)
+# 10     8 
+# 12960 12160 
 ```
 
 
@@ -79,9 +201,9 @@ summary(model_techniques)
 ```
 
 
-# ANOVA ANALYSIS
 
-# anova function 
+# Anova analysis
+
 ```{r}
 # considering ssRNA
 anova_ssRNA <- anova(model_ssRNA)
@@ -116,11 +238,11 @@ print(summary(aov_techniques))
 # considering ssRNA
 groups_ssRNA <- colnames(df)[!colnames(df) %in% c("AUC","technique")]
 
-null_dist <- read.table("tpx_paramspace_AUC.ALL_noSingleNt.method.Npeaks_version.noPROB_fitted.noT_pot_custom.noOvercount.triplex_ssRNA.anova_exclude.gz"
+null_dist <- read.table("tpx_paramspace_AUC.method.Npeaks_version.technique.triplex_ssRNA.len8_10.anova_exclude.ssRNA.gz"
                 , header = F
                 , col.names = c("param","pval"))
 
-true_values <- read.table("tpx_paramspace_AUC.ALL_noSingleNt.method.Npeaks_version.noPROB_fitted.noT_pot_custom.noOvercount.triplex_ssRNA.header_added.true_prediction"
+true_values <- read.table("tpx_paramspace_AUC.method.Npeaks_version.technique.triplex_ssRNA.len8_10.header_added.ssRNA.true_prediction"
                           , header = F
                           , col.names = c("param","pval"))
 
@@ -139,11 +261,11 @@ for (group in groups_ssRNA) {
 # considering technique
 groups_techniques <- colnames(df)[!colnames(df) %in% c("AUC","ssRNA")]
 
-null_dist <- read.table("tpx_paramspace_AUC.ALL_noSingleNt.method.Npeaks_version.noPROB_fitted.noT_pot_custom.noOvercount.technique.triplex_ssRNA.anova_exclude.gz"
+null_dist <- read.table("tpx_paramspace_AUC.method.Npeaks_version.technique.triplex_ssRNA.len8_10.anova_exclude.gz"
                 , header = F
                 , col.names = c("param","pval"))
 
-true_values <- read.table("tpx_paramspace_AUC.ALL_noSingleNt.method.Npeaks_version.noPROB_fitted.noT_pot_custom.noOvercount.technique.triplex_ssRNA.true_prediction"
+true_values <- read.table("tpx_paramspace_AUC.method.Npeaks_version.technique.triplex_ssRNA.len8_10.header_added.true_prediction"
                           , header = F
                           , col.names = c("param","pval"))
 
@@ -156,6 +278,18 @@ for (group in groups_techniques) {
   print(empirical_pval)
 }
 ```
+
+
+
+idr_optimal     CDKN2B-AS1      ChIRP-seq       341     ss0     10      20      10      on      1       Score_best      0.564013037383579
+idr_overlap_top1000     HOTAIR  ChIRP-seq       1000    ss0     8       20      40      off     3       Stability_norm_undercount       0.638221
+available_bed   MEG3    ChOP-seq        532     ss50    10      20      40      off     3       Score_best      0.840792653626548
+overlap_conservative    Meg3    ChIRP-seq       956     ss20    8       20      10      off     3       Stability_best  0.718212216172686
+idr_overlap_top1000     NEAT1   CHART-seq       1000    ss0     8       20      40      off     1       t_pot_norm      0.896985
+overlap_conservative    TERC    ChIRP-seq       49961   ss0     8       20      70      off     3       Stability_norm_undercount       0.859094819845671
+idr_overlap_top1000     lncSmad7        ChIRP-seq       1000    ss20    8       20      40      on      1       Stability_best  0.7415085
+
+
 
 
 # ROC triplex ssRNA con best 
@@ -220,45 +354,6 @@ NFYA_K562       0.916754637747208
 TAL1_K562       0.530138165289975
 YY1_K562        0.716736982827242
 
-
-
-```{r}
-# create dataframe of ssRNA, specificity and sensitivity
-avg_roc <- data.frame(ssRNA=character(),spec=double(),sens=double())
-for(ssRNA in names(roc_matrix)){
-  new_rows <- cbind(ssRNA=rep(ssRNA,length(roc_matrix[[ssRNA]][["specificities"]]))
-                    , spec=round(roc_matrix[[ssRNA]][["specificities"]],digits = 2)
-                    , sens=roc_matrix[[ssRNA]][["sensitivities"]])
-  avg_roc <- rbind(avg_roc, new_rows)
-}
-
-# set spec and sens types
-avg_roc[, 2:3] <- sapply(avg_roc[, 2:3], as.numeric)
-
-# for each ssRNA and specificity value, select the average sensitivity
-avg_roc <- avg_roc %>% group_by(ssRNA, spec) %>% summarise(mean_sens=mean(sens))
-
-# for each specificity value, select the average, max and min sensitivity
-avg_roc <- avg_roc %>%
-  group_by(spec) %>%
-  summarise(min_sens=min(mean_sens), max_sens=max(mean_sens), mean_sens=mean(mean_sens))
-
-avg_roc$mean_sens[avg_roc$spec == 1] <- 0
-
-# plot
-p <- ggplot(avg_roc) +
-    geom_line(aes(x = spec, y = mean_sens)) +
-    scale_x_reverse() +
-    geom_ribbon(aes(x = spec, y = mean_sens, ymin = min_sens, ymax = max_sens), fill = "grey70", alpha = 0.5) +
-    theme_classic(base_size = 10) +
-    coord_fixed() +
-    geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="darkgray", linetype="dashed", size = 0.3) +
-    theme(plot.margin = margin(1,2,1,2, "cm"))
-
-print(p)
-
-ggsave(filename = "average_triplex_ssRNA_ROC.smoothed.pdf", plot = p, device = "pdf")
-```
 
 
 
@@ -389,6 +484,27 @@ print(p)
 
 ggsave(filename = "average_TFs_ROC.smoothed.pdf", plot = p, device = "pdf")
 ```
+
+
+
+# Plot pairwise comparisons
+
+```{r}
+# https://stackoverflow.com/questions/33644034/how-to-visualize-pairwise-comparisons-with-ggplot2
+
+aov_ssRNA <- aov(formula_ssRNA, data = df)
+print(aov_ssRNA)
+print(summary(aov_ssRNA))
+
+pairwise_groups <- c("peak_method_all", "singleStrandedness", "min_len", "predictor")
+
+for(group in pairwise_groups){
+  print(group)
+  print(plot_mean_distance(aov_ssRNA,group))
+}
+```
+
+
 
 
 
