@@ -3,10 +3,6 @@ from __future__ import with_statement
 
 from sys import stdin, stderr
 from optparse import OptionParser
-#from random import shuffle
-#from subprocess import Popen, PIPE
-#from collections import defaultdict
-#from vfork.io.colreader import Reader
 
 A=0
 C=1
