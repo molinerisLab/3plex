@@ -1,0 +1,817 @@
+# Sequence-ID	TFO start	TFO end	Duplex-ID	TTS start	TTS end	Score	Error-rate	Errors	Motif	Strand	Orientation	Guanine-rate
+Z85996.1	370	380	chirp_peak_2	46	56	9	0.1	o7	Y	+	P	0.5
+TFO: 5'- CCCTCTTgCT -3'
+         |||||||*||
+TTS: 5'- GGGAGAAAGA -3'
+     3'- CCCTCTTTCT -5'
+
+Z85996.1	491	502	chirp_peak_2	47	58	10	0.091	o6	Y	+	P	0.55
+TFO: 5'- CCTCTTgCTCC -3'
+         ||||||*||||
+TTS: 5'- GGAGAAAGAGG -3'
+     3'- CCTCTTTCTCC -5'
+
+Z85996.1	689	699	chirp_peak_2	47	57	9	0.1	t3	M	+	P	0.4
+TFO: 5'- GGTTTTTGTG -3'
+         |||*||||||
+TTS: 5'- GGAGAAAGAG -3'
+     3'- CCTCTTTCTC -5'
+
+Z85996.1	726	736	chirp_peak_2	73	83	9	0.1	o4	M	+	P	0.5
+TFO: 5'- GGTTaTGTGG -3'
+         ||||*|||||
+TTS: 5'- GGAAGAGAGG -3'
+     3'- CCTTCTCTCC -5'
+
+Z85996.1	689	699	chirp_peak_2	48	58	9	0.1	t6	M	+	A	0.4
+TFO: 3'- GTGTTTTTGG -5'
+         ||||||*|||
+TTS: 5'- GAGAAAGAGG -3'
+     3'- CTCTTTCTCC -5'
+
+Z85996.1	845	855	chirp_peak_4	366	376	9	0.1	b4	Y	-	P	0.8
+     5'- CCCCACCCTC -3'
+TTS: 3'- GGGGtGGGAG -5'
+         ||||*|||||
+TFO: 3'- CCCCgCCCTC -5'
+
+Z85996.1	848	859	chirp_peak_3	196	207	10	0.091	b8	Y	-	P	0.73
+     5'- CCTTCCCCGCC -3'
+TTS: 3'- GGAAGGGGcGG -5'
+         ||||||||*||
+TFO: 3'- CCTTCCCCgCC -5'
+
+Z85996.1	452	462	chirp_peak_1	121	131	10	0		R	+	A	0.7
+TFO: 3'- GAGGAGGAGG -5'
+         ||||||||||
+TTS: 5'- GAGGAGGAGG -3'
+     3'- CTCCTCCTCC -5'
+
+Z85996.1	452	462	chirp_peak_1	118	128	9	0.1	t1	R	+	A	0.7
+TFO: 3'- GAGGAGGAGG -5'
+         |*||||||||
+TTS: 5'- GGGGAGGAGG -3'
+     3'- CCCCTCCTCC -5'
+
+Z85996.1	450	460	chirp_peak_1	120	130	9	0.1	o8	R	+	A	0.7
+TFO: 3'- GGAGGAGGtG -5'
+         ||||||||*|
+TTS: 5'- GGAGGAGGAG -3'
+     3'- CCTCCTCCTC -5'
+
+Z85996.1	452	462	chirp_peak_1	156	166	9	0.1	t5	R	+	A	0.6
+TFO: 3'- GAGGAGGAGG -5'
+         |||||*||||
+TTS: 5'- GAGGAAGAGG -3'
+     3'- CTCCTTCTCC -5'
+
+Z85996.1	452	462	chirp_peak_1	153	163	9	0.1	t8	R	+	A	0.6
+TFO: 3'- GAGGAGGAGG -5'
+         ||||||||*|
+TTS: 5'- GAGGAGGAAG -3'
+     3'- CTCCTCCTTC -5'
+
+Z85996.1	452	462	chirp_peak_1	340	350	9	0.1	d8	R	+	A	0.6
+TFO: 3'- GAGGAGGAGG -5'
+         ||||||||*|
+TTS: 5'- GAGGAGGAtG -3'
+     3'- CTCCTCCTAC -5'
+
+Z85996.1	452	463	chirp_peak_1	336	347	11	0		R	+	A	0.64
+TFO: 3'- AGAGGAGGAGG -5'
+         |||||||||||
+TTS: 5'- AGAGGAGGAGG -3'
+     3'- TCTCCTCCTCC -5'
+
+Z85996.1	452	462	chirp_peak_1	485	495	9	0.1	d7	R	+	A	0.7
+TFO: 3'- GAGGAGGAGG -5'
+         |||||||*||
+TTS: 5'- GAGGAGGcGG -3'
+     3'- CTCCTCCGCC -5'
+
+Z85996.1	450	462	chirp_peak_1	482	494	11	0.083	b10	R	+	A	0.67
+TFO: 3'- GAGGAGGAGGtG -5'
+         ||||||||||*|
+TTS: 5'- GAGGAGGAGGcG -3'
+     3'- CTCCTCCTCCGC -5'
+
+Z85996.1	450	460	chirp_peak_1	481	491	9	0.1	o8	R	+	A	0.7
+TFO: 3'- GGAGGAGGtG -5'
+         ||||||||*|
+TTS: 5'- GGAGGAGGAG -3'
+     3'- CCTCCTCCTC -5'
+
+Z85996.1	46	56	chirp_peak_1	122	132	9	0.1	o2	M	+	P	0.6
+TFO: 5'- TGcTGGTGGG -3'
+         ||*|||||||
+TTS: 5'- AGGAGGAGGG -3'
+     3'- TCCTCCTCCC -5'
+
+Z85996.1	80	92	chirp_peak_1	120	132	11	0.083	o1	M	+	P	0.67
+TFO: 5'- GcTGGTGGTGGG -3'
+         |*||||||||||
+TTS: 5'- GGAGGAGGAGGG -3'
+     3'- CCTCCTCCTCCC -5'
+
+Z85996.1	82	92	chirp_peak_1	157	167	9	0.1	t4	M	+	P	0.6
+TFO: 5'- TGGTGGTGGG -3'
+         ||||*|||||
+TTS: 5'- AGGAAGAGGG -3'
+     3'- TCCTTCTCCC -5'
+
+Z85996.1	79	89	chirp_peak_1	338	348	9	0.1	o2	M	+	P	0.5
+TFO: 5'- TGcTGGTGGT -3'
+         ||*|||||||
+TTS: 5'- AGGAGGAGGA -3'
+     3'- TCCTCCTCCT -5'
+
+Z85996.1	82	92	chirp_peak_1	341	351	9	0.1	d7	M	+	P	0.6
+TFO: 5'- TGGTGGTGGG -3'
+         |||||||*||
+TTS: 5'- AGGAGGAtGG -3'
+     3'- TCCTCCTACC -5'
+
+Z85996.1	80	91	chirp_peak_1	481	492	10	0.091	o1	M	+	P	0.64
+TFO: 5'- GcTGGTGGTGG -3'
+         |*|||||||||
+TTS: 5'- GGAGGAGGAGG -3'
+     3'- CCTCCTCCTCC -5'
+
+Z85996.1	80	92	chirp_peak_1	119	131	11	0.083	o10	M	+	A	0.67
+TFO: 3'- GGGTGGTGGTcG -5'
+         ||||||||||*|
+TTS: 5'- GGGAGGAGGAGG -3'
+     3'- CCCTCCTCCTCC -5'
+
+Z85996.1	79	91	chirp_peak_1	152	164	11	0.083	o9	M	+	A	0.58
+TFO: 3'- GGTGGTGGTcGT -5'
+         |||||||||*||
+TTS: 5'- GGAGGAGGAAGA -3'
+     3'- CCTCCTCCTTCT -5'
+
+Z85996.1	80	91	chirp_peak_1	339	350	10	0.091	b9	M	+	A	0.64
+TFO: 3'- GGTGGTGGTcG -5'
+         |||||||||*|
+TTS: 5'- GGAGGAGGAtG -3'
+     3'- CCTCCTCCTAC -5'
+
+Z85996.1	79	90	chirp_peak_1	337	348	10	0.091	o8	M	+	A	0.55
+TFO: 3'- GTGGTGGTcGT -5'
+         ||||||||*||
+TTS: 5'- GAGGAGGAGGA -3'
+     3'- CTCCTCCTCCT -5'
+
+Z85996.1	80	91	chirp_peak_1	481	492	10	0.091	o9	M	+	A	0.64
+TFO: 3'- GGTGGTGGTcG -5'
+         |||||||||*|
+TTS: 5'- GGAGGAGGAGG -3'
+     3'- CCTCCTCCTCC -5'
+
+Z85996.1	46	57	chirp_peak_1	118	129	10	0.091	o8	M	+	A	0.64
+TFO: 3'- GGGGTGGTcGT -5'
+         ||||||||*||
+TTS: 5'- GGGGAGGAGGA -3'
+     3'- CCCCTCCTCCT -5'
+
+Z85996.1	324	334	chirp_peak_1	156	166	9	0.1	o4	M	+	P	0.6
+TFO: 5'- GTGGcTGTGG -3'
+         ||||*|||||
+TTS: 5'- GAGGAAGAGG -3'
+     3'- CTCCTTCTCC -5'
+
+Z85996.1	678	688	chirp_peak_1	121	131	9	0.1	o6	M	+	P	0.6
+TFO: 5'- GTGGTGcTGG -3'
+         ||||||*|||
+TTS: 5'- GAGGAGGAGG -3'
+     3'- CTCCTCCTCC -5'
+
+Z85996.1	680	691	chirp_peak_1	120	131	10	0.091	o4	M	+	P	0.64
+TFO: 5'- GGTGcTGGTGG -3'
+         ||||*||||||
+TTS: 5'- GGAGGAGGAGG -3'
+     3'- CCTCCTCCTCC -5'
+
+Z85996.1	683	693	chirp_peak_1	152	162	9	0.1	o1	M	+	P	0.5
+TFO: 5'- GcTGGTGGTT -3'
+         |*||||||||
+TTS: 5'- GGAGGAGGAA -3'
+     3'- CCTCCTCCTT -5'
+
+Z85996.1	685	695	chirp_peak_1	154	164	9	0.1	t8	M	+	P	0.4
+TFO: 5'- TGGTGGTTTT -3'
+         ||||||||*|
+TTS: 5'- AGGAGGAAGA -3'
+     3'- TCCTCCTTCT -5'
+
+Z85996.1	677	689	chirp_peak_1	336	348	11	0.083	o7	M	+	P	0.5
+TFO: 5'- TGTGGTGcTGGT -3'
+         |||||||*||||
+TTS: 5'- AGAGGAGGAGGA -3'
+     3'- TCTCCTCCTCCT -5'
+
+Z85996.1	681	692	chirp_peak_1	337	348	10	0.091	o3	M	+	P	0.55
+TFO: 5'- GTGcTGGTGGT -3'
+         |||*|||||||
+TTS: 5'- GAGGAGGAGGA -3'
+     3'- CTCCTCCTCCT -5'
+
+Z85996.1	678	688	chirp_peak_1	482	492	9	0.1	o6	M	+	P	0.6
+TFO: 5'- GTGGTGcTGG -3'
+         ||||||*|||
+TTS: 5'- GAGGAGGAGG -3'
+     3'- CTCCTCCTCC -5'
+
+Z85996.1	680	691	chirp_peak_1	481	492	10	0.091	o4	M	+	P	0.64
+TFO: 5'- GGTGcTGGTGG -3'
+         ||||*||||||
+TTS: 5'- GGAGGAGGAGG -3'
+     3'- CCTCCTCCTCC -5'
+
+Z85996.1	680	691	chirp_peak_1	120	131	10	0.091	o6	M	+	A	0.64
+TFO: 3'- GGTGGTcGTGG -5'
+         ||||||*||||
+TTS: 5'- GGAGGAGGAGG -3'
+     3'- CCTCCTCCTCC -5'
+
+Z85996.1	678	688	chirp_peak_1	120	130	9	0.1	o3	M	+	A	0.6
+TFO: 3'- GGTcGTGGTG -5'
+         |||*||||||
+TTS: 5'- GGAGGAGGAG -3'
+     3'- CCTCCTCCTC -5'
+
+Z85996.1	680	692	chirp_peak_1	154	166	11	0.083	o7	M	+	A	0.58
+TFO: 3'- TGGTGGTcGTGG -5'
+         |||||||*||||
+TTS: 5'- AGGAGGAAGAGG -3'
+     3'- TCCTCCTTCTCC -5'
+
+Z85996.1	686	699	chirp_peak_1	225	238	12	0.077	d6	M	+	A	0.46
+TFO: 3'- GTGTTTTTGGTGG -5'
+         ||||||*||||||
+TTS: 5'- GAGAAAcAGGAGG -3'
+     3'- CTCTTTGTCCTCC -5'
+
+Z85996.1	682	692	chirp_peak_1	338	348	9	0.1	o7	M	+	A	0.5
+TFO: 3'- TGGTGGTcGT -5'
+         |||||||*||
+TTS: 5'- AGGAGGAGGA -3'
+     3'- TCCTCCTCCT -5'
+
+Z85996.1	679	690	chirp_peak_1	337	348	10	0.091	o5	M	+	A	0.55
+TFO: 3'- GTGGTcGTGGT -5'
+         |||||*|||||
+TTS: 5'- GAGGAGGAGGA -3'
+     3'- CTCCTCCTCCT -5'
+
+Z85996.1	680	691	chirp_peak_1	481	492	10	0.091	o6	M	+	A	0.64
+TFO: 3'- GGTGGTcGTGG -5'
+         ||||||*||||
+TTS: 5'- GGAGGAGGAGG -3'
+     3'- CCTCCTCCTCC -5'
+
+Z85996.1	678	688	chirp_peak_1	481	491	9	0.1	o3	M	+	A	0.6
+TFO: 3'- GGTcGTGGTG -5'
+         |||*||||||
+TTS: 5'- GGAGGAGGAG -3'
+     3'- CCTCCTCCTC -5'
+
+Z85996.1	915	925	chirp_peak_1	127	137	9	0.1	b5	M	+	P	0.7
+TFO: 5'- GTGGGaGTGG -3'
+         |||||*||||
+TTS: 5'- GAGGGcGAGG -3'
+     3'- CTCCCGCTCC -5'
+
+Z85996.1	914	925	chirp_peak_1	161	172	10	0.091	b6	M	+	P	0.64
+TFO: 5'- TGTGGGaGTGG -3'
+         ||||||*||||
+TTS: 5'- AGAGGGcGAGG -3'
+     3'- TCTCCCGCTCC -5'
+
+Z85996.1	915	925	chirp_peak_1	234	244	9	0.1	b5	M	+	P	0.7
+TFO: 5'- GTGGGaGTGG -3'
+         |||||*||||
+TTS: 5'- GAGGGcGAGG -3'
+     3'- CTCCCGCTCC -5'
+
+Z85996.1	117	127	chirp_peak_5	184	194	9	0.1	o4	Y	+	P	0.7
+TFO: 5'- CTCCaCTCCC -3'
+         ||||*|||||
+TTS: 5'- GAGGGGAGGG -3'
+     3'- CTCCCCTCCC -5'
+
+Z85996.1	449	459	chirp_peak_5	181	191	9	0.1	o7	R	+	A	0.6
+TFO: 3'- GAGGAGGtGA -5'
+         |||||||*||
+TTS: 5'- GAGGAGGGGA -3'
+     3'- CTCCTCCCCT -5'
+
+Z85996.1	82	92	chirp_peak_5	580	590	9	0.1	t5	M	-	P	0.6
+     5'- CCCTCTTCCT -3'
+TTS: 3'- GGGAGAAGGA -5'
+         |||||*||||
+TFO: 3'- GGGTGGTGGT -5'
+
+Z85996.1	82	92	chirp_peak_5	496	506	9	0.1	t3	M	-	A	0.7
+     5'- TCCCCCTCCC -3'
+TTS: 3'- AGGGGGAGGG -5'
+         |||*||||||
+TFO: 5'- TGGTGGTGGG -3'
+
+Z85996.1	28	38	chirp_peak_5	656	666	9	0.1	b5	M	+	A	0.6
+TFO: 3'- GGTGTcTGGG -5'
+         |||||*||||
+TTS: 5'- GGAGAcAGGG -3'
+     3'- CCTCTGTCCC -5'
+
+Z85996.1	568	578	chirp_peak_5	496	506	9	0.1	o5	M	-	A	0.7
+     5'- TCCCCCTCCC -3'
+TTS: 3'- AGGGGGAGGG -5'
+         |||||*||||
+TFO: 5'- TGGGGcTGGG -3'
+
+Z85996.1	117	127	chirp_peak_7	293	303	9	0.1	o5	Y	-	P	0.7
+     5'- CCCTCTCCTC -3'
+TTS: 3'- GGGAGAGGAG -5'
+         |||||*||||
+TFO: 3'- CCCTCaCCTC -5'
+
+Z85996.1	82	92	chirp_peak_7	195	205	9	0.1	d6	M	+	A	0.7
+TFO: 3'- GGGTGGTGGT -5'
+         ||||||*|||
+TTS: 5'- GGGAGGtGGA -3'
+     3'- CCCTCCACCT -5'
+
+Z85996.1	685	695	chirp_peak_7	115	125	9	0.1	d2	M	+	P	0.3
+TFO: 5'- TGGTGGTTTT -3'
+         ||*|||||||
+TTS: 5'- AGcAGGAAAA -3'
+     3'- TCGTCCTTTT -5'
+
+Z85996.1	685	695	chirp_peak_7	112	122	9	0.1	d5	M	+	A	0.3
+TFO: 3'- TTTTGGTGGT -5'
+         |||||*||||
+TTS: 5'- AAAAGcAGGA -3'
+     3'- TTTTCGTCCT -5'
+
+Z85996.1	910	920	chirp_peak_7	293	303	9	0.1	o8	M	-	P	0.7
+     5'- CCCTCTCCTC -3'
+TTS: 3'- GGGAGAGGAG -5'
+         ||||||||*|
+TFO: 3'- GGGTGTGGaG -5'
+
+Z85996.1	845	855	chirp_peak_9	323	333	9	0.1	o4	Y	-	P	0.8
+     5'- CCCCTCCCTC -3'
+TTS: 3'- GGGGAGGGAG -5'
+         ||||*|||||
+TFO: 3'- CCCCgCCCTC -5'
+
+Z85996.1	453	466	chirp_peak_9	538	551	12	0.077	o2	R	+	A	0.54
+TFO: 3'- GAcAGAGGAGGAG -5'
+         ||*||||||||||
+TTS: 5'- GAAAGAGGAGGAG -3'
+     3'- CTTTCTCCTCCTC -5'
+
+Z85996.1	82	92	chirp_peak_9	543	553	9	0.1	d8	M	+	P	0.6
+TFO: 5'- TGGTGGTGGG -3'
+         ||||||||*|
+TTS: 5'- AGGAGGAGcG -3'
+     3'- TCCTCCTCGC -5'
+
+Z85996.1	676	687	chirp_peak_9	540	551	10	0.091	o8	M	+	P	0.45
+TFO: 5'- TTGTGGTGcTG -3'
+         ||||||||*||
+TTS: 5'- AAGAGGAGGAG -3'
+     3'- TTCTCCTCCTC -5'
+
+Z85996.1	685	695	chirp_peak_9	117	127	9	0.1	d2	M	-	P	0.4
+     5'- TTGTCCTCCT -3'
+TTS: 3'- AAcAGGAGGA -5'
+         ||*|||||||
+TFO: 3'- TTTTGGTGGT -5'
+
+Z85996.1	685	697	chirp_peak_9	538	550	11	0.083	t4	M	+	A	0.42
+TFO: 3'- GTTTTTGGTGGT -5'
+         ||||*|||||||
+TTS: 5'- GAAAGAGGAGGA -3'
+     3'- CTTTCTCCTCCT -5'
+
+Z85996.1	452	462	chirp_peak_8	462	472	9	0.1	d2	R	-	A	0.7
+     5'- CCACCTCCTC -3'
+TTS: 3'- GGtGGAGGAG -5'
+         ||*|||||||
+TFO: 5'- GGAGGAGGAG -3'
+
+Z85996.1	450	462	chirp_peak_8	463	475	11	0.083	b1	R	-	A	0.67
+     5'- CACCTCCTCCTC -3'
+TTS: 3'- GtGGAGGAGGAG -5'
+         |*||||||||||
+TFO: 5'- GtGGAGGAGGAG -3'
+
+Z85996.1	455	466	chirp_peak_8	415	426	10	0.091	o8	R	-	A	0.55
+     5'- CCTCCTCTTTC -3'
+TTS: 3'- GGAGGAGAAAG -5'
+         ||||||||*||
+TFO: 5'- GGAGGAGAcAG -3'
+
+Z85996.1	82	92	chirp_peak_8	461	471	9	0.1	d3	M	-	P	0.7
+     5'- CCCACCTCCT -3'
+TTS: 3'- GGGtGGAGGA -5'
+         |||*||||||
+TFO: 3'- GGGTGGTGGT -5'
+
+Z85996.1	82	92	chirp_peak_8	467	477	9	0.1	d8	M	-	A	0.6
+     5'- TCCTCCTCAC -3'
+TTS: 3'- AGGAGGAGtG -5'
+         ||||||||*|
+TFO: 5'- TGGTGGTGGG -3'
+
+Z85996.1	80	90	chirp_peak_8	465	475	9	0.1	o1	M	-	A	0.6
+     5'- CCTCCTCCTC -3'
+TTS: 3'- GGAGGAGGAG -5'
+         |*||||||||
+TFO: 5'- GcTGGTGGTG -3'
+
+Z85996.1	223	233	chirp_peak_8	367	377	9	0.1	b4	M	-	P	0.7
+     5'- CCCTGCCTCC -3'
+TTS: 3'- GGGAcGGAGG -5'
+         ||||*|||||
+TFO: 3'- GGGTcGGTGG -5'
+
+Z85996.1	678	688	chirp_peak_8	465	475	9	0.1	o3	M	-	P	0.6
+     5'- CCTCCTCCTC -3'
+TTS: 3'- GGAGGAGGAG -5'
+         |||*||||||
+TFO: 3'- GGTcGTGGTG -5'
+
+Z85996.1	681	691	chirp_peak_8	465	475	9	0.1	o6	M	-	P	0.6
+     5'- CCTCCTCCTC -3'
+TTS: 3'- GGAGGAGGAG -5'
+         ||||||*|||
+TFO: 3'- GGTGGTcGTG -5'
+
+Z85996.1	686	697	chirp_peak_8	419	430	10	0.091	t2	M	-	P	0.45
+     5'- CTCTTTCCTCC -3'
+TTS: 3'- GAGAAAGGAGG -5'
+         ||*||||||||
+TFO: 3'- GTTTTTGGTGG -5'
+
+Z85996.1	680	690	chirp_peak_8	465	475	9	0.1	o4	M	-	A	0.6
+     5'- CCTCCTCCTC -3'
+TTS: 3'- GGAGGAGGAG -5'
+         ||||*|||||
+TFO: 5'- GGTGcTGGTG -3'
+
+Z85996.1	686	697	chirp_peak_8	415	426	10	0.091	t6	M	-	A	0.45
+     5'- CCTCCTCTTTC -3'
+TTS: 3'- GGAGGAGAAAG -5'
+         ||||||*||||
+TFO: 5'- GGTGGTTTTTG -3'
+
+Z85996.1	687	697	chirp_peak_10	438	448	9	0.1	d8	M	+	P	0.4
+TFO: 5'- GTGGTTTTTG -3'
+         ||||||||*|
+TTS: 5'- GAGGAAAAtG -3'
+     3'- CTCCTTTTAC -5'
+
+Z85996.1	915	925	chirp_peak_10	432	442	9	0.1	b5	M	+	P	0.7
+TFO: 5'- GTGGGaGTGG -3'
+         |||||*||||
+TTS: 5'- GAGGGcGAGG -3'
+     3'- CTCCCGCTCC -5'
+
+Z85996.1	82	92	chirp_peak_11	646	656	9	0.1	d3	M	-	A	0.7
+     5'- TCCACCTCCC -3'
+TTS: 3'- AGGtGGAGGG -5'
+         |||*||||||
+TFO: 5'- TGGTGGTGGG -3'
+
+Z85996.1	222	232	chirp_peak_11	251	261	9	0.1	b6	M	+	P	0.6
+TFO: 5'- TGGTGGcTGG -3'
+         ||||||*|||
+TTS: 5'- AGGAGGcAGG -3'
+     3'- TCCTCCGTCC -5'
+
+Z85996.1	28	38	chirp_peak_14	79	89	9	0.1	b5	M	+	A	0.6
+TFO: 3'- GGTGTcTGGG -5'
+         |||||*||||
+TTS: 5'- GGAGAtAGGG -3'
+     3'- CCTCTATCCC -5'
+
+Z85996.1	688	698	chirp_peak_14	280	290	9	0.1	t5	M	-	P	0.3
+     5'- TCTTTCTCCT -3'
+TTS: 3'- AGAAAGAGGA -5'
+         |||||*||||
+TFO: 3'- TGTTTTTGGT -5'
+
+Z85996.1	118	128	chirp_peak_12	586	596	9	0.1	o6	Y	-	P	0.6
+     5'- TCCCTCTCCT -3'
+TTS: 3'- AGGGAGAGGA -5'
+         ||||||*|||
+TFO: 3'- TCCCTCaCCT -5'
+
+Z85996.1	117	128	chirp_peak_15	210	221	10	0.091	o4	Y	+	P	0.64
+TFO: 5'- CTCCaCTCCCT -3'
+         ||||*||||||
+TTS: 5'- GAGGGGAGGGA -3'
+     3'- CTCCCCTCCCT -5'
+
+Z85996.1	82	92	chirp_peak_15	399	409	9	0.1	t7	M	+	P	0.6
+TFO: 5'- TGGTGGTGGG -3'
+         |||||||*||
+TTS: 5'- AGGAGGAAGG -3'
+     3'- TCCTCCTTCC -5'
+
+Z85996.1	222	232	chirp_peak_15	399	409	9	0.1	o6	M	+	P	0.6
+TFO: 5'- TGGTGGcTGG -3'
+         ||||||*|||
+TTS: 5'- AGGAGGAAGG -3'
+     3'- TCCTCCTTCC -5'
+
+Z85996.1	686	696	chirp_peak_15	792	802	9	0.1	t1	M	-	P	0.4
+     5'- TCTTTCCTCC -3'
+TTS: 3'- AGAAAGGAGG -5'
+         |*||||||||
+TFO: 3'- TTTTTGGTGG -5'
+
+Z85996.1	687	697	chirp_peak_15	1	11	9	0.1	t5	M	+	A	0.4
+TFO: 3'- GTTTTTGGTG -5'
+         |||||*||||
+TTS: 5'- GAAAAGGGAG -3'
+     3'- CTTTTCCCTC -5'
+
+Z85996.1	686	697	chirp_peak_15	108	119	10	0.091	d5	M	+	A	0.45
+TFO: 3'- GTTTTTGGTGG -5'
+         |||||*|||||
+TTS: 5'- GAAAAtGGAGG -3'
+     3'- CTTTTACCTCC -5'
+
+Z85996.1	683	693	chirp_peak_15	398	408	9	0.1	o8	M	+	A	0.5
+TFO: 3'- TTGGTGGTcG -5'
+         ||||||||*|
+TTS: 5'- AAGGAGGAAG -3'
+     3'- TTCCTCCTTC -5'
+
+Z85996.1	117	127	chirp_peak_16	377	387	9	0.1	o4	Y	+	P	0.7
+TFO: 5'- CTCCaCTCCC -3'
+         ||||*|||||
+TTS: 5'- GAGGGGAGGG -3'
+     3'- CTCCCCTCCC -5'
+
+Z85996.1	845	855	chirp_peak_16	547	557	9	0.1	o4	Y	-	P	0.8
+     5'- CCCCTCCCTC -3'
+TTS: 3'- GGGGAGGGAG -5'
+         ||||*|||||
+TFO: 3'- CCCCgCCCTC -5'
+
+Z85996.1	452	463	chirp_peak_16	553	564	10	0.091	t8	R	-	A	0.64
+     5'- CCTCCTCCCCT -3'
+TTS: 3'- GGAGGAGGGGA -5'
+         ||||||||*||
+TFO: 5'- GGAGGAGGAGA -3'
+
+Z85996.1	82	92	chirp_peak_16	545	555	9	0.1	t3	M	-	A	0.7
+     5'- TCCCCCTCCC -3'
+TTS: 3'- AGGGGGAGGG -5'
+         |||*||||||
+TFO: 5'- TGGTGGTGGG -3'
+
+Z85996.1	49	59	chirp_peak_16	555	565	9	0.1	o8	M	-	A	0.6
+     5'- TCCTCCCCTT -3'
+TTS: 3'- AGGAGGGGAA -5'
+         ||||||||*|
+TFO: 5'- TGGTGGGGcT -3'
+
+Z85996.1	47	57	chirp_peak_16	553	563	9	0.1	o1	M	-	A	0.7
+     5'- CCTCCTCCCC -3'
+TTS: 3'- GGAGGAGGGG -5'
+         |*||||||||
+TFO: 5'- GcTGGTGGGG -3'
+
+Z85996.1	222	233	chirp_peak_16	548	559	10	0.091	o4	M	-	P	0.64
+     5'- CCCTCCCTCCT -3'
+TTS: 3'- GGGAGGGAGGA -5'
+         ||||*||||||
+TFO: 3'- GGGTcGGTGGT -5'
+
+Z85996.1	568	578	chirp_peak_16	545	555	9	0.1	o5	M	-	A	0.7
+     5'- TCCCCCTCCC -3'
+TTS: 3'- AGGGGGAGGG -5'
+         |||||*||||
+TFO: 5'- TGGGGcTGGG -3'
+
+Z85996.1	915	925	chirp_peak_16	382	392	9	0.1	b5	M	+	P	0.7
+TFO: 5'- GTGGGaGTGG -3'
+         |||||*||||
+TTS: 5'- GAGGGcGAGG -3'
+     3'- CTCCCGCTCC -5'
+
+Z85996.1	550	560	chirp_peak_18	707	717	9	0.1	b2	Y	-	P	0.6
+     5'- CCATCCTTCC -3'
+TTS: 3'- GGtAGGAAGG -5'
+         ||*|||||||
+TFO: 3'- CCgTCCTTCC -5'
+
+Z85996.1	875	885	chirp_peak_18	388	398	9	0.1	o1	Y	-	P	0.5
+     5'- CCTCTTCTCC -3'
+TTS: 3'- GGAGAAGAGG -5'
+         |*||||||||
+TFO: 3'- CgTCTTCTCC -5'
+
+Z85996.1	452	462	chirp_peak_18	63	73	9	0.1	t5	R	+	A	0.6
+TFO: 3'- GAGGAGGAGG -5'
+         |||||*||||
+TTS: 5'- GAGGAAGAGG -3'
+     3'- CTCCTTCTCC -5'
+
+Z85996.1	453	463	chirp_peak_18	386	396	9	0.1	t6	R	-	A	0.5
+     5'- CTCCTCTTCT -3'
+TTS: 3'- GAGGAGAAGA -5'
+         ||||||*|||
+TFO: 5'- GAGGAGGAGA -3'
+
+Z85996.1	82	92	chirp_peak_18	61	71	9	0.1	t7	M	+	A	0.6
+TFO: 3'- GGGTGGTGGT -5'
+         |||||||*||
+TTS: 5'- GGGAGGAAGA -3'
+     3'- CCCTCCTTCT -5'
+
+Z85996.1	46	56	chirp_peak_18	61	71	9	0.1	o7	M	+	A	0.6
+TFO: 3'- GGGTGGTcGT -5'
+         |||||||*||
+TTS: 5'- GGGAGGAAGA -3'
+     3'- CCCTCCTTCT -5'
+
+Z85996.1	324	334	chirp_peak_18	63	73	9	0.1	o4	M	+	P	0.6
+TFO: 5'- GTGGcTGTGG -3'
+         ||||*|||||
+TTS: 5'- GAGGAAGAGG -3'
+     3'- CTCCTTCTCC -5'
+
+Z85996.1	568	578	chirp_peak_18	572	582	9	0.1	b5	M	+	P	0.7
+TFO: 5'- TGGGGcTGGG -3'
+         |||||*||||
+TTS: 5'- AGGGGcAGGG -3'
+     3'- TCCCCGTCCC -5'
+
+Z85996.1	679	691	chirp_peak_18	62	74	11	0.083	o6	M	+	A	0.58
+TFO: 3'- GGTGGTcGTGGT -5'
+         ||||||*|||||
+TTS: 5'- GGAGGAAGAGGA -3'
+     3'- CCTCCTTCTCCT -5'
+
+Z85996.1	26	37	chirp_peak_19	252	263	10	0.091	o6	M	+	P	0.55
+TFO: 5'- TGGGGTcTGTG -3'
+         ||||||*||||
+TTS: 5'- AGGGGAAAGAG -3'
+     3'- TCCCCTTTCTC -5'
+
+Z85996.1	82	92	chirp_peak_19	344	354	9	0.1	t7	M	-	A	0.6
+     5'- TCCTCCTTCC -3'
+TTS: 3'- AGGAGGAAGG -5'
+         |||||||*||
+TFO: 5'- TGGTGGTGGG -3'
+
+Z85996.1	222	232	chirp_peak_19	344	354	9	0.1	o6	M	-	A	0.6
+     5'- TCCTCCTTCC -3'
+TTS: 3'- AGGAGGAAGG -5'
+         ||||||*|||
+TFO: 5'- TGGTGGcTGG -3'
+
+Z85996.1	683	693	chirp_peak_19	343	353	9	0.1	o8	M	-	P	0.5
+     5'- TTCCTCCTTC -3'
+TTS: 3'- AAGGAGGAAG -5'
+         ||||||||*|
+TFO: 3'- TTGGTGGTcG -5'
+
+Z85996.1	685	698	chirp_peak_19	715	728	12	0.077	d2	M	-	P	0.38
+     5'- TCATTTTCCTCCT -3'
+TTS: 3'- AGtAAAAGGAGGA -5'
+         ||*||||||||||
+TFO: 3'- TGTTTTTGGTGGT -5'
+
+Z85996.1	726	736	chirp_peak_21	123	133	9	0.1	b4	M	+	P	0.5
+TFO: 5'- GGTTaTGTGG -3'
+         ||||*|||||
+TTS: 5'- GGAAcAGAGG -3'
+     3'- CCTTGTCTCC -5'
+
+Z85996.1	452	462	chirp_peak_20	789	799	9	0.1	d2	R	-	A	0.7
+     5'- CCACCTCCTC -3'
+TTS: 3'- GGtGGAGGAG -5'
+         ||*|||||||
+TFO: 5'- GGAGGAGGAG -3'
+
+Z85996.1	452	462	chirp_peak_20	792	802	9	0.1	t8	R	-	A	0.7
+     5'- CCTCCTCCCC -3'
+TTS: 3'- GGAGGAGGGG -5'
+         ||||||||*|
+TFO: 5'- GGAGGAGGAG -3'
+
+Z85996.1	450	460	chirp_peak_20	790	800	9	0.1	b1	R	-	A	0.7
+     5'- CACCTCCTCC -3'
+TTS: 3'- GtGGAGGAGG -5'
+         |*||||||||
+TFO: 5'- GtGGAGGAGG -3'
+
+Z85996.1	51	61	chirp_peak_20	171	181	9	0.1	b6	M	+	P	0.6
+TFO: 5'- GTGGGGcTGT -3'
+         ||||||*|||
+TTS: 5'- GAGGGGcAGA -3'
+     3'- CTCCCCGTCT -5'
+
+Z85996.1	82	92	chirp_peak_20	788	798	9	0.1	d3	M	-	P	0.7
+     5'- CCCACCTCCT -3'
+TTS: 3'- GGGtGGAGGA -5'
+         |||*||||||
+TFO: 3'- GGGTGGTGGT -5'
+
+Z85996.1	47	57	chirp_peak_20	792	802	9	0.1	o1	M	-	A	0.7
+     5'- CCTCCTCCCC -3'
+TTS: 3'- GGAGGAGGGG -5'
+         |*||||||||
+TFO: 5'- GcTGGTGGGG -3'
+
+Z85996.1	700	710	chirp_peak_20	167	177	9	0.1	b2	M	+	P	0.6
+TFO: 5'- TGaTGTGGGG -3'
+         ||*|||||||
+TTS: 5'- AGcAGAGGGG -3'
+     3'- TCGTCTCCCC -5'
+
+Z85996.1	687	697	chirp_peak_20	532	542	9	0.1	d7	M	+	A	0.3
+TFO: 3'- GTTTTTGGTG -5'
+         |||||||*||
+TTS: 5'- GAAAAAGcAG -3'
+     3'- CTTTTTCGTC -5'
+
+Z85996.1	692	702	chirp_peak_25	129	139	9	0.1	b2	M	+	A	0.3
+TFO: 3'- GTcGTGTTTT -5'
+         ||*|||||||
+TTS: 5'- GAtGAGAAAA -3'
+     3'- CTACTCTTTT -5'
+
+Z85996.1	47	57	chirp_peak_24	229	239	9	0.1	b1	M	+	P	0.7
+TFO: 5'- GcTGGTGGGG -3'
+         |*||||||||
+TTS: 5'- GcAGGAGGGG -3'
+     3'- CGTCCTCCCC -5'
+
+Z85996.1	82	92	chirp_peak_24	231	241	9	0.1	t6	M	+	P	0.7
+TFO: 5'- TGGTGGTGGG -3'
+         ||||||*|||
+TTS: 5'- AGGAGGGGGG -3'
+     3'- TCCTCCCCCC -5'
+
+Z85996.1	847	859	chirp_peak_23	670	682	11	0.083	b8	Y	-	P	0.75
+     5'- CCTTCCCCGCCC -3'
+TTS: 3'- GGAAGGGGcGGG -5'
+         ||||||||*|||
+TFO: 3'- CCTTCCCCgCCC -5'
+
+Z85996.1	452	462	chirp_peak_23	193	203	9	0.1	d3	R	-	A	0.6
+     5'- CCTGCTCCTC -3'
+TTS: 3'- GGAcGAGGAG -5'
+         |||*||||||
+TFO: 5'- GGAGGAGGAG -3'
+
+Z85996.1	452	462	chirp_peak_23	238	248	9	0.1	d2	R	-	A	0.7
+     5'- CCGCCTCCTC -3'
+TTS: 3'- GGcGGAGGAG -5'
+         ||*|||||||
+TFO: 5'- GGAGGAGGAG -3'
+
+Z85996.1	50	60	chirp_peak_23	656	666	9	0.1	b2	M	-	P	0.7
+     5'- CTACCCCTCC -3'
+TTS: 3'- GAtGGGGAGG -5'
+         ||*|||||||
+TFO: 3'- GTcGGGGTGG -5'
+
+Z85996.1	687	697	chirp_peak_23	633	643	9	0.1	d8	M	+	P	0.4
+TFO: 5'- GTGGTTTTTG -3'
+         ||||||||*|
+TTS: 5'- GAGGAAAAtG -3'
+     3'- CTCCTTTTAC -5'
+
+Z85996.1	678	690	chirp_peak_23	191	203	11	0.083	b5	M	-	P	0.58
+     5'- CTCCTGCTCCTC -3'
+TTS: 3'- GAGGAcGAGGAG -5'
+         |||||*||||||
+TFO: 3'- GTGGTcGTGGTG -5'
+
+Z85996.1	912	922	chirp_peak_23	361	371	9	0.1	b1	M	+	A	0.7
+TFO: 3'- GaGGGTGTGG -5'
+         |*||||||||
+TTS: 5'- GcGGGAGAGG -3'
+     3'- CGCCCTCTCC -5'
+
+Z85996.1	453	463	chirp_peak_22	525	535	9	0.1	d7	R	-	A	0.6
+     5'- CTCCTCCACT -3'
+TTS: 3'- GAGGAGGtGA -5'
+         |||||||*||
+TFO: 5'- GAGGAGGAGA -3'
+
+Z85996.1	223	233	chirp_peak_22	370	380	9	0.1	o4	M	-	P	0.7
+     5'- CCCTTCCTCC -3'
+TTS: 3'- GGGAAGGAGG -5'
+         ||||*|||||
+TFO: 3'- GGGTcGGTGG -5'
+

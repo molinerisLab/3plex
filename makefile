@@ -6,7 +6,7 @@ triplexator-1.3.2-Linux.tar.gz:
 triplexator-1.3.2_l6-Linux.tar.gz: triplexator
 	tar -cvzf $@ $<
 
-Docker_context_debian/min_len_from_10_to_6.patch:
+triplexator_docker_context/min_len_from_10_to_6.patch:
 	cd triplexator; \
 	git diff 4505bba7b3dc8cf4922d71446c755e91c448673c 9abaef685bd6a4183ebfe689971b87681f803df5 > ../min_len_from_10_to_6.patch
 
@@ -16,15 +16,15 @@ Docker_context_debian/min_len_from_10_to_6.patch:
 #	git apply $<
 
 
-#Docker_context_debian/%.tar.gz: %.tar.gz
+#triplexator_docker_context/%.tar.gz: %.tar.gz
 #	ln  $< $@
 
 
-Docker_context_debian/v1.3.3.zip: 
+triplexator_docker_context/v1.3.3.zip: 
 	wget -O $@ https://github.com/Gurado/triplexator/archive/refs/tags/v1.3.3.zip
 
-docker_build: Docker_context_debian/v1.3.3.zip Docker_context_debian/min_len_from_10_to_6.patch
-	docker build -t triplexator:v1.3.2_l6 Docker_context_debian
+docker_build: triplexator_docker_context/v1.3.3.zip triplexator_docker_context/min_len_from_10_to_6.patch
+	docker build -t triplexator:v1.3.2_l6 triplexator_docker_context
 
 triplexator.v1.3.2_l6.tar.gz:
 	docker save triplexator:v1.3.2_l6 | gzip > $@
