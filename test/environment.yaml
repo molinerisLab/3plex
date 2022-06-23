@@ -1,0 +1,10 @@
+name: 3plex_v0.1
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - numpy
+  - viennarna
+prefix: /sto1/ref/miniconda2/envs/3plex_v0.1
+
