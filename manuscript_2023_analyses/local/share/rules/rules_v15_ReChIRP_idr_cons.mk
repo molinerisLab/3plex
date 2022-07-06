@@ -542,7 +542,7 @@ tpx_paramspace_AUC.all_human.matrix: tpx_paramspace_AUC.all_human.gz
 # tpx_paramspace analysis
 #
 
-tpx_paramspace_AUC.all_%_noSingleNt.gz: raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions_peralta.gz %_lncRNA
+tpx_paramspace_AUC.all_%_noSingleNt.gz: ../raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.ALL_versions_peralta.gz %_lncRNA
 	cp $< $@.tmp.gz; \
 	zcat $@.tmp.gz | filter_1col 2 $^2 | cut -f-9,11 | sort | uniq | gzip > $@; \
 	zgrep t_pot_norm $@.tmp.gz | filter_1col 2 $^2 | cut -f-8,10,12 | sort | uniq | gzip >> $@; \

@@ -1,0 +1,13 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(ggpubr)
+setwd("/sto1/epigen/TPXcCRE/dataset")
+df<-read.table("tpx_paramspace_AUC.method.Npeaks_version.technique.best_ss.matrix", head=T)
+ggpaired(df, cond1 = "ss0", cond2 = "ss10", color = "condition", palette = "npg", line.color = "gray")
+
+```
+

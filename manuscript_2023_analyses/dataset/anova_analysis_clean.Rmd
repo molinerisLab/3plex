@@ -10,7 +10,7 @@ library(ggpubr)
 library(dplyr)
 library(pROC)
 library(ggsci)
-
+library("scales")
 
 # Functions
 plot_mean_distance <- function(aov_obj,factor_param, ordered = F) {
@@ -30,7 +30,7 @@ plot_mean_distance <- function(aov_obj,factor_param, ordered = F) {
     scale_color_manual(values = c("p<0.01" = "#a70000",
                                     "p<0.05" = "#ff7b7b",
                                     "Non-Sig" = "grey")) +
-    theme(legend.position = "top")
+    theme(legend.position = "top", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
   
   return(p)
 }
@@ -75,6 +75,12 @@ df <- df %>% filter(ssRNA %in% triplex_evidence_ssRNA)
 
 
 
+
+
+
+
+
+
 # Linear model with default triplexator parameters
 
 ```{r}
@@ -97,10 +103,7 @@ print(formula_min_len)
 summary(model_min_len)
 ```
 
-
-
-
-# Anova exclude min_len
+# Compute empirical p-values (ANOVA exlude, model min_len)
 
 ```{r}
 null_dist <- read.table("tpx_paramspace_AUC.method.Npeaks_version.technique.triplex_ssRNA.triplexator_default_params.anova_exclude.gz"
@@ -121,15 +124,14 @@ for (group in names(null_dist_split)) {
 }
 ```
 
-
-# Plot mean distance min_len
+# Plot pairwise comoparison (model min_len)
 
 ```{r}
 # https://stackoverflow.com/questions/33644034/how-to-visualize-pairwise-comparisons-with-ggplot2
 
 aov_min_len <- aov(formula_min_len, data = df_min_len)
-print(aov_min_len)
-print(summary(aov_min_len))
+#print(aov_min_len)
+#print(summary(aov_min_len))
 
 pairwise_groups <- c("min_len")
 
@@ -150,12 +152,12 @@ for(group in pairwise_groups){
 
 
 
-# Filtro lunghezza 12 e 16
+# Filtering out min len 12, 16 and TTS_covered_frac
 
 ```{r}
-df <- df %>% filter(min_len != 12 & min_len != 16)
+df <- df %>% filter(min_len != 12 & min_len != 16 & predictor != "TTS_covered_frac")
 df$min_len <- droplevels(df$min_len)
-
+df$predictor <- droplevels(df$predictor)
 
 #df$min_len <- as.numeric(df$min_len)
 #df$min_len <- as.factor(df$min_len)
@@ -165,7 +167,6 @@ df$min_len <- droplevels(df$min_len)
 # 10     8 
 # 12960 12160 
 ```
-
 
 # Linear model excluding technique
 
@@ -183,7 +184,6 @@ print(formula_ssRNA)
 summary(model_ssRNA)
 ```
 
-
 # Linear model excluding ssRNA to determine technique coefficients
 
 ```{r}
@@ -200,39 +200,7 @@ print(formula_techniques)
 summary(model_techniques)
 ```
 
-
-
-# Anova analysis
-
-```{r}
-# considering ssRNA
-anova_ssRNA <- anova(model_ssRNA)
-print(anova_ssRNA)
-print(summary(anova_ssRNA))
-
-# considering technique
-anova_techniques <- anova(model_techniques)
-print(anova_techniques)
-print(summary(anova_techniques))
-```
-
-
-
-```{r}
-# considering ssRNA
-#formula_pairwise <- as.formula("AUC ~ peak_method_all + technique + singleStrandedness + min_len + predictor")
-aov_ssRNA <- aov(formula_ssRNA, data = df)
-print(aov_ssRNA)
-print(summary(aov_ssRNA))
-
-# considering technique
-aov_techniques <- aov(formula_techniques, data = df)
-print(aov_techniques)
-print(summary(aov_techniques))
-```
-
-
-# Compute empirical p-values
+# Compute empirical p-values (ANOVA exlude, model ssRNA)
 
 ```{r}
 # considering ssRNA
@@ -255,6 +223,56 @@ for (group in groups_ssRNA) {
   print(empirical_pval)
 }
 ```
+
+
+# Plot pairwise comparisons
+
+```{r}
+# https://stackoverflow.com/questions/33644034/how-to-visualize-pairwise-comparisons-with-ggplot2
+
+aov_ssRNA <- aov(formula_ssRNA, data = df)
+print(aov_ssRNA)
+print(summary(aov_ssRNA))
+
+pairwise_groups <- c("peak_method_all", "singleStrandedness", "min_len", "predictor", "error_rate", "guanine_rate")
+
+for(group in pairwise_groups){
+  print(group)
+  print(plot_mean_distance(aov_ssRNA,group))
+}
+```
+
+
+
+<!-- # Anova analysis -->
+
+<!-- ```{r} -->
+<!-- # considering ssRNA -->
+<!-- anova_ssRNA <- anova(model_ssRNA) -->
+<!-- print(anova_ssRNA) -->
+<!-- print(summary(anova_ssRNA)) -->
+
+<!-- # considering technique -->
+<!-- anova_techniques <- anova(model_techniques) -->
+<!-- print(anova_techniques) -->
+<!-- print(summary(anova_techniques)) -->
+<!-- ``` -->
+
+
+
+<!-- ```{r} -->
+<!-- # considering ssRNA -->
+<!-- #formula_pairwise <- as.formula("AUC ~ peak_method_all + technique + singleStrandedness + min_len + predictor") -->
+<!-- aov_ssRNA <- aov(formula_ssRNA, data = df) -->
+<!-- print(aov_ssRNA) -->
+<!-- print(summary(aov_ssRNA)) -->
+
+<!-- # considering technique -->
+<!-- aov_techniques <- aov(formula_techniques, data = df) -->
+<!-- print(aov_techniques) -->
+<!-- print(summary(aov_techniques)) -->
+<!-- ``` -->
+
 
 
 ```{r}
@@ -295,9 +313,9 @@ idr_overlap_top1000     lncSmad7        ChIRP-seq       1000    ss20    8       
 # ROC triplex ssRNA con best 
 
 ```{r}
-z <- read.delim("best_single_params.ALL_ssRNA_scores.triplex_ssRNA.header_added.gz", header=T)
+z <- read.delim("best_single_params.triplex_ssRNA_scores.header_added.gz", header=T)
 
-filter_table <- read.table("best_single_params.tsv", header=F)
+filter_table <- read.table("best_single_params.triplex_ssRNA.tsv", header=F)
 
 z_split<-split(z,z$ssRNA)
 
@@ -305,16 +323,16 @@ z_split<-split(z,z$ssRNA)
 ### Select the best predictor for each ssRNA through filter file
 z_split_predictors<-lapply(z_split,function(x){
   ssRNA_name<-levels(as.factor(x$ssRNA))
-  predictor_name<-filter_table[which(filter_table[,2]==ssRNA_name), 10]
+  predictor_name<-filter_table[which(filter_table[,2]==ssRNA_name), 11]
   z_split_filt<-x[,c("ssRNA","neg_pos",predictor_name)]
 })
 
 ### Create roc objects with defined direction
 roc_matrix<-lapply(z_split_predictors, function(x){
   ssRNA_name<-levels(as.factor(x$ssRNA))
-  predictor_name<-filter_table[which(filter_table[,2]==ssRNA_name), 10]
+  predictor_name<-filter_table[which(filter_table[,2]==ssRNA_name), 11]
   rocobj <- suppressMessages(roc(as.formula(paste(collapse = "~", c("neg_pos", predictor_name))), data= x, direction="<"))
-  pROC::smooth(roc = rocobj, method = "binormal")
+  #pROC::smooth(roc = rocobj, method = "binormal")
 })
 
 labels <- levels(as.factor(z$ssRNA))
@@ -326,7 +344,7 @@ for(i in seq_along(labels)){
 }
 
 ### ROC plot
-p<-ggroc(roc_matrix) +
+p <- ggroc(roc_matrix) +
   theme_classic(base_size = 10) +
   geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="darkgray", linetype="dashed",size=0.3) +
   theme(plot.margin = margin(1,2,1,2, "cm")
@@ -335,11 +353,11 @@ p<-ggroc(roc_matrix) +
         , legend.position = c(0.85, 0.3)
         , legend.key.size = unit(0.4, "cm"))+
   coord_fixed() +
-  scale_color_igv(labels = labels)
+  scale_color_nejm(labels = labels)
 
 print(p)
 
-#ggsave(filename = "best_single_parameters.ROC_curves.triplex_ssRNA.smoothed.pdf", plot = p, device = "pdf")
+ggsave(filename = "best_single_parameters.ROC_curves.triplex_ssRNA.pdf", plot = p, device = "pdf")
 
 ```
 
@@ -483,25 +501,6 @@ p <- ggplot(avg_roc2) +
 print(p)
 
 ggsave(filename = "average_TFs_ROC.smoothed.pdf", plot = p, device = "pdf")
-```
-
-
-
-# Plot pairwise comparisons
-
-```{r}
-# https://stackoverflow.com/questions/33644034/how-to-visualize-pairwise-comparisons-with-ggplot2
-
-aov_ssRNA <- aov(formula_ssRNA, data = df)
-print(aov_ssRNA)
-print(summary(aov_ssRNA))
-
-pairwise_groups <- c("peak_method_all", "singleStrandedness", "min_len", "predictor")
-
-for(group in pairwise_groups){
-  print(group)
-  print(plot_mean_distance(aov_ssRNA,group))
-}
 ```
 
 
