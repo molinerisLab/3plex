@@ -19,3 +19,7 @@ ssRNA-dsDNA.tpx: ssRNA.fa dsDNA.fa
 	tail -n +2 $< | perl -pe '$$_=">$$_" if ($$.-1)%6==0' | perl -ne 'chomp; print "$$_\t"' | tr ">" "\n" | tail -n +2 \
 	| ../tpx_thermal_stability.py | sort > $@
 	@cmp $@ $@.cfr || echo "TEST FAILD" 
+
+environment.yaml:
+	conda activate 3plex_v0.1;\
+	conda env export --from-history > $@
