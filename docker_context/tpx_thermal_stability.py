@@ -3,6 +3,10 @@ from __future__ import with_statement
 
 from sys import stdin, stderr
 from optparse import OptionParser
+#from random import shuffle
+#from subprocess import Popen, PIPE
+#from collections import defaultdict
+#from vfork.io.colreader import Reader
 
 A=0
 C=1
@@ -12,6 +16,8 @@ N=4
 
 PARALLEL=1
 ANTIPARALLEL=0
+
+d={"A":0, "C":1, "G":2, "T":3, "N":4}
 
 stab_table=[[None,None,None,None,None],[None,None,None,None,None]]
 #                                 A     C     G     T    N
@@ -27,6 +33,24 @@ stab_table[ANTIPARALLEL][T]=	[3.0,  1.0,  0.0,  3.5,  0.0]
 stab_table[ANTIPARALLEL][N]=	[0.0,  0.0,  0.0,  0.0,  0.0]
 
 
+def process_block(tokens):
+	(Sequence_ID,TFO_start,TFO_end,Duplex_ID,TTS_start,TTS_end,Score,Error_rate,Errors,Motif,Strand,Orientation,Guanine_rate,aln1,aln2,aln3,aln4)=tokens
+	if(Strand=="-"):	
+		TFO_seq=aln4[9:-4].upper()
+		TTS_seq=aln1[9:-4].upper()
+	else:
+		TFO_seq=aln1[9:-4].upper()
+		TTS_seq=aln4[9:-4].upper()
+		
+	P=PARALLEL
+	if(Orientation=="A"):
+		P=ANTIPARALLEL
+	
+	stability=0
+	for (i,c) in enumerate(TTS_seq):
+		stability+=stab_table[P][d[c]][d[TFO_seq[i]]]
+
+	print("\t".join(tokens[:-4]+[str(round(stability,1)),aln1,aln2,aln3,aln4]))
 
 def main():
 	usage = '''
@@ -81,30 +105,20 @@ def main():
 	if len(args) != 0:
 		exit('Unexpected argument number.')
 	
-	d={"A":0, "C":1, "G":2, "T":3, "N":4}
 	
-	for line in stdin:
-		tokens = line.rstrip().split('\t')
-		(Sequence_ID,TFO_start,TFO_end,Duplex_ID,TTS_start,TTS_end,Score,Error_rate,Errors,Motif,Strand,Orientation,Guanine_rate,aln1,aln2,aln3,aln4)=tokens
-		if(Strand=="-"):	
-			TFO_seq=aln4[9:-4].upper()
-			TTS_seq=aln1[9:-4].upper()
-		else:
-			TFO_seq=aln1[9:-4].upper()
-			TTS_seq=aln4[9:-4].upper()
+	garbage=stdin.readline()#remove header
+	for NR, line in enumerate(stdin):
+		if NR%6==5:#empty row at the end of a block
+			try:
+				assert(line.rstrip()=="")
+			except:
+				raise(Exception("Malforemd input, check if triplexator is run with -o 1 option"))
+			process_block(tokens)
+		elif(NR%6==0):#the first row of a block, with parameters
+			tokens = line.rstrip().split('\t')
+		else: # line with some alingment information
+			tokens.append(line.rstrip())
 			
-		P=PARALLEL
-		if(Orientation=="A"):
-			P=ANTIPARALLEL
-		
-		#print(TFO_seq, TTS_seq)
-		stability=0
-		for (i,c) in enumerate(TTS_seq):
-			#print(c,TFO_seq[i])
-			#stability+=stab_table[P][c][TFO_seq[i]]
-			stability+=stab_table[P][d[c]][d[TFO_seq[i]]]
-		print("\t".join(tokens[:-4]+[str(round(stability,1)),aln1,aln2,aln3,aln4]))
-		#print("\t".join(tokens[:-4]+[str(round(stability,1)),TFO_seq,TTS_seq]))	
 
 if __name__ == '__main__':
 	main()
