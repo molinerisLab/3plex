@@ -1,4 +1,4 @@
-TESTS=ssRNA-dsDNA.tpx ssRNA-dsDNA.tpx.stability
+TESTS=ssRNA-dsDNA.tpx ssRNA-dsDNA.tpx.stability raw.tpx.stability
 
 all: $(TESTS)
 
@@ -16,8 +16,7 @@ ssRNA-dsDNA.tpx: ssRNA.fa dsDNA.fa
 	@cmp $@ $@.cfr || echo "TEST FAILD" 
 
 %.tpx.stability: %.tpx
-	tail -n +2 $< | perl -pe '$$_=">$$_" if ($$.-1)%6==0' | perl -ne 'chomp; print "$$_\t"' | tr ">" "\n" | tail -n +2 \
-	| ../tpx_thermal_stability.py | sort > $@
+	../docker_context/tpx_thermal_stability.py < $< | sort > $@
 	@cmp $@ $@.cfr || echo "TEST FAILD" 
 
 environment.yaml:
