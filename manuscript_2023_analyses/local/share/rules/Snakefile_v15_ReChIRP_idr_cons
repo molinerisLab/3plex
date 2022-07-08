@@ -165,13 +165,27 @@ rule all_tpx_paramspace:
 	input:
 #		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.summary.gz",
 #		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.summary.neg_pos.gz",
-		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC_comp.gz", 
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC", 
 #		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.Score_best.gz", 
 			params = triplexator_paramspace.instance_patterns,
 			ssRNA = all_selected_ssRNA_id(),
 			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
 			window=config["RNAPLFOLD_WINDOW"]
 		)
+
+rule ROC_wilcox_pvalue:
+	input:
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC", 
+			params = triplexator_paramspace.instance_patterns,
+			ssRNA = all_selected_ssRNA_id(),
+			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+			window=config["RNAPLFOLD_WINDOW"]
+		)
+	output:
+		"tpx_paramspace_AUC.gz"
+	shell: """	
+		matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC' | tr ";" "\t" | pvalue_correct -a -c 12 | gzip > {output}
+	"""
 
 rule triplexator_param_exploration:
 		input:
@@ -459,9 +473,10 @@ rule compute_AUC_comparison:
 	output:
 		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC_comp.gz"
 	shell: """
-		{CONDA_ACTIVATE} bmodel_env; \
+		mkdir -p `dirname logs/{output}`
+		({CONDA_ACTIVATE} bmodel_env; \
 		zcat {input} \
-		| ../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} -d "<" -O '{wildcards.file_path}/auc_comparison_plot' | gzip > {output}
+		| ../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} -d "<" -O '{wildcards.file_path}/auc_comparison_plot' | gzip > {output}) &> logs/{output}.log
 	"""
 
 rule compute_AUC_no_comp:
