@@ -661,6 +661,10 @@ rule mask_fasta_singleNt:
 #		cut -f 4- {input.cCRE_bed} | translate -a -v -e 0 <(zcat {input.dsDNA_scored}) 1 | gzip > {output}
 #	"""
 
+
+###########################################################
+# TPXcCRE related
+
 rule fisher_select_cutoff:
 	input:
 		"{path}/raw.tpx.{summarize}.{condition}.neg_pos.gz"
@@ -787,7 +791,7 @@ rule assoc_genehancer:
 	4	EntrezGene
 	4	tpx_score	
 
-.META: *.tpx.tts_genom_coords.pre
+.META: *raw.tpx.stability.tts_genome_coords.pre
 	1	sequence_id
 	2	TFO_start
 	3	TFO_end
@@ -801,11 +805,16 @@ rule assoc_genehancer:
 	11	Strand
 	12	Orientation
 	13	Guanine_rate
-	14	region_chr
-	15	region_b
-	16	region_e
+	14	Stability
+	15	tpx_seq_A
+	16	tpx_seq_B
+	17	tpx_seq_C
+	18	tpx_seq_D
+	19	region_chr
+	20	region_b
+	21	region_e
 
-.META: *.tpx.tts_genom_coords
+.META: *raw.tpx.stability.tts_genome_coords.gz
 	1	sequence_id
 	2	TFO_start
 	3	TFO_end
@@ -819,30 +828,40 @@ rule assoc_genehancer:
 	11	Strand
 	12	Orientation
 	13	Guanine_rate
-	14	region_chr
-	15	region_b
-	16	region_e
-	17	TTS_start_genom
-	18	TTS_end_genom
+	14	Stability
+	15	tpx_seq_A
+	16	tpx_seq_B
+	17	tpx_seq_C
+	18	tpx_seq_D
+	19	region_chr
+	20	region_b
+	21	region_e
+	22	TTS_start_genome
+	23	TTS_end_genome
 
-.META: *.tpx.tts_genom_coords.bed
+.META: *raw.tpx.stability.tts_genome_coords.bed
 	1	region_chr
-	2	TTS_start
-	3	TTS_end
-	4	TTS_name
-	5	Score
-	6	Strand
-	7	sequence_id
-	8	TFO_start
-	9	TFO_end
-	10	Error_rate
-	11	Errors
-	12	Motif
-	13	Orientation
-	14	Guanine_rate
-	15	region_name
-	16	region_b
-	17	region_e
+	2	TTS_start_genome
+	3	TTS_end_genome
+	4	region_name
+	5	sequence_id
+	6	TFO_start
+	7	TFO_end
+	8	Duplex_ID
+	9	TTS_start
+	10	TTS_end
+	11	Score
+	12	Error_rate
+	13	Errors
+	14	Motif
+	15	Strand
+	16	Orientation
+	17	Guanine_rate
+	18	Stability
+	19	tpx_seq_A
+	20	tpx_seq_B
+	21	tpx_seq_C
+	22	tpx_seq_D
 
 .META: *.fisher_select_cutoff
 	1	ssRNA
@@ -910,3 +929,46 @@ rule cCRE_matrix:
 #		cut -f 1 {input} | unhead | tr ";" "\t" > {output}
 #	"""
 
+###########################################################
+
+
+
+
+###########################################################
+# TTS genomic coordinates bed
+#
+
+rule tts_genome_coords_pre:
+       input:
+               tpx="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/{path}/raw.tpx.stability.gz",
+               bed="{ssRNA}_onlypos.bed"
+       output:
+               temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/{path}/raw.tpx.stability.tts_genome_coords.pre")
+       shell:"""
+               #{CONDA_ACTIVATE} bit_rnaseq_2.8;
+               zcat {input.tpx} | unhead | translate -r -a -f 4 <(cut -f -4 {input.bed}) 4 > {output}
+       """
+
+rule tts_genome_coords:
+       input:
+               "{file_path}.tts_genome_coords.pre"       
+       output:
+               "{file_path}.tts_genome_coords.gz"
+       shell:"""
+               #{CONDA_ACTIVATE} bit_rnaseq_2.8;
+               bawk '{{TTS_start_genome=$TTS_start+$region_b; TTS_end_genome=$TTS_end+$region_b; print $0,TTS_start_genome,TTS_end_genome}}' {input} | gzip > {output}
+       """
+
+rule tts_genome_coords_bed:
+       input:
+               "{file}.tts_genome_coords.gz"   
+       output:
+               "{file}.tts_genome_coords.bed"
+       shell:"""
+               #{CONDA_ACTIVATE} bit_rnaseq_2.8;
+               bawk '{{print $region_chr,$TTS_start_genome,$TTS_end_genome, $Duplex_ID, $0}}' {input}\
+		| cut -f-22 \
+		| id2count -a 4  > {output}
+       """
+
+###########################################################
