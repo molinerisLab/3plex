@@ -946,7 +946,7 @@ rule tts_genome_coords_pre:
                temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/{path}/raw.tpx.stability.tts_genome_coords.pre")
        shell:"""
                #{CONDA_ACTIVATE} bit_rnaseq_2.8;
-               zcat {input.tpx} | unhead | translate -r -a -f 4 <(cut -f -4 {input.bed}) 4 > {output}
+               zcat {input.tpx} | unhead | translate -r -k -a -f 4 <(cut -f -4 {input.bed}) 4 > {output}
        """
 
 rule tts_genome_coords:
@@ -966,9 +966,44 @@ rule tts_genome_coords_bed:
                "{file}.tts_genome_coords.bed"
        shell:"""
                #{CONDA_ACTIVATE} bit_rnaseq_2.8;
-               bawk '{{print $region_chr,$TTS_start_genome,$TTS_end_genome, $Duplex_ID, $0}}' {input}\
+               bawk '$region_chr !~ /GL/ && $region_chr !~ /JH/ {{print $region_chr,$TTS_start_genome,$TTS_end_genome, $Duplex_ID, $0}}' {input}\
 		| cut -f-22 \
 		| id2count -a 4  > {output}
        """
 
+
+rule tts_genome_coords_bedGraph:
+       input:
+               "{file}.tts_genome_coords.bed"   
+       output:
+               "{file}.tts_genome_coords.bedGraph"
+       shell:"""
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		cut -f1-3,18 {input} | sort -k1,1 -k2,2n | bedtools merge -i - -c 4 -o max > {output}
+	"""	
+
+
+rule tts_genome_coords_bigWig:
+	input:
+		bedGraph="{file}.tts_genome_coords.bedGraph",
+		chrom_info=GENCODE_DIR + "/chrom.info"
+	output:
+		"{file}.tts_genome_coords.bw"
+	shell:"""
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bedGraphToBigWig {input.bedGraph} <(unhead {input.chrom_info}) {output}	
+	"""	
+
+rule tts_genome_coords_bigBed:
+	input:
+		bedGraph="{file}.tts_genome_coords.bedGraph",
+		chrom_info=GENCODE_DIR + "/chrom.info"
+	output:
+		"{file}.tts_genome_coords.bb"
+	shell:"""
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bedToBigBed {input.bedGraph} <(unhead {input.chrom_info}) {output}	
+	"""
+
+	
 ###########################################################
