@@ -15,8 +15,14 @@ ssRNA-dsDNA.tpx: ssRNA.fa dsDNA.fa
 	"
 	@cmp $@ $@.cfr || echo "TEST FAILD" 
 
-%.tpx.stability: %.tpx
+ssRNA-dsDNA.tpx.stability: ssRNA-dsDNA.tpx
 	tail -n +2 $< | perl -pe '$$_=">$$_" if ($$.-1)%6==0' | perl -ne 'chomp; print "$$_\t"' | tr ">" "\n" | tail -n +2 \
-	| ../tpx_thermal_stability.py | sort > $@
+	| ../docker_context/tpx_thermal_stability.py | sort > $@
 	@cmp $@ $@.cfr || echo "TEST FAILD" 
 
+
+Z85996.1_ss20.fa.cfr: Z85996.1.fa
+	export PATH=$$PATH:../docker_context/;\
+	conda activate 3plex_v0.1;\
+	snakemake -s Snakefile_RNA_secondary_structure -j 1 -f Z85996.1_ss20.fa
+	@cmp $@ $@.cfr || echo "TEST FAILD" 
