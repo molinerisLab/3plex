@@ -966,9 +966,8 @@ rule tts_genome_coords_bed:
                "{file}.tts_genome_coords.bed"
        shell:"""
                #{CONDA_ACTIVATE} bit_rnaseq_2.8;
-               bawk '$region_chr !~ /GL/ && $region_chr !~ /JH/ {{print $region_chr,$TTS_start_genome,$TTS_end_genome, $Duplex_ID, $0}}' {input}\
-		| cut -f-22 \
-		| id2count -a 4  > {output}
+		bawk '$region_chr !~ /GL/ && $region_chr !~ /JH/ {{a = int($Stability*10*(834/430)); if(a>1000){{a = 1000}}; print $region_chr,$TTS_start_genome,$TTS_end_genome,$sequence_id,a}}' {input} | \
+		bsort -k1,1 -k2,2n | bedtools merge -i - -c 4,5 -o distinct,max | id2count -a 4 > {output}
        """
 
 
@@ -979,7 +978,7 @@ rule tts_genome_coords_bedGraph:
                "{file}.tts_genome_coords.bedGraph"
        shell:"""
 		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		cut -f1-3,18 {input} | sort -k1,1 -k2,2n | bedtools merge -i - -c 4 -o max > {output}
+		cut -f1-3,5 {input} > {output}
 	"""	
 
 
@@ -996,13 +995,13 @@ rule tts_genome_coords_bigWig:
 
 rule tts_genome_coords_bigBed:
 	input:
-		bedGraph="{file}.tts_genome_coords.bedGraph",
+		bed="{file}.tts_genome_coords.bed",
 		chrom_info=GENCODE_DIR + "/chrom.info"
 	output:
 		"{file}.tts_genome_coords.bb"
 	shell:"""
 		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
-		bedToBigBed {input.bedGraph} <(unhead {input.chrom_info}) {output}	
+		bedToBigBed {input.bed} <(unhead {input.chrom_info}) {output}	
 	"""
 
 	
