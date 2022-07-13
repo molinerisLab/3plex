@@ -20,5 +20,10 @@ all: docker_build
 docker_context/v1.3.3.zip: 
 	wget -O $@ https://github.com/Gurado/triplexator/archive/refs/tags/v1.3.3.zip
 
-docker_build: docker_context/v1.3.3.zip docker_context/min_len_from_10_to_6.patch
+build: docker_context/v1.3.3.zip docker_context/min_len_from_10_to_6.patch
 	docker build -t 3plex:$(VERSION) docker_context
+
+docker_context/conda_environment.yaml:
+	#conda activate 3plex_v0.1;\
+	#conda env export --from-history > $@
+	#this modality do not include version if not explicated during install 

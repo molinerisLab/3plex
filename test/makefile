@@ -20,6 +20,3 @@ ssRNA-dsDNA.tpx: ssRNA.fa dsDNA.fa
 	| ../tpx_thermal_stability.py | sort > $@
 	@cmp $@ $@.cfr || echo "TEST FAILD" 
 
-environment.yaml:
-	conda activate 3plex_v0.1;\
-	conda env export --from-history > $@

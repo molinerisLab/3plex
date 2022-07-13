@@ -1,10 +1,11 @@
-name: rnaFoldRand_v0.1
+name: 3plex_v0.1
 channels:
   - conda-forge
   - bioconda
   - defaults
 dependencies:
   - numpy
-  - viennarna
+  - viennarna=2.4.7
+  - snakemake=7.8.5
+  - bedtools=2.29.0
 prefix: /sto1/ref/miniconda2/envs/rnaFoldRand_v0.1
-
