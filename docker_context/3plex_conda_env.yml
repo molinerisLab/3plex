@@ -1,0 +1,10 @@
+name: rnaFoldRand_v0.1
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - numpy
+  - viennarna
+prefix: /sto1/ref/miniconda2/envs/rnaFoldRand_v0.1
+
