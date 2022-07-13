@@ -106,7 +106,9 @@ def main():
 		exit('Unexpected argument number.')
 	
 	
-	garbage=stdin.readline()#remove header
+	header=stdin.readline().rstrip().replace(" ","_").replace("-","_")
+	print(header[2:] + "\tStability\taln1\taln2\taln3\taln4")
+
 	for NR, line in enumerate(stdin):
 		if NR%6==5:#empty row at the end of a block
 			try:

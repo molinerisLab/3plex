@@ -17,6 +17,7 @@ ssRNA-dsDNA.tpx: ssRNA.fa dsDNA.fa
 
 %.tpx.stability: %.tpx
 	../docker_context/tpx_thermal_stability.py < $< | sort > $@
+	@cmp $@ $@.cfr || echo "TEST FAILD" 
 
 
 Z85996.1_ss20.fa.cfr: Z85996.1.fa
