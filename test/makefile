@@ -1,4 +1,4 @@
-TESTS=ssRNA-dsDNA.tpx ssRNA-dsDNA.tpx.stability
+TESTS=ssRNA-dsDNA.tpx ssRNA-dsDNA.tpx.stability raw.tpx.stability
 
 all: $(TESTS)
 
@@ -15,10 +15,8 @@ ssRNA-dsDNA.tpx: ssRNA.fa dsDNA.fa
 	"
 	@cmp $@ $@.cfr || echo "TEST FAILD" 
 
-ssRNA-dsDNA.tpx.stability: ssRNA-dsDNA.tpx
-	tail -n +2 $< | perl -pe '$$_=">$$_" if ($$.-1)%6==0' | perl -ne 'chomp; print "$$_\t"' | tr ">" "\n" | tail -n +2 \
-	| ../docker_context/tpx_thermal_stability.py | sort > $@
-	@cmp $@ $@.cfr || echo "TEST FAILD" 
+%.tpx.stability: %.tpx
+	../docker_context/tpx_thermal_stability.py < $< | sort > $@
 
 
 Z85996.1_ss20.fa.cfr: Z85996.1.fa
