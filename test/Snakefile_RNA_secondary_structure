@@ -26,7 +26,7 @@ rule RNAplfold_lunp:
 	group: "3plex"
 	shell: """
 		mkdir -p RNAplfold; 
-		RNAplfold -W {config[RNAPLFOLD_WINDOW_SIZE]} -L {config[RNAPLFOLD_SPAN_SIZE]} -u {config[RNAPLFOLD_UNPAIRED_WINDOW]} -o < {input}; 
+		RNAplfold -W {config[RNAplfold][window_size]} -L {config[RNAplfold][span_size]} -u {config[RNAplfold][unpaired_window]} -o < {input}; 
 		#mv {wildcards.ssRNA}_lunp {output.lunp}; mv {wildcards.ssRNA}_basepairs {output.basepairs} # this do not work if the filename and the name of the sequence in the header are different
 		mv *_lunp {output.lunp}; mv *_basepairs {output.basepairs}
 	"""
@@ -43,9 +43,9 @@ rule RNAplfold_lunp_unpairedWindow_modif_zscore:
 		grep -v '#' {input} | awk '{{print $(NF)}}' | distMedian.py > {output}
 	"""
 
-WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2
-if(config["RNAPLFOLD_UNPAIRED_WINDOW"] % 2 != 0):
-        WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2 + 0.5
+RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2
+if(config["RNAplfold"]["unpaired_window"] % 2 != 0):
+        RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2 + 0.5
 
 ruleorder: mask_fasta_unpairedWindow_shortcut > mask_fasta_unpairedWindow
 
@@ -69,7 +69,7 @@ rule mask_fasta_unpairedWindow:
 	group: "3plex"
         shell:"""
                 PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
-		bedtools maskfasta -fi {input.fasta} -fo {output} -bed <(awk -v perc=$PERC 'BEGIN{{OFS="\\t"}} $1<perc {{print "{wildcards.ssRNA}",NR - 1 + {WINDOW_CENTER}, NR + {WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge)
+		bedtools maskfasta -fi {input.fasta} -fo {output} -bed <(awk -v perc=$PERC 'BEGIN{{OFS="\\t"}} $1<perc {{print "{wildcards.ssRNA}",NR - 1 + {RNAplfold_WINDOW_CENTER}, NR + {RNAplfold_WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge)
         """
 
 #rule RNAplfold_lunp_singleNt_modif_zscore:
