@@ -100,10 +100,16 @@ if args.dsDNA_bed:
 with open(tmpdir+"/config.yaml","w") as config_file:	
     config_file.write(config_yaml)
 
-bashCommand = "source /etc/profile; conda activate 3plex_v0.1; snakemake --snakefile {snakefile} -j {jobs} {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz".format(
+bashCommand = """
+source /etc/profile; 
+conda activate 3plex_v0.1; 
+snakemake --snakefile {snakefile} -j {jobs} {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz && \
+mv {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz ../
+""".format(
 	jobs=args.jobs, 
 	snakefile=os.path.basename(args.snakefile),
 	ssRNA=ssRNA_name,
 	dsDNA=os.path.splitext(os.path.basename(args.dsDNA))[0]
 )
 execute(bashCommand, tmpdir)
+

@@ -23,6 +23,10 @@ docker_context/v1.3.3.zip:
 build: docker_context/v1.3.3.zip docker_context/min_len_from_10_to_6.patch
 	docker build -t 3plex:$(VERSION) docker_context
 
+push: build
+	docker tag 3plex:$(VERSION) imolineris/3plex:$(VERSION)
+	docker push imolineris/3plex:$(VERSION)
+
 docker_context/conda_environment.yaml:
 	#conda activate 3plex_v0.1;\
 	#conda env export --from-history > $@
