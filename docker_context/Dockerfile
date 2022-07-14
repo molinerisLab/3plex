@@ -32,10 +32,16 @@ ADD tpx_thermal_stability.py /usr/bin/tpx_thermal_stability.py
 ADD find_best /usr/bin/find_best
 RUN mkdir -p /opt/local/lib/perl
 ADD MakefileParser.pm /opt/local/lib/perl
-RUN apt-get install -y gawk
+RUN apt-get install -y gawk python3-yaml
 ADD bawk /usr/bin/bawk
 ADD fasta2oneline /usr/bin/fasta2oneline
 ADD bsort /usr/bin/bsort
 ADD translate /usr/bin/translate
 ADD id2count /usr/bin/id2count
-#move upstairs 
+RUN mkdir -p /opt/3plex/
+ADD 3plex.py /opt/3plex/
+ADD Snakefile /opt/3plex/
+ADD Snakefile_RNA_secondary_structure /opt/3plex/
+ENTRYPOINT ["/opt/3plex/3plex.py"]
+
+

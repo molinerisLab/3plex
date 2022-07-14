@@ -1,4 +1,4 @@
-VERSION?=v0.0.1
+VERSION?=v0.0.2
 all: docker_build
 
 #triplexator_docker_context/min_len_from_10_to_6.patch:

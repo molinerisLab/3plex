@@ -1,9 +1,3 @@
-NCPUS: 28
-
-#GENCODE_SPECIES: "hsapiens"
-#GENCODE_VERSION: '32'
-#GENOME_ASSEMBLY: "GRCh38"
-
 triplexator:
         min_length: 8
         max_length: -1

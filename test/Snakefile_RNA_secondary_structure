@@ -72,24 +72,12 @@ rule mask_fasta_unpairedWindow:
 		bedtools maskfasta -fi {input.fasta} -fo {output} -bed <(awk -v perc=$PERC 'BEGIN{{OFS="\\t"}} $1<perc {{print "{wildcards.ssRNA}",NR - 1 + {RNAplfold_WINDOW_CENTER}, NR + {RNAplfold_WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge)
         """
 
-#rule RNAplfold_lunp_singleNt_modif_zscore:
-#        input:
-#                "RNAplfold/{ssRNA}_lunp"
-#        output:
-#                "RNAplfold/{ssRNA}_lunp.singleNt.modif_zscore"
-#        shell: """
-#                grep -v '#' {input} | bawk '{{print $2}}' | ../../local/src/distMedian.py > {output}
-#	"""
-
-#rule mask_fasta_singleNt:
-#        input:
-#                RNAplfold_prob="RNAplfold/{ssRNA}_lunp.singleNt.modif_zscore",
-#                fasta="{ssRNA}.fa"
-#        output:
-#                "{ssRNA}_ss{percentile}_singleNt.fasta"
-#        shell:"""
-#                PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
-#                fasta_mask <(bawk -v perc=$PERC '$1<perc {{print "{wildcards.ssRNA}",NR - 1, NR}}' {input.RNAplfold_prob} | bedtools merge) < {input.fasta} > {output}
-#        """
-
-
+rule mask_fasta_unpairedWindow_rename:
+        input:
+                "{ssRNA}_ss{config[RNAplfold][single_strandedness_cutoff]}.fa"
+        output:
+                "{ssRNA}_ssmasked.fa"
+	group: "3plex"
+        shell:"""
+		ln -s {input} {output}
+        """
