@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import with_statement
 
+import os
+import re
 import argparse
 import yaml
 import tempfile
@@ -18,6 +20,11 @@ def execute(cmd, cwd):
         if return_code:
             raise subprocess.CalledProcessError(return_code, cmd)
 
+def get_ssRNA_seq_name(ssRNA):
+	with open(ssRNA) as fasta:
+		header=fasta.readline()
+		m=re.match(r'>([^\s]+)',header)
+		return m.group(1)
 
 
 parser = argparse.ArgumentParser(
@@ -43,7 +50,13 @@ parser.add_argument("--dark_gray_stability", metavar="G", dest="TTS_bed_ucsc_dar
 parser.add_argument("--RNAplfold_window_size", metavar="S", dest="RNAplfold_window_size", type=int, default=200, help=" ")
 parser.add_argument("--RNAplfold_span_size", metavar="S", dest="RNAplfold_span_size", type=int, default=150, help=" ")
 parser.add_argument("--RNAplfold_unpaired_window", metavar="S", dest="RNAplfold_unpaired_window", type=int, default=8, help=" ")
+parser.add_argument("--snakefile", metavar="file", dest="snakefile", type=str, default="/opt/3plex/Snakefile", help=" ")
 args = parser.parse_args()
+
+if args.triplexator_filter_repeat:
+	args.triplexator_filter_repeat="on"
+else:
+	args.triplexator_filter_repeat="off"
 
 config={}
 config["triplexator"]={}
@@ -62,7 +75,7 @@ config["RNAplfold"]["window_size"]=args.RNAplfold_window_size
 config["RNAplfold"]["span_size"]=args.RNAplfold_span_size
 config["RNAplfold"]["unpaired_window"]=args.RNAplfold_unpaired_window
 config["RNAplfold"]["unpaired_window"]=args.RNAplfold_unpaired_window
-config["RNAplfold"]["unpaired_window"]=args.RNAplfold_single_strandedness_cutoff
+config["RNAplfold"]["single_strandedness_cutoff"]=args.RNAplfold_single_strandedness_cutoff
 
 config["TTS_bed"]["ucsc_dark_gray"]=args.TTS_bed_ucsc_dark_gray
 config["TTS_bed"]["dark_gray_stability"]=args.TTS_bed_ucsc_dark_gray_stability
@@ -70,11 +83,27 @@ config["TTS_bed"]["dark_gray_stability"]=args.TTS_bed_ucsc_dark_gray_stability
 config_yaml = yaml.dump(config)
 
 
+if not os.path.exists(args.out_dir):
+	os.mkdir(args.out_dir)
 
 tmpdir = tempfile.mkdtemp(prefix=args.out_dir + "/" + "3plex_tmp_directory_", dir=".")
 
-with open(tmpdir+"/config.yaml","w") as config_file:
+ssRNA_name=get_ssRNA_seq_name(args.ssRNA)
+
+os.symlink(args.ssRNA, "{tmpdir}/{ssRNA_name}.fa".format(ssRNA_name=ssRNA_name, tmpdir=tmpdir))
+	
+os.symlink(args.dsDNA, tmpdir+"/"+os.path.basename(args.dsDNA))
+os.symlink(args.snakefile, tmpdir+"/"+os.path.basename(args.snakefile))
+if args.dsDNA_bed:
+	os.symlink(args.dsDNA_bed, tmpdir+"/"+os.path.basename(dsDNA_bed))
+
+with open(tmpdir+"/config.yaml","w") as config_file:	
     config_file.write(config_yaml)
 
-bashCommand = "source /etc/profile; conda activate 3plex_v0.1; snakemake --snakefile /opt/3plex/Snakefile -j {jobs} -n {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz".format(jobs=args.jobs, ssRNA=args.ssRNA, dsDNA=args.dsDNA)
-execute(bashCommand,tmpdir)
+bashCommand = "source /etc/profile; conda activate 3plex_v0.1; snakemake --snakefile {snakefile} -j {jobs} {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz".format(
+	jobs=args.jobs, 
+	snakefile=os.path.basename(args.snakefile),
+	ssRNA=ssRNA_name,
+	dsDNA=os.path.splitext(os.path.basename(args.dsDNA))[0]
+)
+execute(bashCommand, tmpdir)

@@ -39,9 +39,9 @@ ADD bsort /usr/bin/bsort
 ADD translate /usr/bin/translate
 ADD id2count /usr/bin/id2count
 RUN mkdir -p /opt/3plex/
-ADD 3plex.py /opt/3plex/
 ADD Snakefile /opt/3plex/
-ADD Snakefile_RNA_secondary_structure /opt/3plex/
+ADD 3plex.py /opt/3plex/
+RUN mkdir /.cache; chmod a+rwX /.cache
 ENTRYPOINT ["/opt/3plex/3plex.py"]
 
 
