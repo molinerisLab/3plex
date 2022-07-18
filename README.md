@@ -75,16 +75,56 @@ In an environment with all the dependencies and scripts available, launch __3ple
 
 ## 3plex usage
 
-### Required input 
+### Required inputs 
 
 - a FASTA file reporting the single ssRNA sequence ([Example of ssRNA.fa](https://github.com/molinerisLab/3plex/blob/main/test/ssRNA.fa))
 - a multi-FASTA file containing one or multiple dsDNA sequences ([Example of dsDNA.fa](https://github.com/molinerisLab/3plex/blob/main/test/dsDNA.fa)).
 - a defined output directory
 
 
-### Output format
+### Outputs format
+
+- a tpx.stability file ([Example of tpx.stability](https://github.com/molinerisLab/3plex/blob/main/test/test_out/Z85996.1_ssmasked-dsDNA.tpx.stability)) reporting:
 
 ```
+1       Sequence_ID
+2       TFO_start
+3       TFO_end
+4       Duplex_ID
+5       TTS_start
+6       TTS_end
+7       Score
+8       Error_rate
+9       Errors
+10      Motif
+11      Strand
+12      Orientation
+13      Guanine_rate
+14      Stability
+15      aln1
+16      aln2
+17      aln3
+18      aln4
+```
+
+- a tpx.summary file ([Example of tpx.summary](https://github.com/molinerisLab/3plex/blob/main/test/test_out/Z85996.1_ssmasked-dsDNA.tpx.summary)) reporting:
+
+```
+1       Duplex_ID
+2       Sequence_ID
+3       Total(abs)
+4       Total(rel)
+5       GA(abs)
+6       GA(rel)
+7       TC(abs)
+8       TC(rel)
+9       GT(abs)
+10      GT(rel)
+11      Duplex_length
+12      Stability_best
+13      Stability_tot
+14      Score_best
+15      Stability_norm
 ```
 
 
