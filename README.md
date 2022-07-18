@@ -4,9 +4,10 @@
 
 Download the software release to have the testing sequences
 ```
-mkdir 3plex;
-wget -O v0.1.1-beta.zip https://github.com/molinerisLab/3plex/archive/refs/tags/v0.1.1-beta.zip;
-unzip 0.1.1-beta.zip;
+mkdir 3plex
+wget -O v0.1.1-beta.zip https://github.com/molinerisLab/3plex/archive/refs/tags/v0.1.1-beta.zip
+unzip 0.1.1-beta.zip
+cd v0.1.1-beta
 ```
 
 Then run the test using docker pulled from docher hub.
