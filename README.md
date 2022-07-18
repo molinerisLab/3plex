@@ -1,8 +1,8 @@
 # 3plex
 
-## Qick start with Docker
+## Quick start with Docker
 
-Download the software release to have the testing sequences
+By downloading the software release you save the testing sequences.
 ```
 mkdir 3plex
 wget -O v0.1.1-beta.zip https://github.com/molinerisLab/3plex/archive/refs/tags/v0.1.1-beta.zip
@@ -10,20 +10,19 @@ unzip 0.1.1-beta.zip
 cd v0.1.1-beta
 ```
 
-Then run the test using docker pulled from docher hub.
+Then run the test using docker pulled from docker hub.
 ```
 docker run -u `id -u` -it --rm -v $PWD:$PWD imolineris/3plex:v0.0.2 $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
 ```
 
-Check the outuput files
-
+Check the output files.
 ```
 ls test_out/*/
 ```
 
 ## How to install
 
-To simplyfi the installation we advise to use the docker image, see the dockerfile if you need to modify the software.
+To simplify the installation, we advise you to use the docker image. See the dockerfile if you need to modify the software.
 
 ### Dependencies
 
@@ -33,11 +32,12 @@ To simplyfi the installation we advise to use the docker image, see the dockerfi
 - bedtools=2.29.0
 - gawk
 
-### Execuitable scripts
+### Executable scripts
 
 Clone the repository
 ```git clone```
-and put the scripts in the directory `docker_context` in the PATH
+
+then add the scripts contained in the `docker_context` directory to PATH variable
 ```
 cd 3plex
 export PATH:$PATH:$PWD/docker_context
@@ -47,12 +47,12 @@ export PATH:$PATH:$PWD/docker_context
 
 The logic of __3plex__ is described in the `docker_context/Snakefile` ad is wrapped by the `3plex.py` script.
 
-Required input 
+## Required input 
 
-- a file containing a single sequence, meant to be a RNA sequence, in the following is the name of this file,
-- a file containing one or many sequences, meant to be DNA sequences putatively bound by the RNA via triple helices.
+- a FASTA file reporting a single sequence (the single stranded RNA sequence). The FASTA header must be the same name of the FASTA file.
+- a multi-FASTA file containing one or multiple sequences (the double stranded DNA sequences putatively bound by the RNA via triplex).
 
-In an environemnt with all the dependencies and scripts available, lounch __3plex__ with
+In an environment with all the dependencies and scripts available, launch __3plex__ with
 
 ```
 3plex.py --no_env --snakefile /path/to/3plex/docker_context/Snakefile /path/to/RNA.fa /path/to/DNA.fa /path/to/out_directory
