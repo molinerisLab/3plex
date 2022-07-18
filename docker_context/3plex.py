@@ -28,30 +28,30 @@ def get_ssRNA_seq_name(ssRNA):
 
 
 parser = argparse.ArgumentParser(
-    description="It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).",
-     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-     epilog="Have a good triplx journey!")
+    description="Given an RNA sequence and a list of DNA sequences, compute all possible triplexes that satisfy the constraints associating a thermal stability score. RNA secondary structure prediction can be used to exclude RNA nucleotides from search.",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    epilog="Have a good triplex journey!")
 
 parser.add_argument("ssRNA", metavar="ssRNA.fa", help="The RNA sequence in fasta format. The file must contain only one sequence and the filename ([name].fa) must be the same name of the sequence in the fasta header (>[name]).")
-parser.add_argument("dsDNA", metavar="dsDNA.fa", help="The DNA seeuqnces. A fasta file containing many sequences, intende to be double stranded DNA potentially bound by the RNA sequence.")
-parser.add_argument("out_dir", metavar="out_dir", help="The output directory. Out_dir should already exists. Pay attention to mount appropraite volumes if you ar using docker (e.g. `docker run --rm -v $(PWD):$(PWD) 3plex:v0.0.1 ssRNA.fa dsDNA.fa $(PWD)` sould work as expected, `docker run --rm -v $(PWD):$(PWD) 3plex:v0.0.1 ssRNA.fa dsDNA.fa .` maybe not)")
-parser.add_argument("--bed", metavar="dsDNA.bed", dest="dsDNA_bed", type=str, default=None, help="Genomic coordiantes of the DNA seeuqnces in bed format, the 4th column must contain the same identifiers of sequences in dsDNA.fa")
-parser.add_argument("-j", "--jobs", metavar="CPUS", dest="jobs", type=int, default=1, help="Number of parallels threads.")
-parser.add_argument("-l", "--min_length", metavar="N", dest="triplexator_min_length", type=int, default=10, help="Specifies the minimum length of triplex, allowed values: N>5.")
-parser.add_argument("-e", "--error_rate", metavar="E", dest="triplexator_error_rate", type=int, default=20, choices=range(100), help="Specifies the percentage of errors allowed in a TPX.")
-parser.add_argument("-s", "--single_strandedness_cutoff", metavar="S", dest="RNAplfold_single_strandedness_cutoff", type=int, default=0, choices=range(100), help=" ")
-parser.add_argument("-c", "--consecutive_errors", metavar="C", dest="triplexator_consecutive_errors", type=int, default=3, help="Specifies the number of consecutive_errors allowed in a TPX.")
-parser.add_argument("-g", "--guanine_rate", metavar="G", dest="triplexator_guanine_rate", type=int, default=10, choices=range(100), help="Specifies the minimum guanine percentage in any TTS.")
-parser.add_argument("-r", "--filter_repeat", metavar="R", dest="triplexator_filter_repeat", type=bool, default=False, help="Filter repeat and low complexity regions.")
-parser.add_argument("-L", "--max_length", metavar="M", dest="triplexator_max_length", type=int, default=-1, help="Specifies the maximum length of triplex, M=-1 imply no limits.")
-parser.add_argument("-t", "--triplexator_other_parameters", metavar="T", dest="triplexator_other_parameters", type=str, default="", help="Additional triplexator parameters, as sting (e.g. -t '-mamg 90 -E 4'). Do not change the triplexator output format.")
-parser.add_argument("--ucsc_dark_gray", metavar="G", dest="TTS_bed_ucsc_dark_gray", type=int, default=843, choices=range(1000), help=" ")
+parser.add_argument("dsDNA", metavar="dsDNA.fa", help="The DNA seeuqnces. Multiple fasta formatted sequences, intende to be double stranded DNA potentially bound by the RNA sequence.")
+parser.add_argument("out_dir", metavar="out_dir", help="The output directory. Out_dir should already exist. Pay attention to mount appropraite volumes if you ar using docker (e.g. `docker run --rm -v $(PWD):$(PWD) 3plex:v0.0.1 ssRNA.fa dsDNA.fa $(PWD)` sould work as expected, `docker run --rm -v $(PWD):$(PWD) 3plex:v0.0.1 ssRNA.fa dsDNA.fa .` should not)")
+parser.add_argument("--bed", metavar="dsDNA.bed", dest="dsDNA_bed", type=str, default=None, help="Genomic coordiantes of the DNA sequences in bed format, the 4th column must contain the same identifiers of sequences in dsDNA.fa")
+parser.add_argument("-j", "--jobs", metavar="CPUS", dest="jobs", type=int, default=1, help="Number of parallel threads.")
+parser.add_argument("-l", "--min_length", metavar="N", dest="triplexator_min_length", type=int, default=10, help="Minimum triplex length required. Allowed values: N>5.")
+parser.add_argument("-e", "--error_rate", metavar="E", dest="triplexator_error_rate", type=int, default=20, choices=range(100), help="Maximal percentage of error allowed in a triplex.")
+parser.add_argument("-s", "--single_strandedness_cutoff", metavar="S", dest="RNAplfold_single_strandedness_cutoff", type=int, default=0, choices=range(100), help="Percentage of masked RNA nucleotides based on RNAplfold base pairing probabilities.")
+parser.add_argument("-c", "--consecutive_errors", metavar="C", dest="triplexator_consecutive_errors", type=int, default=3, help="Maximum number of consecutive errors allowed in a triplex.")
+parser.add_argument("-g", "--guanine_rate", metavar="G", dest="triplexator_guanine_rate", type=int, default=10, choices=range(100), help="Minimal guanine percentage required in any TTS.")
+parser.add_argument("-r", "--filter_repeat", metavar="R", dest="triplexator_filter_repeat", type=bool, default=False, help="If enabled, exclude repeat and low complexity regions.")
+parser.add_argument("-L", "--max_length", metavar="M", dest="triplexator_max_length", type=int, default=-1, help="Maximum triplex length permitted, M=-1 imply no limits.")
+parser.add_argument("-t", "--triplexator_other_parameters", metavar="T", dest="triplexator_other_parameters", type=str, default="", help="Additional triplexator parameters passed as a sting (e.g. -t '-mamg 90 -E 4'). Triplexator output format will not change.")
+parser.add_argument("--ucsc_dark_gray", metavar="G", dest="TTS_bed_ucsc_dark_gray", type=int, default=843, choices=range(1000), help="TTS bed UCSC dark gray")
 parser.add_argument("--dark_gray_stability", metavar="G", dest="TTS_bed_ucsc_dark_gray_stability", type=int, default=43, help="10%% of TTS in paper.")
-parser.add_argument("--RNAplfold_window_size", metavar="S", dest="RNAplfold_window_size", type=int, default=200, help=" ")
-parser.add_argument("--RNAplfold_span_size", metavar="S", dest="RNAplfold_span_size", type=int, default=150, help=" ")
-parser.add_argument("--RNAplfold_unpaired_window", metavar="S", dest="RNAplfold_unpaired_window", type=int, default=8, help=" ")
+parser.add_argument("--RNAplfold_window_size", metavar="S", dest="RNAplfold_window_size", type=int, default=200, help="RNAplfold: average pair probabilities over windows of specified size.")
+parser.add_argument("--RNAplfold_span_size", metavar="S", dest="RNAplfold_span_size", type=int, default=150, help="RNAplfold: maximum separation of a base pair permitted.")
+parser.add_argument("--RNAplfold_unpaired_window", metavar="S", dest="RNAplfold_unpaired_window", type=int, default=8, help="RNAplfold: mean probability that regions of specified length are unpaired.")
 parser.add_argument("--snakefile", metavar="file", dest="snakefile", type=str, default="/opt/3plex/Snakefile", help=" ")
-parser.add_argument("--no_env", dest="no_env", type=bool, default=False, help="Do not load the conda environment, usefull to run the script outside of the usual docker image.")
+parser.add_argument("--no_env", dest="no_env", type=bool, default=False, help="Do not load the conda environment, useful when running the script outside of the docker image.")
 args = parser.parse_args()
 
 if args.triplexator_filter_repeat:
