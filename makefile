@@ -1,4 +1,4 @@
-VERSION?=v0.0.2
+VERSION?=v0.1.2-beta
 all: docker_build
 
 #triplexator_docker_context/min_len_from_10_to_6.patch:
@@ -31,3 +31,6 @@ docker_context/conda_environment.yaml:
 	#conda activate 3plex_v0.1;\
 	#conda env export --from-history > $@
 	#this modality do not include version if not explicated during install 
+
+3plex.%.img:
+        singularity build $@ docker://imolineris/3plex:$*
