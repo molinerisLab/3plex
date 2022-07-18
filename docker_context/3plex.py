@@ -51,6 +51,7 @@ parser.add_argument("--RNAplfold_window_size", metavar="S", dest="RNAplfold_wind
 parser.add_argument("--RNAplfold_span_size", metavar="S", dest="RNAplfold_span_size", type=int, default=150, help=" ")
 parser.add_argument("--RNAplfold_unpaired_window", metavar="S", dest="RNAplfold_unpaired_window", type=int, default=8, help=" ")
 parser.add_argument("--snakefile", metavar="file", dest="snakefile", type=str, default="/opt/3plex/Snakefile", help=" ")
+parser.add_argument("--no_env", dest="no_env", type=bool, default=False, help="Do not load the conda environment, usefull to run the script outside of the usual docker image.")
 args = parser.parse_args()
 
 if args.triplexator_filter_repeat:
@@ -102,7 +103,12 @@ with open(tmpdir+"/config.yaml","w") as config_file:
 
 bashCommand = """
 source /etc/profile; 
-conda activate 3plex_v0.1; 
+conda activate 3plex_v0.1;
+""" 
+if args.no_env:
+	bashCommand=""
+
+bashCommand+="""
 snakemake --snakefile {snakefile} -j {jobs} {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz && \
 mv {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz ../
 """.format(
