@@ -3,16 +3,18 @@
 from __future__ import with_statement
 import sys
 import numpy as np
-#import matplotlib.pyplot as plt
-from optparse import OptionParser
+import argparse
+
 
 def main():
 
-	parser = OptionParser(usage="%prog < STDIN")
-	options, args = parser.parse_args()
-	if len(args) != 0:
-        	exit('Unexpected argument number.')
+	parser = argparse.ArgumentParser(
+		description="Compute the modified z-score of each RNA sequence position from a lunp input file (RNAplfold output).",
+		formatter_class=argparse.ArgumentDefaultsHelpFormatter
+	)
 
+	args = parser.parse_args()
+	
 	# read stdin and put values in array
 	score_lst = [ float(val.strip()) for val in sys.stdin if val != "NA\n" ]
 	score_nparr = np.array(score_lst)
