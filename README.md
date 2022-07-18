@@ -1,18 +1,29 @@
 # 3plex
 
+## Introduction
+
+3plex is a software that predict the interaction between a single strand RNA (ssRNA) with a double strand DNA region (dsDNA) through triple helix formation (ssRNA:dsDNA TPX). 
+
+`Triplexator` algorithm (Buske et al., 2011)  is used to scan a couple of input nucleotide sequences and to return all the TPX that satisfy a set of user-defined constraints. We lowered the minimum length required for the definition of a TPX from 10 to 5 ([see our paper results](https://doi.org/10.1101/2022.07.06.496678)).
+
+The identified putative TPX are scored according to their thermal stability derived from `LongTarget` collection of thermal denaturation experiments (He et al., 2015).
+
+3plex integrates `RNAplfold` from the ViennaRNA package (Lorentz et al., 2011) to consider the RNA secondary structure information in the definition of a TPX.
+
+
 ## Quick start with Docker
 
 By downloading the software release you save the testing sequences.
 ```
 mkdir 3plex
-wget -O v0.1.1-beta.zip https://github.com/molinerisLab/3plex/archive/refs/tags/v0.1.1-beta.zip
-unzip 0.1.1-beta.zip
-cd v0.1.1-beta
+wget -O v0.1.1-beta.zip https://github.com/molinerisLab/3plex/archive/refs/tags/v0.1.2-beta.zip
+unzip 0.1.2-beta.zip
+cd v0.1.2-beta
 ```
 
 Then run the test using docker pulled from docker hub.
 ```
-docker run -u `id -u` -it --rm -v $PWD:$PWD imolineris/3plex:v0.0.2 $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
+docker run -u `id -u` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
 ```
 
 Check the output files.
