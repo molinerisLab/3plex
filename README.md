@@ -31,6 +31,9 @@ Check the output files.
 ls test_out/*/
 ```
 
+## Singularity images
+
+Find it at 3plex/singularity_images/
 ## How to install
 
 To simplify the installation, we advise you to use the docker image. See the dockerfile if you need to modify the software.
