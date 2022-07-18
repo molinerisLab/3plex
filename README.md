@@ -2,12 +2,12 @@
 
 ## Quick start with Docker
 
-By downloading the software release you save the testing sequences.
+Clone the repository to have some testing sequences.
 ```
 mkdir 3plex
-wget -O v0.1.1-beta.zip https://github.com/molinerisLab/3plex/archive/refs/tags/v0.1.1-beta.zip
-unzip 0.1.1-beta.zip
-cd v0.1.1-beta
+wget -O v0.1.2-beta.zip https://github.com/molinerisLab/3plex/archive/refs/tags/v0.1.2-beta.zip
+unzip 0.1.2-beta.zip
+cd v0.1.2-beta
 ```
 
 Then run the test using docker pulled from docker hub.
