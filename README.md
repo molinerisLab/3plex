@@ -177,4 +177,3 @@ In an environment with all the dependencies and scripts available, launch __3ple
 # Singularity images
 
 Find it at [3plex/singularity_images/](https://github.com/molinerisLab/3plex/singularity_images/)
----
