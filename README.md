@@ -8,6 +8,14 @@ The identified putative TPX are scored according to their thermal stability deri
 
 3plex integrates `RNAplfold` from the ViennaRNA package (Lorentz et al., 2011) to consider the RNA secondary structure information in the definition of a TPX.
 
+Extensive description of the tool can be foud in out paper:
+
+
+> __RNABSdb and 3plex enable deep computational investigation of triplex forming lncRNAs__</br>
+> Chiara Cicconetti, Andrea Lauria, Valentina Proserpio, Annalaura Tamburrini, Mara Maldotti, Salvatore Oliviero, Ivan Molineris</br>
+> bioRxiv 2022.07.06.496678; doi: https://doi.org/10.1101/2022.07.06.496678
+
+
 ---
 
 # Quick start with Docker
@@ -144,7 +152,7 @@ To simplify the installation, we advise you to use the docker image. See the doc
 
 ## Dependencies
 
-- triplexator ()
+- triplexator
 - viennarna=2.4.7
 - snakemake=7.8.5
 - bedtools=2.29.0
