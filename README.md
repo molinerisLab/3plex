@@ -20,15 +20,19 @@ Extensive description of the tool can be foud in out paper:
 
 # Quick start with Docker
 
-Clone the repository to have some testing sequences.
+Clone the repository.
 ```
 mkdir 3plex
 wget -O v0.1.2-beta.zip https://github.com/molinerisLab/3plex/archive/refs/tags/v0.1.2-beta.zip
 unzip v0.1.2-beta.zip
 cd v0.1.2-beta
 ```
+This is just to have some testing sequences:
 
-Then run the test using docker pulled from docker hub.
+ * `test/ssRNA.fa`
+ * `test/dsDNA.fa`
+
+You do not need to use directly the code in the repository or install dependencies. You can runa a test using the image pulled from docker hub.
 ```
 docker run -u `id -u` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
 ```
@@ -37,6 +41,13 @@ Check the output files.
 ```
 ls test_out/*/
 ```
+
+To see the option list:
+```
+docker run -u `id -u` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta -h
+```
+
+To ru 3plex on your data just change the test fasta files with the ones you are interested in.
 
 ---
 
