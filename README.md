@@ -32,7 +32,7 @@ This is just to have some testing sequences:
  * `test/ssRNA.fa`
  * `test/dsDNA.fa`
 
-You do not need to use directly the code in the repository or install dependencies. You can runa a test using the image pulled from docker hub.
+You do not need to use directly the code in the repository or install dependencies. You can run a test using the image pulled from docker hub.
 ```
 docker run -u `id -u` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
 ```
