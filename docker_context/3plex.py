@@ -33,7 +33,7 @@ parser = argparse.ArgumentParser(
     epilog="Have a good triplex journey!")
 
 parser.add_argument("ssRNA", metavar="ssRNA.fa", help="The RNA sequence in fasta format. The file must contain only one sequence.")
-parser.add_argument("dsDNA", metavar="dsDNA.fa", help="The DNA seeuqnces. Multiple fasta formatted sequences, intende to be double stranded DNA potentially bound by the RNA sequence.")
+parser.add_argument("dsDNA", metavar="dsDNA.fa", help="The DNA sequences. Multiple fasta formatted sequences, intende to be double stranded DNA potentially bound by the RNA sequence.")
 parser.add_argument("out_dir", metavar="out_dir", help="The output directory. Out_dir should already exist. Pay attention to mount appropraite volumes if you ar using docker (e.g. `docker run --rm -v $(PWD):$(PWD) 3plex:v0.0.1 ssRNA.fa dsDNA.fa $(PWD)` sould work as expected, `docker run --rm -v $(PWD):$(PWD) 3plex:v0.0.1 ssRNA.fa dsDNA.fa .` should not)")
 parser.add_argument("--bed", metavar="dsDNA.bed", dest="dsDNA_bed", type=str, default=None, help="Genomic coordiantes of the DNA sequences in bed format, the 4th column must contain the same identifiers of sequences in dsDNA.fa")
 parser.add_argument("-j", "--jobs", metavar="CPUS", dest="jobs", type=int, default=1, help="Number of parallel threads.")
