@@ -34,7 +34,7 @@ This is just to have some testing sequences:
 
 You do not need to use directly the code in the repository or install dependencies. You can run a test using the image pulled from docker hub.
 ```
-docker run -u `id -u` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
+docker run -u `id -u`:`id -g` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
 ```
 
 Check the output files.
@@ -44,10 +44,12 @@ ls test_out/*/
 
 To see the option list:
 ```
-docker run -u `id -u` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta -h
+docker run -u `id -u`:`id -g` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta -h
 ```
 
 To ru 3plex on your data just change the test fasta files with the ones you are interested in.
+
+> :warning: If you get a *MissingInputException* make sure your input files are accessible by the user or the group specified in Docker.
 
 ---
 
