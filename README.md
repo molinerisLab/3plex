@@ -1,3 +1,5 @@
+<img src="https://github.com/molinerisLab/3plex/blob/main/www/3plex_logo.png" alt="logo" width="600"/>
+
 # Introduction
 
 3plex is a software that predict the interaction between a single strand RNA (ssRNA) with a double strand DNA region (dsDNA) through triple helix formation (ssRNA:dsDNA TPX). 
