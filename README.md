@@ -1,6 +1,4 @@
-# 3plex
-
-## Introduction
+# Introduction
 
 3plex is a software that predict the interaction between a single strand RNA (ssRNA) with a double strand DNA region (dsDNA) through triple helix formation (ssRNA:dsDNA TPX). 
 
@@ -10,21 +8,33 @@ The identified putative TPX are scored according to their thermal stability deri
 
 3plex integrates `RNAplfold` from the ViennaRNA package (Lorentz et al., 2011) to consider the RNA secondary structure information in the definition of a TPX.
 
+Extensive description of the tool can be foud in out paper:
+
+
+> __RNABSdb and 3plex enable deep computational investigation of triplex forming lncRNAs__</br>
+> Chiara Cicconetti, Andrea Lauria, Valentina Proserpio, Annalaura Tamburrini, Mara Maldotti, Salvatore Oliviero, Ivan Molineris</br>
+> bioRxiv 2022.07.06.496678; doi: https://doi.org/10.1101/2022.07.06.496678
+
+
 ---
 
-## Quick start with Docker
+# Quick start with Docker
 
-Clone the repository to have some testing sequences.
+Clone the repository.
 ```
 mkdir 3plex
 wget -O v0.1.2-beta.zip https://github.com/molinerisLab/3plex/archive/refs/tags/v0.1.2-beta.zip
 unzip v0.1.2-beta.zip
 cd v0.1.2-beta
 ```
+This is just to have some testing sequences:
 
-Then run the test using docker pulled from docker hub.
+ * `test/ssRNA.fa`
+ * `test/dsDNA.fa`
+
+You do not need to use directly the code in the repository or install dependencies. You can run a test using the image pulled from docker hub.
 ```
-docker run -u `id -u` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
+docker run -u `id -u`:`id -g` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
 ```
 
 Check the output files.
@@ -32,59 +42,29 @@ Check the output files.
 ls test_out/*/
 ```
 
-## Singularity images
-
-Find it at [3plex/singularity_images/](https://github.com/molinerisLab/3plex/singularity_images/)
-
-## How to install
-
-To simplify the installation, we advise you to use the docker image. See the dockerfile if you need to modify the software.
-
-### Dependencies
-
-- triplexator ()
-- viennarna=2.4.7
-- snakemake=7.8.5
-- bedtools=2.29.0
-- gawk
-
-### Executable scripts
-
-Clone the repository
-```git clone```
-
-then add the scripts contained in the `docker_context` directory to PATH variable
+To see the option list:
 ```
-cd 3plex
-export PATH:$PATH:$PWD/docker_context
+docker run -u `id -u`:`id -g` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta -h
 ```
+
+To run 3plex on your data just change the test fasta files with the ones you are interested in.
+
+> :warning: If you get a *MissingInputException* error make sure your input files are accessible by the user or the group specified in Docker.
 
 ---
 
-## Running 3plex without docker
+# 3plex usage
 
-The logic of __3plex__ is described in the `docker_context/Snakefile` ad is wrapped by the `3plex.py` script.
-
-In an environment with all the dependencies and scripts available, launch __3plex__ with
-
-```
-3plex.py --no_env --snakefile /path/to/3plex/docker_context/Snakefile /path/to/RNA.fa /path/to/DNA.fa /path/to/out_directory
-```
-
----
-
-## 3plex usage
-
-### Required inputs 
+## Required inputs 
 
 - a FASTA file reporting the single ssRNA sequence ([Example of ssRNA.fa](https://github.com/molinerisLab/3plex/blob/main/test/ssRNA.fa))
 - a multi-FASTA file containing one or multiple dsDNA sequences ([Example of dsDNA.fa](https://github.com/molinerisLab/3plex/blob/main/test/dsDNA.fa)).
 - a defined output directory
 
 
-### Outputs format
+## Outputs format
 
-- a tpx.stability file ([Example of tpx.stability](https://github.com/molinerisLab/3plex/blob/main/test/test_out/Z85996.1_ssmasked-dsDNA.tpx.stability)) reporting:
+- a tab delimited file, named _tpx.stability_ ([Example of tpx.stability](https://github.com/molinerisLab/3plex/blob/main/test/test_out/Z85996.1_ssmasked-dsDNA.tpx.stability)) reporting:
 
 ```
 1       Sequence_ID
@@ -107,7 +87,7 @@ In an environment with all the dependencies and scripts available, launch __3ple
 18      aln4
 ```
 
-- a tpx.summary file ([Example of tpx.summary](https://github.com/molinerisLab/3plex/blob/main/test/test_out/Z85996.1_ssmasked-dsDNA.tpx.summary)) reporting:
+- a tab delimited file, named _tpx.summary_ ([Example of tpx.summary](https://github.com/molinerisLab/3plex/blob/main/test/test_out/Z85996.1_ssmasked-dsDNA.tpx.summary)) reporting:
 
 ```
 1       Duplex_ID
@@ -128,7 +108,7 @@ In an environment with all the dependencies and scripts available, launch __3ple
 ```
 
 
-### Options
+## Options
  
 ```
   -h, --help            show this help message and exit
@@ -175,3 +155,46 @@ In an environment with all the dependencies and scripts available, launch __3ple
                         the script outside of the docker image. (default:
                         False)
 ```
+
+---
+
+
+# How to install
+
+To simplify the installation, we advise you to use the docker image. See the dockerfile if you need to modify the software.
+
+## Dependencies
+
+- triplexator
+- viennarna=2.4.7
+- snakemake=7.8.5
+- bedtools=2.29.0
+- gawk
+
+## Executable scripts
+
+Clone the repository
+```git clone```
+
+then add the scripts contained in the `docker_context` directory to PATH variable
+```
+cd 3plex
+export PATH:$PATH:$PWD/docker_context
+```
+
+---
+
+# Running 3plex without docker
+
+The logic of __3plex__ is described in the `docker_context/Snakefile` ad is wrapped by the `3plex.py` script.
+
+In an environment with all the dependencies and scripts available, launch __3plex__ with
+
+```
+3plex.py --no_env --snakefile /path/to/3plex/docker_context/Snakefile /path/to/RNA.fa /path/to/DNA.fa /path/to/out_directory
+```
+
+---
+# Singularity images
+
+Find it at [3plex/singularity_images/](https://github.com/molinerisLab/3plex/singularity_images/)
