@@ -193,7 +193,7 @@ if config["TRIPLEXATOR_ALN"]==1:
 # target:
 rule all_tpx_paramspace:
 	input:
-		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp", \
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.gz", \
 			params = triplexator_paramspace.instance_patterns,
 			ssRNA = all_selected_ssRNA_id(),
 			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],

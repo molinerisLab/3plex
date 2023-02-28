@@ -335,8 +335,9 @@ TERC-cCRE.bed.tpx.raw_%.summary.clean.covered_frac.stability.custom_t_pot.neg_po
 #	v8 ROC analysis
 #
 
+# matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/*/*/*/*/*/*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz'
 tpx_paramspace_AUC_cmp.gz:
-	matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/*/*/*/*/*/*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp.gz' \
+	matrix_reduce -t 'tpx_paramspace/*_*_*/*.neg_pos_rand.bed/*/*/*/*/*/*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC_comp.gz' \
 	| grep -v -w pred_1 | tr ";" "\t" \
 	| perl -lane '$$,="\t"; @F=map{s/.*\~//; $$_} @F; print @F' \
 	| cut -f 1-3,5-  \

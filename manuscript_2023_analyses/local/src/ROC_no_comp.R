@@ -53,65 +53,27 @@ outcomes <- shift_fn(args)
 ### The remaining arguments are the predictors
 predictors <- args
 
-### Definition of ROC curve formula including all predictors
-### ROC object
-roc_list <- suppressMessages(roc(as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors)))), data = z, direction=opt$direction))
+#roc_list <- suppressMessages(roc(as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors)))), data = z, direction=opt$direction))
 
-### Create label strings for the legend
-labels <- predictors
-for(i in seq_along(labels)){
-  l<-labels[[i]]
-  auc<-round(roc_list[[l]]$auc,3)
-  labels[[i]]<-paste0(c(l,auc),collapse=": ")
+table_out<-data.frame(predictor=c(), AUC=c(), WilcoxPval=c())
+
+### For each predictior comute AUC and wilcox.test
+for(predictor in predictors){
+#	z.auc<-suppressMessages(auc(z[,outcomes], z[,predictor,]))
+	roc_obj <- suppressMessages(roc(as.formula(paste(outcomes, "~", predictor)), data = z, direction=opt$direction))
+	z.auc <- suppressMessages(auc(roc_obj))
+	
+	alternative_dir <- "less"
+	if(opt$direction == ">") alternative_dir <- "greater"
+
+	z.test<-wilcox.test(data=z, as.formula(paste(predictor,outcomes,sep="~")), alternative=alternative_dir)
+
+	if(z.test$p.value==0){#to avoid printing pvalue==0
+		z.test$p.value=.Machine$double.xmin
+	}
+
+	write(paste(predictor, z.auc, z.test$p.value, sep="\t"), file="")
 }
-
-### ROC curve plot
-ROC_plot <- ggroc(roc_list) + 
-      theme_classic(base_size = 10) +
-	    geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="darkgrey", linetype="dashed") + 
-	    theme(plot.margin = margin(1,2,1,2, "cm")
-	          , plot.title = element_text(hjust = 0.5)
-	          , legend.title = element_blank()
-	          , legend.position = c(0.75, 0.22)) +
-	    scale_color_discrete(labels=labels) +
-	    scale_linetype_manual(breaks="custom_t_pot",values="dashed") +
-      coord_fixed() 
-# ggtitle("ROC Comparison") +
-
-
-### Get pdf file name from --pdf option
-### Save plot
-ggsave(paste0(opt$pdf_name,".pdf"), plot=ROC_plot, device="pdf",width = 6,height=6)
-
-### Create dataframe for stdout print
-table_out <- data.frame(pred_1=character(),
-                 pred_2=character(), 
-                 AUC_1=double(), 
-                 AUC_2=double(),
-		 p_value_cfr=double(),	
-		 stringsAsFactors=FALSE) 
-
-### Fill each row of the dataframe
-count=1
-for(i in predictors){
-  for(j in predictors){
-     if(j>i){
-	     roc.pred_1 <- suppressMessages(roc(as.formula(paste(outcomes,"~",i)), data= z, direction=opt$direction))
-	     roc.pred_2 <- suppressMessages(roc(as.formula(paste(outcomes,"~",j)), data= z, direction=opt$direction))
-	     pred_1 <- i
-	     pred_2 <- j
-	     AUC_1 <- roc.pred_1$auc
-	     AUC_2 <- roc.pred_2$auc
-	     p_value_cfr <- roc.test(roc.pred_1, roc.pred_2)$p.value
-	     table_out[count,] <- c(pred_1,pred_2,AUC_1,AUC_2,p_value_cfr)
-	     count = count + 1
-    } 
-  }
-}
-
-### Save dataframe to stdout
-write.table(table_out, row.names =FALSE, quote = FALSE, file="", sep="\t") # col.names=NA => frist cell empty
-      
 
 
 w=warnings()
