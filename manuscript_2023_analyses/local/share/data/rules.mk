@@ -361,3 +361,14 @@ all_bed.regionPeak.counts_matrix: /sto1/epigen/TPXcCRE/dataset/v8_ChIRP_neg_rand
 	cut -f5 $< | symbol_count | bawk 'BEGIN{print "lncRNA","available_bed"} {print}' > $@; \
 	zcat $< | tr ";" "\t" | cut -f5 | symbol_count >> $@
 
+
+
+### RADICL-seq ###
+
+GSE132190_mESC_NPM_n1_significant.txt.gz:
+	wget -O $@ 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132190&format=file&file=GSE132190%5FmESC%5FNPM%5Fn1%5Fsignificant%2Etxt%2Egz'
+
+GSE132190_mESC_NPM_n2_significant.txt.gz:
+	wget -O $@ 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132190&format=file&file=GSE132190%5FmESC%5FNPM%5Fn2%5Fsignificant%2Etxt%2Egz'
+RADICLseq/RADICL_peak.intersect_rep.bed.gz: RADICLseq/GSE132190_mESC_NPM_n1_significant.txt.gz /home/reference_data/bioinfotree/task/gencode/dataset/mmusculus/M25/chrom.info RADICLseq/GSE132190_mESC_NPM_n2_significant.txt.gz
+	bedtools intersect -a <(bawk '$$32=="lincRNA" {print $$1,$$2,$$3,$$29}' $< | bedtools slop -i - -g $^2 -b 2500 | bedtools sort) -b <(bawk '$$32=="lincRNA" {print $$1,$$2,$$3,$$29}' $^3 | bedtools slop -i - -g $^2 -b 2500 | bedtools sort) -wb -sorted | bawk '$$4==$$8 {print $$1~4}' | bedtools sort | bedtools merge -i - -c 4 -o distinct -delim ";" | expandsets 4 | gzip > $@
