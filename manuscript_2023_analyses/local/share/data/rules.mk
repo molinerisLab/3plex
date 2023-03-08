@@ -331,6 +331,9 @@ ReChIRP/mmusculus/idr/idr.optimal_peak.regionPeak.mouse_matrix.gz: GSE_ssRNA_mou
 	matrix_reduce -t '/sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/*/peak/idr_reproducibility/idr.optimal_peak.regionPeak.gz' | translate -k $< 1 | bawk '{print $$2~4,"chirp_peak_" NR,$$1}' | gzip > $@
 
 
+### ALL POS-NEG PEAKS ###
+ALL_v8.neg_pos.bed.gz:
+	matrix_reduce -t '../../../dataset/*/*.neg_pos_rand.bed' | grep '^v8' | tr ";" "\t" | gzip > $@
 
 
 CLEAN_all_reproducibility.regionPeak.counts_matrix.overlap_custom.overlap_conservative_qTh005.tsv:
