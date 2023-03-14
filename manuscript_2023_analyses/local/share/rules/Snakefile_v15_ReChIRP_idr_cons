@@ -1014,7 +1014,7 @@ elif config["GENCODE_SPECIES"] == "mmusculus":
 
 rule all_triplexAligner:
 	input:
-		expand("triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.gz",
+		expand("triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.best_logE.gz",
 			ssRNA = all_selected_ssRNA_id()
 		)
 
@@ -1026,9 +1026,20 @@ rule run_triplexAligner:
 		"triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.gz"
 	shell: """
 		mkdir -p `dirname {output}`;\
-		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplex_wrapper $PWD/{input.dsDNA} $PWD/{input.ssRNA} {SPECIES} | gzip > {output}
+		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplex_aligner $PWD/{input.dsDNA} $PWD/{input.ssRNA} {SPECIES} | gzip > {output}
 """
 
+rule best_triplexAligner:
+	input:
+		triplexAlign="triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.gz",
+		neg_pos="{ssRNA}.neg_pos_rand.bed"
+	output:
+		"triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.best_logE.gz"
+	shell: """
+		cut -f4,6 {input.neg_pos} | \
+		translate -a -v -e 0 -f 2 <(zcat {input.triplexAlign} | find_best --skip_header 12 10 | cut -f10,12 ) 1 | \
+		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
+	"""
 
 ########################
 #  Run fasim-LongTarget
@@ -1036,17 +1047,43 @@ rule run_triplexAligner:
 
 rule all_fasimLongTarget:
 	input:
-		expand("fasim-LongTarget/{ssRNA}/{ssRNA}.neg_pos_rand.bed/{ssRNA}-TFOsorted",
+		expand("fasim-LongTarget/{ssRNA}/{ssRNA}.fasim/{ssRNA}-{ssRNA}-fastSim-TFOsorted.best_meanStab.gz",
 			ssRNA = all_selected_ssRNA_id()
 		)
+
+rule fasim_fasta_format:
+	input:
+		bed="{ssRNA}.neg_pos_rand.bed",
+		assembly=GENOME_ASSEMBLY_DIR+".primary_assembly.genome.clean_id.fa"
+	output:
+		"{ssRNA}.fasim.fa"
+	shell: """
+		 bawk '{{split($4,a,";"); print $1~3,a[2]"|"$4,$5,$6}}' {input.bed} | \
+		 bedtools getfasta -name+ -fi {input.assembly} -bed - | \
+		 sed -e 's/::/|/g' > {output}
+	"""
+
+ruleorder: fasim_fasta_format > get_fasta
 
 rule run_fasimLongTarget:
 	input:
 		ssRNA="{ssRNA}.fa",
-		dsDNA="{ssRNA}.neg_pos_rand.bed.fa"
+		dsDNA="{ssRNA}.fasim.fa"
 	output:
-		"fasim-LongTarget/{ssRNA}/{ssRNA}.neg_pos_rand.bed/{ssRNA}-TFOsorted"
+		"fasim-LongTarget/{ssRNA}/{ssRNA}.fasim/{ssRNA}-{ssRNA}-fastSim-TFOsorted"
 	shell: """
 		mkdir -p `dirname {output}`;\
-		docker run --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} d783d42975a3 -f1 $PWD/{input.dsDNA} -f2 $PWD/{input.ssRNA} -O $PWD/`dirname {output}`
+		docker run --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} fasim -f1 $PWD/{input.dsDNA} -f2 $PWD/{input.ssRNA} -O $PWD/`dirname {output}`
 """
+
+rule best_fasimLongTarget:
+	input:
+		fasim="fasim-LongTarget/{ssRNA}/{ssRNA}.fasim/{ssRNA}-{ssRNA}-fastSim-TFOsorted",
+		neg_pos="{ssRNA}.neg_pos_rand.bed"
+	output:
+		"fasim-LongTarget/{ssRNA}/{ssRNA}.fasim/{ssRNA}-{ssRNA}-fastSim-TFOsorted.best_meanStab.gz"
+	shell: """
+		cut -f4,6 {input.neg_pos} | \
+		translate -a -v -e 0 <(cut -f6,9 {input.fasim} | find_best --skip_header 1 2) 1 | \
+		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
+	"""
