@@ -102,6 +102,12 @@ best_single_params.triplex_ssRNA_scores.gz: best_single_params.triplex_ssRNA_sco
 
 
 
+tpx_paramspace_AUC_cmp.human_mouse.gz: v8.6_ReChIRP_idr_overlap_top1000/tpx_paramspace_AUC_cmp.gz v8.7_ReChIRP_idr_overlap_top1000_mouse/tpx_paramspace_AUC_cmp.gz
+	cat $< $^2 > $^@
+
+tpx_paramspace_AUC_cmp.triplex_ssRNA.mean_AUC.gz: tpx_paramspace_AUC_cmp.human_mouse.gz selected_ssRNA.triplex_ssRNA
+	zgrep -v TTS_covered_frac $< | bawk 'BEGIN{FS = "\t";OFS = ";"}{print $$1"\t"$$2,$$4~10"\t"$$12}' | sort -u | filter_1col 1 $^2 | cut -f2,3 | sort -k1,1 | stat_base -g -a | sort -k2,2nr | gzip > $^3
+
 ####################
 #
 # TO FIX
