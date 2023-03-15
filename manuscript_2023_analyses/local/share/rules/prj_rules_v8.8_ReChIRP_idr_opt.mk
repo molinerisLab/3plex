@@ -33,3 +33,7 @@ ALL_neg_pos.bed: $(addsuffix .neg_pos.bed,$(ALL_ssRNA))
 selected_ssRNA:
 	@echo 'Human lncRNAs with idr peaks number > 100'
 	@echo 'See this table: https://docs.google.com/spreadsheets/d/1iQGctC1ldu1oTwmaLEsrs8cB0ik3JWYCrBkvoDKZDpk/edit#gid=0'
+3plex/CDKN2B-AS1/CDKN2B-AS1.neg_pos_rand.bed/tpx.all_scores.gz: ../best_single_params.triplex_ssRNA_scores.header_added.gz
+	bawk 'NR==1{print} NR>1 && $$1=="CDKN2B-AS1"{print}' $< | gzip > $@
+3plex/CDKN2B-AS1/CDKN2B-AS1.neg_pos_rand.bed/tpx.specific_score.gz: 3plex/CDKN2B-AS1/CDKN2B-AS1.neg_pos_rand.bed/tpx.all_scores.gz
+	zcat $< | bawk '{print $$2,$$16,$$4}' | gzip > $@

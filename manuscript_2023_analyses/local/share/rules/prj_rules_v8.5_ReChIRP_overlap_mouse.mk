@@ -39,3 +39,7 @@ pippo:
 
 lncSmad7_onlypos.bed: /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/overlap.conservative.qTh005.mouse.regionPeak.gz
 	bawk '$$5=="lncSmad7" || $$5~/lncSmad7.intersec/ {print $$1,$$2,$$3,$$4";"$$5,$$5,"pos"}' $< > $@
+3plex/Meg3/Meg3.neg_pos_rand.bed/tpx.all_scores.gz: ../best_single_params.triplex_ssRNA_scores.header_added.gz
+	bawk 'NR==1{print} NR>1 && $$1=="Meg3"{print}' $< | gzip > $@
+3plex/Meg3/Meg3.neg_pos_rand.bed/tpx.specific_score.gz: 3plex/Meg3/Meg3.neg_pos_rand.bed/tpx.all_scores.gz
+	zcat $< | bawk '{print $$2,$$13,$$4}' | gzip > $@

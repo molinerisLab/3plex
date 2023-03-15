@@ -40,3 +40,18 @@ selected_ssRNA:
 
 AC018781.1_onlypos.bed: /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/all_reproducibility.idr_conservative-idr_optimal_peak-overalp_conservative-overlap_optimal.regionPeak.top1000.gz
 	bawk '$$2=="AC018781.1" {print $$4,$$5,$$6,"chirp_peak_"NR";"$$2,$$2,"pos"}' $< > $@
+
+3plex/NEAT1/NEAT1.neg_pos_rand.bed/tpx.all_scores.gz: ../best_single_params.triplex_ssRNA_scores.header_added.gz
+	bawk 'NR==1{print} NR>1 && $$1=="NEAT1"{print}' $< | gzip > $@
+3plex/HOTAIR/HOTAIR.neg_pos_rand.bed/tpx.all_scores.gz: ../best_single_params.triplex_ssRNA_scores.header_added.gz
+	bawk 'NR==1{print} NR>1 && $$1=="HOTAIR"{print}' $< | gzip > $@
+3plex/CDKN2B-AS1/CDKN2B-AS1.neg_pos_rand.bed/tpx.all_scores.gz: ../best_single_params.triplex_ssRNA_scores.header_added.gz
+	bawk 'NR==1{print} NR>1 && $$1=="CDKN2B-AS1"{print}' $< | gzip > $@
+3plex/HOTAIR/HOTAIR.neg_pos_rand.bed/tpx.specific_score.gz: 3plex/HOTAIR/HOTAIR.neg_pos_rand.bed/tpx.all_scores.gz
+	zcat $< | bawk '{print $$2,$$18,$$4}' | gzip > $^2
+3plex/NEAT1/NEAT1.neg_pos_rand.bed/tpx.specific_score.gz: 3plex/NEAT1/NEAT1.neg_pos_rand.bed/tpx.all_scores.gz
+	zcat $< | bawk '{print $$2,$$6,$$4}' | gzip > $^2
+
+
+tpx_paramspace_AUC_cmp.triplex_ssRNA.mean_AUC.gz: tpx_paramspace_AUC_cmp.gz selected_ssRNA
+	zgrep -v TTS_covered_frac $< | bawk 'BEGIN{FS = "\t";OFS = ";"}{print $$1"\t"$$2,$$4~10"\t"$$12}' | sort -u | filter_1col 1 $^2 | cut -f2,3 | sort -k1,1 | stat_base -g -a | sort -k2,2nr | gzip > $^3

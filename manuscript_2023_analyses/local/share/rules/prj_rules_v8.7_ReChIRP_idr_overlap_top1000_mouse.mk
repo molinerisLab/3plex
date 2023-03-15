@@ -43,3 +43,11 @@ pippo:
 
 #lncSmad7_onlypos.bed: /sto1/epigen/ReChIRP/ChIP_ENCODE_pipeline/dataset/all_reproducibility.idr_conservative-idr_optimal_peak-overalp_conservative-overlap_optimal.regionPeak.top1000.gz
 #	bawk '$$2=="lncSmad7" {print $$4,$$5,$$6,"chirp_peak_"NR";"$$2,$$2,"pos"}' $< > $@
+3plex/lncSmad7/lncSmad7.neg_pos_rand.bed/tpx.all_scores.gz: ../best_single_params.triplex_ssRNA_scores.header_added.gz
+	bawk 'NR==1{print} NR>1 && $$1=="lncSmad7"{print}' $< | gzip > $@
+3plex/lncSmad7/lncSmad7.neg_pos_rand.bed/tpx.specific_score.gz: 3plex/lncSmad7/lncSmad7.neg_pos_rand.bed/tpx.all_scores.gz
+	zcat $< | bawk '{print $$2,$$13,$$4}' | gzip > $@
+
+
+tpx_paramspace_AUC_cmp.triplex_ssRNA.mean_AUC.gz: tpx_paramspace_AUC_cmp.gz selected_ssRNA
+	zgrep -v TTS_covered_frac $< | bawk 'BEGIN{FS = "\t";OFS = ";"}{print $$1"\t"$$2,$$4~10"\t"$$12}' | sort -u | filter_1col 1 $^2 | cut -f2,3 | sort -k1,1 | stat_base -g -a | sort -k2,2nr | gzip > $^3
