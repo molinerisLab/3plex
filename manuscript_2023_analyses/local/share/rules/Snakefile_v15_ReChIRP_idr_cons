@@ -11,8 +11,15 @@ configfile: "config.yaml"
 PWD=os.environ.get("PWD")
 REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
 BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"/bioinfotree/task/"
-CONDA_ACTIVATE="set +u; source %s/miniconda3/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
-#CONDA_ACTIVATE="echo " 
+
+
+#####################
+#  Conda Parameters
+
+CONDA_ROOT="/opt/conda"
+CONDA_VERSION="miniconda3"
+CONDA_ACTIVATE="source "+CONDA_ROOT+"/"+CONDA_VERSION+"/etc/profile.d/conda.sh; conda activate "
+#CONDA_ACTIVATE="set +u; source %s/miniconda3/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
 
 
 #####################
@@ -217,30 +224,30 @@ rule get_longest_transcripts:
 #				echo triplexator retstatus: $?
 #		"""
 
-#rule triplexator_stability:
-#	input:
-#		"{path}.tpx"
-#	output:
-#		"{path}.tpx.stability.gz"
+rule triplexator_stability:
+	input:
+		"{path}.tpx"
+	output:
+		"{path}.tpx.stability.gz"
 #	container:
 #		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 #	threads: 1
 #	group: "input_fasta_preparation_and_triplexator"
-#	shell: """
-#		unhead {input} -f {input}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output}.tmp
-#		cat {output}.tmp | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 ../../local/src/tpx_thermal_stability.py | gzip > {output}
-#		rm {input}.head {output}.tmp
-#	"""
+	shell: """
+		unhead {input} -f {input}.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output}.tmp
+		cat {output}.tmp | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 ../../local/src/tpx_thermal_stability.py | gzip > {output}
+		rm {input}.head {output}.tmp
+	"""
 
-#rule gzip_tpx_summary:
-#	input:
-#		"{file_path}/raw.tpx.summary"
-#	output:
-#		"{file_path}/raw.tpx.summary.gz"
+rule gzip_tpx_summary:
+	input:
+		"{file_path}/raw.tpx.summary"
+	output:
+		"{file_path}/raw.tpx.summary.gz"
 #	group: "input_fasta_preparation_and_triplexator"
-#	shell:"""
-#		gzip < {input} > {output};
-#	"""
+	shell:"""
+		gzip < {input} > {output};
+	"""
 
 #rule summary_neg_pos:
 #	input:
@@ -258,25 +265,25 @@ rule get_longest_transcripts:
 #		bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_length"}} {{print $4,$6,$8,$9,$3-$2}}' | gzip > {output}
 #	"""
 
-#rule custom_summary:
-#	input:
-#		tpx="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.stability.gz",
-#		summary_neg_pos="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.summary.neg_pos.gz",
-#		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta"
-#	output:
-#		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.custom_summary.neg_pos.gz"
+rule custom_summary:
+	input:
+		tpx="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.stability.gz",
+		summary_neg_pos="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.summary.neg_pos.gz",
+		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta"
+	output:
+		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.custom_summary.neg_pos.gz"
 #	wildcard_constraints:
 #		ssRNA="[^/]+",
 #		min_length="\d+",
 #		max_length="-*\d+"
 #	container:
 #		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
-#	shell: """
-#			zcat {input.summary_neg_pos} \
-#			| translate -a -v -e 0 -z <(zcat {input.tpx} | unhead | cut -f 4 | symbol_count) 1 \
-#			| append_each_row "$(unhead {input.ssRNA_file} | tr -d "N\\n" | wc -c)"  | unhead \
-#			| /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 ../../local/src/tiplexator_t_pot_norm.py -l {wildcards.min_length} -L {wildcards.max_length} | gzip > {output}
-#		"""
+	shell: """
+			zcat {input.summary_neg_pos} \
+			| translate -a -v -e 0 -z <(zcat {input.tpx} | unhead | cut -f 4 | symbol_count) 1 \
+			| append_each_row "$(unhead {input.ssRNA_file} | tr -d "N\\n" | wc -c)"  | unhead \
+			| /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 ../../local/src/tiplexator_t_pot_norm.py -l {wildcards.min_length} -L {wildcards.max_length} | gzip > {output}
+		"""
 
 #rule summary_covered_by_tts:
 #	input:
@@ -322,8 +329,8 @@ rule stability_tot_overcount:
 		"{file_path}/raw.tpx.stability.gz"
 	output:
 		"{file_path}/raw.tpx.stability.tot_overcount.gz"
-	#container:
-	#	"../../local/share/images/bit.wip-rnaseq.0.8.sif"
+#	container:
+#		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell: """
 		zcat {input} | cut -f 4,14 | bsort | stat_base -g -t \
 		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_overcount"}} {{print}}' | gzip > {output}
@@ -356,8 +363,8 @@ rule stability_tot_undercount:
 		"{file_path}.tpx.stability.gz"
 	output:
 		"{file_path}.tpx.stability.tot_undercount.gz"
-#	container:
-#		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell: """
 		bawk '{{print $Duplex_ID,$TTS_start,$TTS_end,$Stability}}' {input} | bedtools sort | bedtools merge -c 4 -o max | cut -f 1,4 | bsort | stat_base -g -t \
 		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_undercount"}} {{print}}' | gzip > {output}
@@ -1017,6 +1024,11 @@ rule all_triplexAligner:
 		expand("triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.best_logE.gz",
 			ssRNA = all_selected_ssRNA_id()
 		)
+	output:
+		"triplexAligner/all_triplexAligner_done"
+	shell: """
+		touch {output}
+	"""
 
 rule run_triplexAligner:
 	input:
@@ -1050,6 +1062,11 @@ rule all_fasimLongTarget:
 		expand("fasim-LongTarget/{ssRNA}/{ssRNA}.fasim/{ssRNA}-{ssRNA}-fastSim-TFOsorted.best_meanStab.gz",
 			ssRNA = all_selected_ssRNA_id()
 		)
+	output:
+		"fasim-LongTarget/all_fasimLongTarget_done"
+	shell: """
+		touch {output}
+	"""
 
 rule fasim_fasta_format:
 	input:
@@ -1086,4 +1103,36 @@ rule best_fasimLongTarget:
 		cut -f4,6 {input.neg_pos} | \
 		translate -a -v -e 0 <(cut -f6,9 {input.fasim} | find_best --skip_header 1 2) 1 | \
 		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
+	"""
+
+
+#######################
+#  Methods comparison
+#
+
+rule neg_pos_ALL_scores:
+	input:
+		triplexAlign="triplexAligner/all_triplexAligner_done",
+		fasim="fasim-LongTarget/all_fasimLongTarget_done"
+	output:
+		"ROC/tpx.neg_pos.ALL_scores.gz"
+	shell: """
+		mkdir -p `dirname {output}`; \
+		cat <(matrix_reduce -t '*/*/*/tpx.specific_score.gz') <(matrix_reduce -t '*/*/*/tpx.best_logE.gz') <(matrix_reduce -t '*/*/*/*-*-fastSim-TFOsorted.best_meanStab.gz') | \
+		grep -v best_meanStab | grep -v Duplex_ID | \
+		bawk '{{split($1,a,";"); print $2";"$4,a[1],$3}}' | \
+		tab2matrix -r 'peak;ssRNA;neg_pos' | \
+		bawk '{{split($1,a,";"); print a[2],a[1]";"a[2],a[3],$0}}' | cut -f1-3,5- | sed -e '1 s/-/_/g' | \
+		gzip > {output}
+	"""
+
+rule ALL_scores_AUC_cmp:
+	input:
+		"ROC/tpx.neg_pos.ALL_scores.gz"
+	output:
+		"ROC/tpx.neg_pos.ALL_scores.AUC_cmp.txt"
+	shell: """
+		{CONDA_ACTIVATE} pROC_Env;\
+		zcat  {input} | \
+		../../local/src/ROC.R neg_pos $(zcat {input} | head -n1 | cut -f4- | tr "\\t" " ") -d "<" > {output}
 	"""
