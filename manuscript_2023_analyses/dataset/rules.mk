@@ -149,6 +149,19 @@ raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.triplex_ssRNA.%.AUC_cmp.
 	$(CONDA_ACTIVATE) pROC_Env; \
 	zcat $< | ../local/src/ROC.R neg_pos $$(zcat $< | head -n1 | cut -f2- | tr "\t" " ") -d "<" | gzip > $@
 
+raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.triplex_ssRNA.best_param_setting.gz:
+	matrix_reduce -t 'raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.triplex_ssRNA.*.AUC_cmp.gz' | grep -v 'pred_1' | bawk '{print $$1,$$2,$$4}' | sort -k3,3nr | uniq | bawk '{split($$2,a,"_"); print $$1,"ss"a[2],a[3],a[5],a[6],a[7],a[8],$$3}' | gzip > $@
+
+raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.triplex_ssRNA.Stability_norm_undercount.best_param_setting.gz: raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.ALL_ssRNA.human_mouse.gz selected_ssRNA.triplex_ssRNA
+	bawk '{split($$1,a,";"); print a[1],a[2]"_"a[4]"_1_"a[6]"_"a[7]"_"a[8]"_"a[9], $$2,$$4, $$Stability_norm_undercount}' $< | filter_1col 1 $^2 | grep -w 0_8_1_20_70_off_3 | bawk 'BEGIN{print "peak","neg_pos","0_8_1_20_70_off_3"}{print $$3,$$4,$$5}' | gzip > $@
+
+v8.6_v8.7_method_cmp.matrix.gz: v8.6_ReChIRP_idr_overlap_top1000/ROC/tpx.neg_pos.ALL_scores.gz v8.7_ReChIRP_idr_overlap_top1000_mouse/ROC/tpx.neg_pos.ALL_scores.gz raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.triplex_ssRNA.Stability_norm_undercount.best_param_setting.gz
+	cat <(zcat $< | cut -f2,5,6 | sed 's/peak;ssRNA/peak/') <(zcat $^2 | bawk 'NR>1{print $$2,$$5,$$6}') | translate -a <(zcat $^3) 1 | gzip > $@
+
+v8.6_v8.7_method_cmp.matrix.AUC_cmp.tsv: v8.6_v8.7_method_cmp.matrix.gz
+	zcat $< | ../local/src/ROC.R neg_pos $$(zcat $< | head -n1 | cut -f3- | tr "\t" " ") -d "<" > $@
+
+
 
 ####################
 #
