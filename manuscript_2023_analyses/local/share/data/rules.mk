@@ -368,10 +368,23 @@ all_bed.regionPeak.counts_matrix: /sto1/epigen/TPXcCRE/dataset/v8_ChIRP_neg_rand
 
 ### RADICL-seq ###
 
-GSE132190_mESC_NPM_n1_significant.txt.gz:
+RADICLseq/GSE132190_mESC_NPM_n1_significant.txt.gz:
 	wget -O $@ 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132190&format=file&file=GSE132190%5FmESC%5FNPM%5Fn1%5Fsignificant%2Etxt%2Egz'
 
-GSE132190_mESC_NPM_n2_significant.txt.gz:
+RADICLseq/GSE132190_mESC_NPM_n2_significant.txt.gz:
 	wget -O $@ 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132190&format=file&file=GSE132190%5FmESC%5FNPM%5Fn2%5Fsignificant%2Etxt%2Egz'
-RADICLseq/RADICL_peak.intersect_rep.bed.gz: RADICLseq/GSE132190_mESC_NPM_n1_significant.txt.gz /home/reference_data/bioinfotree/task/gencode/dataset/mmusculus/M25/chrom.info RADICLseq/GSE132190_mESC_NPM_n2_significant.txt.gz
-	bedtools intersect -a <(bawk '$$32=="lincRNA" {print $$1,$$2,$$3,$$29}' $< | bedtools slop -i - -g $^2 -b 2500 | bedtools sort) -b <(bawk '$$32=="lincRNA" {print $$1,$$2,$$3,$$29}' $^3 | bedtools slop -i - -g $^2 -b 2500 | bedtools sort) -wb -sorted | bawk '$$4==$$8 {print $$1~4}' | bedtools sort | bedtools merge -i - -c 4 -o distinct -delim ";" | expandsets 4 | gzip > $@
+
+#RADICLseq/RADICL_peak.intersect_rep.bed.gz: RADICLseq/GSE132190_mESC_NPM_n1_significant.txt.gz /home/reference_data/bioinfotree/task/gencode/dataset/mmusculus/M25/chrom.info RADICLseq/GSE132190_mESC_NPM_n2_significant.txt.gz
+#	bedtools intersect -a <(bawk '$$32=="lincRNA" {print $$1,$$2,$$3,$$29}' $< | bedtools slop -i - -g $^2 -b 2500 | bedtools sort) -b <(bawk '$$32=="lincRNA" {print $$1,$$2,$$3,$$29}' $^3 | bedtools slop -i - -g $^2 -b 2500 | bedtools sort) -wb -sorted | bawk '$$4==$$8 {print $$1~4}' | bedtools sort | bedtools merge -i - -c 4 -o distinct -delim ";" | expandsets 4 | gzip > $@
+
+RADICLseq/GSE132190_mESC_NPM_n%_significant.merge_distinct.gz: RADICLseq/GSE132190_mESC_NPM_n%_significant.txt.gz /home/reference_data/bioinfotree/task/gencode/dataset/mmusculus/M25/chrom.info
+	bawk '$$29!="."' $< | bedtools slop -i - -g $^2 -b 2500 | bedtools sort | bedtools merge -i - -c 29 -o distinct | gzip > $@
+
+RADICLseq/GSE132190_mESC_NPM_ALL_significant.merge_distinct.matrix_reduce.merge_replicates.biotypes.gz: /home/reference_data/bioinfotree/task/gencode/dataset/mmusculus/M25/primary_assembly.annotation.ensg2gene_symbol2biotype.map
+	matrix_reduce -t 'RADICLseq/GSE132190_mESC_NPM_*_significant.merge_distinct.gz' | \
+	expandsets 5 -s , | \
+	bawk '{print $$2~5";"$$1}' | \
+	bedtools sort | bedtools merge -i - -c 4 -o distinct | \
+	expandsets 4 -s , | tr ";" "\t" | collapsesets 5 | \
+	translate -a -k -d <(cut -f2,3 $<) 4 | \
+	gzip > $@
