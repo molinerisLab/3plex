@@ -1039,7 +1039,7 @@ rule run_triplexAligner:
 		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplex_aligner $PWD/{input.dsDNA} $PWD/{input.ssRNA} {SPECIES} | gzip > {output}
 """
 
-rule best_triplexAligner:
+rule best_logE_triplexAligner:
 	input:
 		triplexAlign="triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.gz",
 		neg_pos="{ssRNA}.neg_pos_rand.bed"
@@ -1048,6 +1048,18 @@ rule best_triplexAligner:
 	shell: """
 		cut -f4,6 {input.neg_pos} | \
 		translate -a -v -e 0 -f 2 <(zcat {input.triplexAlign} | find_best --skip_header 12 10 | cut -f10,12 ) 1 | \
+		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
+	"""
+
+rule best_score_triplexAligner:
+	input:
+		triplexAlign="triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.gz",
+		neg_pos="{ssRNA}.neg_pos_rand.bed"
+	output:
+		"triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.best_score.gz"
+	shell: """
+		cut -f4,6 {input.neg_pos} | \
+		translate -a -v -e 0 -f 2 <(zcat {input.triplexAlign} | find_best --skip_header 12 7 | cut -f10,12 ) 1 | \
 		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
 	"""
 

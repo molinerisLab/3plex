@@ -746,3 +746,5 @@ best_single_params.matrix.gz:
 #tpx_paramspace_AUC.gz:
 #	matrix_reduce -t 'tpx_paramspace/*_ss*_unpairedWindow/*.neg_pos_rand.bed/min_length~*/max_length~*/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC' | tr ";" "\t" | pvalue_correct -a -c 12 | gzip > $@
 
+ssRNA.neg_pos_rand.bed:
+	zgrep 'v8.2_ReChIRP_idr_cons' ../../local/share/data/ALL_v8.neg_pos_rand.bed.gz | bawk '{print $3~6";"$7,$8,$9 > $2".neg_pos_rand.bed"}'
