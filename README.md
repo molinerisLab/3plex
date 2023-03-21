@@ -22,14 +22,15 @@ Extensive description of the tool can be foud in out paper:
 
 # Quick start with Docker
 
-Clone the repository.
+Just to have some testing sequences, clone the repository:
 ```
 mkdir 3plex
 wget -O v0.1.2-beta.zip https://github.com/molinerisLab/3plex/archive/refs/tags/v0.1.2-beta.zip
 unzip v0.1.2-beta.zip
 cd v0.1.2-beta
 ```
-This is just to have some testing sequences:
+
+You can test the tool using:
 
  * `test/ssRNA.fa`
  * `test/dsDNA.fa`
