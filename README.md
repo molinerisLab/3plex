@@ -37,6 +37,7 @@ You can test the tool using:
 
 You do not need to use directly the code in the repository or install dependencies. You can run a test using the image pulled from docker hub.
 ```
+cd 3plex;
 docker run -u `id -u`:`id -g` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
 ```
 
