@@ -55,6 +55,7 @@ To run 3plex on your data just change the test fasta files with the ones you are
 
 > :warning: If you get a *MissingInputException* error make sure your input files are accessible by the user or the group specified in Docker.
 
+> :warning: If you get no output and docker exit with the 139 status the host linux-kernel version is >= 4.8 and you need to enable vsyscall at startup, see https://helpcenter.onlyoffice.com/installation/mail-enabling-vsyscall.aspx.
 ---
 
 # 3plex usage
