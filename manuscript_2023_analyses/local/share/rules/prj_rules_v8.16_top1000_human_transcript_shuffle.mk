@@ -1,3 +1,27 @@
+#######################
+#  Obtain bed regions
+
+# this rule produces all ssRNA.neg_pos_rand.bed
+%.neg_pos_rand_all.bed: ../../local/share/data/ALL_v8.neg_pos_rand.bed.gz
+	        zgrep 'v8.6_ReChIRP_idr_top1000' bawk '{print $$3~6";"$$7,$$8,$$9 > $$2".neg_pos_rand_all.bed"}'
+
+# select only pos peaks
+%.neg_pos_rand.bed: %.neg_pos_rand_all.bed
+	bawk '$$6=="pos"' $< > $@
+
+%_shuffle.neg_pos_rand.bed: %_shuffle.neg_pos_rand_all.bed
+	bawk '$$6=="pos" {print $$1~5,"neg"}' $< > $@
+
+
+######################
+#  Shuffle ssRNA seq
+
+%_shuffle.fa: %.fa
+	fasta_shuffle < $< | sed 's/$*/$*_shuffle/' > $@
+
+
+
+
 ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr_overlap_top1000/all_reproducibility.idr_conservative-idr_optimal_peak-overalp_conservative-overlap_optimal.regionPeak.top1000.gz
 	zcat $< | bedtools sort | gzip > $@
 
@@ -27,7 +51,7 @@ ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr_overlap_top1000/all_repro
 %.neg_pos_rand.bed: %_onlypos.bed %.neg_rand.bed
 	cat $^ > $@
 
-ALL_ssRNA=$(shell cat selected_ssRNA_id)
+ALL_ssRNA=$(shell cat selected_ssRNA)
 
 ALL_neg_pos_rand.bed: $(addsuffix .neg_pos_rand.bed,$(ALL_ssRNA))
 	cut -f -4 $^ > $@
