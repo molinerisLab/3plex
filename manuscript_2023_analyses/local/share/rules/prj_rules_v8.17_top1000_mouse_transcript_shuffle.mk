@@ -3,14 +3,14 @@
 
 # this rule produces all ssRNA.neg_pos_rand.bed
 %.neg_pos_rand_all.bed: ../../local/share/data/ALL_v8.neg_pos_rand.bed.gz
-	        zgrep 'v8.6_ReChIRP_idr_top1000' bawk '{print $$3~6";"$$7,$$8,$$9 > $$2".neg_pos_rand_all.bed"}'
+	        zgrep 'v8.7_ReChIRP_idr_overlap_top1000_mouse' $< | bawk '{print $$3~6";"$$7,$$8,$$9 > $$2".neg_pos_rand_all.bed"}'
 
 # select only pos peaks
 %.neg_pos_rand.bed: %.neg_pos_rand_all.bed
 	bawk '$$6=="pos"' $< > $@
 
-%_shuffle.neg_pos_rand.bed: %_shuffle.neg_pos_rand_all.bed
-	bawk '$$6=="pos" {print $$1~5,"neg"}' $< > $@
+%_shuffle.neg_pos_rand.bed: %.neg_pos_rand_all.bed
+	bawk '$$6=="pos" {print $$1~4"_shuffle",$$5"_shuffle","neg"}' $< > $@
 
 
 ######################
