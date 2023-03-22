@@ -160,6 +160,22 @@ rule get_longest_transcripts:
 	"""
 
 
+ruleorder: fasta_shuffle > get_fasta
+
+rule fasta_shuffle:
+	input:  
+		"{GeneID}.fa"
+	output: 
+		"{GeneID}_shuffle.fa"
+#	group: "input_fasta_preparation_and_triplexator"
+#	container:
+#		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
+	shell: """
+		fasta_shuffle < {input} | sed 's/{wildcards.GeneID}/{wildcards.GeneID}_shuffle/'> {output}
+	"""
+
+
+
 #############################
 #  Triplex scoring methods  #
 #############################
@@ -193,37 +209,37 @@ rule all_tpx_paramspace:
 #	"""
 
 rule triplexator_param_exploration:
-		input:
+	input:
 			ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta",
 			dsDNA_file="{dsDNA}.bed.fa"
-		params:
-			params_instance=triplexator_paramspace.instance
-		output:
-			tpx     = temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx"),
-			summary = temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary")
-#		wildcard_constraints:
-#			single_strandedness_cutoff      = "\d+",
-#			window                          = "\w+",
-#			ssRNA                           = "[^/]+",
-#			dsDNA                           = "[^/]+"
-		container:
-			"../../local/share/images/triplexator_v1.3.2_l6.img"
-		threads: 24
-#		group: "input_fasta_preparation_and_triplexator"
-		shell: """
-				mkdir -p $(dirname {output.tpx}); cd $(dirname {output.tpx});\
-				triplexator \
-						-l  {wildcards.min_length} \
-						-L  {wildcards.max_length} \
-						-e  {wildcards.error_rate} \
-						-g  {wildcards.guanine_rate} \
-						-fr {wildcards.filter_repeat} \
-						-c  {wildcards.consecutive_errors} \
-						-fm 0 -of {config[TRIPLEXATOR_ALN]} \
-						-rm 2 -p {threads} \
-						-ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file} -o raw.tpx
-				echo triplexator retstatus: $?
-		"""
+	params:
+		params_instance=triplexator_paramspace.instance
+	output:
+		tpx     = temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx"),
+		summary = temp("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary")
+	wildcard_constraints:
+		single_strandedness_cutoff      = "\d+",
+		window                          = "\w+",
+		ssRNA                           = "[^/]+",
+		dsDNA                           = "[^/]+"
+	container:
+		"/home/reference_data/singularity_images/triplexator_v1.3.2.img"
+	threads: 24
+#	group: "input_fasta_preparation_and_triplexator"
+	shell: """
+			mkdir -p $(dirname {output.tpx}); cd $(dirname {output.tpx});\
+			triplexator \
+					-l  {wildcards.min_length} \
+					-L  {wildcards.max_length} \
+					-e  {wildcards.error_rate} \
+					-g  {wildcards.guanine_rate} \
+					-fr {wildcards.filter_repeat} \
+					-c  {wildcards.consecutive_errors} \
+					-fm 0 -of {config[TRIPLEXATOR_ALN]} \
+					-rm 2 -p {threads} \
+					-ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file} -o raw.tpx
+			echo triplexator retstatus: $?
+	"""
 
 # cat {output}.tmp | /hpcnfs/data/epi/ref/miniconda3/envs/scipy/bin/python3.10 ../../local/src/tpx_thermal_stability.py | gzip > {output}
 rule triplexator_stability:
@@ -275,10 +291,10 @@ rule custom_summary:
 		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta"
 	output:
 		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.custom_summary.neg_pos.gz"
-#	wildcard_constraints:
-#		ssRNA="[^/]+",
-#		min_length="\d+",
-#		max_length="-*\d+"
+	wildcard_constraints:
+		ssRNA="[^/]+",
+		min_length="\d+",
+		max_length="-*\d+"
 #	container:
 #		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell: """
@@ -1038,8 +1054,8 @@ rule run_triplexAligner:
 		"triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.gz"
 	shell: """
 		mkdir -p `dirname {output}`;\
-		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} dae37bcaf0b3 $PWD/{input.dsDNA} $PWD/{input.ssRNA} {SPECIES} | gzip > {output}
-		#docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplex_aligner $PWD/{input.dsDNA} $PWD/{input.ssRNA} {SPECIES} | gzip > {output}
+		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplex_aligner $PWD/{input.dsDNA} $PWD/{input.ssRNA} {SPECIES} | gzip > {output}
+		#docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} dae37bcaf0b3 $PWD/{input.dsDNA} $PWD/{input.ssRNA} {SPECIES} | gzip > {output}
 """
 
 rule best_logE_triplexAligner:
