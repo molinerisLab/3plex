@@ -108,8 +108,8 @@ rule get_fasta:
 	output: 
 		"{GeneID,[\w\.-]+}.fa"
 	group: "input_fasta_preparation_and_triplexator"
-	container:
-		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
+#	container:
+#		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	threads: 1
 	shell: """
 		#{CONDA_ACTIVATE} bit_rnaseq_3.1;
@@ -122,8 +122,8 @@ rule get_fasta_ingore_condition:
 	output: 
 		"{GeneID,[\w\.-]+}@{condition}.fa"
 	group: "input_fasta_preparation_and_triplexator"
-	container:
-		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
+#	container:
+#		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	threads: 1
 	shell: """
 		#{CONDA_ACTIVATE} bit_rnaseq_3.1;
@@ -138,8 +138,8 @@ rule cCRE_fasta:
 		cCRE_bed="{path}.bed"
 	output:
 		"{path}.bed.fa"
-	container:
-		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
+#	container:
+#		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell:"""
 		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}
 	"""
@@ -151,8 +151,8 @@ rule get_longest_transcripts:
 		GENCODE_DIR+"/transcripts.fa.gz"
 	output:
 		"longest_transcripts.fa"
-	container:
-		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
+#	container:
+#		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell:"""
 		#{CONDA_ACTIVATE} bit_rnaseq_3.1; \
 		hostname
@@ -1157,9 +1157,10 @@ rule ALL_scores_AUC_cmp:
 	input:
 		"ROC/tpx.neg_pos.ALL_scores.gz"
 	output:
-		"ROC/tpx.neg_pos.ALL_scores.AUC_cmp.txt"
+		table="ROC/tpx.neg_pos.ALL_scores.AUC_cmp.txt",
+		pdf="ROC/ROC_comparison.pdf"
 	shell: """
 		{CONDA_ACTIVATE} pROC_Env;\
 		zcat  {input} | \
-		../../local/src/ROC.R neg_pos $(zcat {input} | head -n1 | cut -f4- | tr "\\t" " ") -d "<" > {output}
+		../../local/src/ROC.R neg_pos $(zcat {input} | head -n1 | cut -f4- | tr "\\t" " ") -d "<" -O {output.pdf} > {output.table}
 	"""
