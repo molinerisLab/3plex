@@ -1,1 +1,1 @@
-../../local/share/makefiles/makefile_v15_ReChIRP_idr_cons
+../../local/share/makefiles/makefile_v8.summary_transcript_shuffle
