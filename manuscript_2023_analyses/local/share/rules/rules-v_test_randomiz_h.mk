@@ -10,6 +10,8 @@ THREADS=16
 
 SAMPLES=$(shell cat selected_ssRNA)
 
+.SECONDARY:
+
 ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr_overlap_top1000/all_reproducibility.idr_conservative-idr_optimal_peak-overalp_conservative-overlap_optimal.regionPeak.top1000.gz
 	zcat $< | bedtools sort | gzip > $@
 %_pos.bed: ChIRP.bed.split.gz
@@ -29,37 +31,49 @@ rand.excl.bed: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32
 	cp -a $< $@
 
 %_posneg.fa: %_posneg.bed
-	bedtools getfasta -fi $(GENOME_FA) -bed $< -name+ -fo $@
+	bedtools getfasta -fi $(GENOME_FA) -bed $< -name -fo $@
+
+%_posneg.fasim.fa: %_posneg.bed
+	bawk '{split($$4,a,";"); print $$1~3,a[2]"|"$$4,$$5,$$6}' $< | bedtools getfasta -name+ -fi $(GENOME_FA) -bed - | sed 's/::/|/' > $@
+
+################
+# TPX summary
 
 %.3plex.summary.gz: %.fa %_posneg.fa
-	docker run -u `id -u`:`id -g` -it --rm -v $$PWD:$$PWD imolineris/3plex:v0.1.2-beta -j $(THREADS) -l 8 -L 1 -e 20 -s 0 -g 70 -c 3 $$PWD/$< $$PWD/$^2 $$PWD
+	docker run -u `id -u`:`id -g` --rm -v $$PWD:$$PWD imolineris/3plex:v0.1.2-beta -j $(THREADS) -l 8 -L 1 -e 20 -s 0 -g 70 -c 3 $$PWD/$< $$PWD/$^2 $$PWD
 	mv $*_ssmasked-$*_posneg.tpx.summary.gz $@
-
 %.triplexAligner.summary.gz: %.fa %_posneg.fa
-	docker run -u `id -u`:`id -g` -it --rm -v $$PWD:$$PWD triplex_aligner $$PWD/$^2 $$PWD/$< nonesiste | gzip > $@
-
+	docker run -u `id -u`:`id -g` --rm -v $$PWD:$$PWD triplex_aligner $$PWD/$^2 $$PWD/$< hs | gzip > $@
 %.fasimLongtarget.summary.gz: %.fa %_posneg.fasim.fa
 	docker run --rm -v $$PWD:$$PWD fasim -f1 $$PWD/$^2 -f2 $$PWD/$< -O $$PWD
 	cat $*-$*-fastSim-TFOsorted | gzip > $@
 	rm $*-$*-fastSim-TFOsorted
 
-%.3plex.summary.clean.gz: %.3plex.summary.gz
-	bawk 'NR==1 {$$1="Duplex_ID;lncRNA;pos_neg"; $$14="pred1"; $$15="pred2"} {print}' $< | tr ";" "\t" | cut -f 3,16,17 | gzip > $@
+#########################
+# Single summary clean 
+
+%.3plex.summary.clean.gz: %_posneg.bed %.3plex.summary.gz
+	cut -f4,5 $< | translate -a -v -e 0 <(bawk '{print $$1,$$14,$$15}' $^2) 1 | \
+	bawk 'BEGIN{print "pos_neg","pred1","pred2"}{print $$4,$$2,$$3}' | gzip > $@
+%.triplexAligner.summary.clean.gz: %_posneg.bed %.triplexAligner.summary.gz
+	cut -f4,5 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$12,$$7,$$10}' $^2 | find_best 1 3) 1 | \
+	bawk 'BEGIN{print "pos_neg","pred1","pred2"} {print $$4,$$2,$$3}' | gzip > $@
+%.fasimLongtarget.summary.clean.gz: %_posneg.bed %.fasimLongtarget.summary.gz
+	cut -f4,5 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$6,$$9,$$13}' $^2 | find_best 1 2) 1 | \
+	bawk 'BEGIN{print "pos_neg","pred1","pred2"} {print $$4,$$2,$$3}' | gzip > $@
+
+#####################
+# All summary clean
 
 3plex.summary.clean.gz: $(addsuffix .3plex.summary.clean.gz, $(SAMPLES))
 	zcat $^ | bawk 'NR==1 || $$1!="pos_neg"' | gzip > $@
+triplexAligner.summary.clean.gz: $(addsuffix .triplexAligner.summary.clean.gz, $(SAMPLES))
+	zcat $^ | bawk 'NR==1 || $$1!="pos_neg"' | gzip > $@ 
+fasimLongtarget.summary.clean.gz: $(addsuffix .fasimLongtarget.summary.clean.gz, $(SAMPLES))
+	zcat $^ | bawk 'NR==1 || $$1!="pos_neg"' | gzip > $@ 
 
-triplexAligner.summary.clean.gz: $(addsuffix .3plex.summary.clean.gz, $(SAMPLES))
-	# todo
-
-%.fasimLongtarget.summary.clean.gz: %.fasimLongtarget.summary.gz
-	bawk 'NR==1 {$$6="Duplex_ID;lncRNA;pos_neg"; $$9="pred1"; $$13="pred2"} {print $$6,$$9,$$13}' $< | tr ";" "\t" | cut -f3- | gzip > $@
-
+##########
+# AUC cmp
 %.summary.clean.AUC_cmp.tsv: %.summary.clean.gz
 	$(CONDA_ACTIVATE) /home/cciccone/.conda/envs/pROC_Env; \
 	zcat $< | ../../local/src/ROC.R pos_neg pred1 pred2 > $@
-
-#%_posneg.fasim.fa: %_posneg.bed
-#	bedtools getfasta -fi $(GENOME_FA) -bed $< -name+ | sed 's/::/|/; s/:/|/;' > $@
-%_posneg.fasim.fa: %_posneg.bed
-	bawk '{split($$4,a,";"); print $$1~3,a[2]"|"$$4,$$5,$$6}' $< | bedtools getfasta -name+ -fi $(GENOME_FA) -bed - | sed 's/::/|/' > $@
