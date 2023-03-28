@@ -98,6 +98,14 @@ for(i in seq_along(labels)){
   labels[[i]]<-paste0(c(l,auc),collapse=": ")
 }
 # plot
+
+#roc_list_to_plot<-list()
+#n<-1
+#for(roc_obj in roc_list){
+#  roc_list_to_plot[[paste("sub",n)]]<-roc_obj[[predictors[1]]]
+#  n<-n+1
+#}
+
 ROC_plot <- ggroc(roc_list) + 
   geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="darkgrey", linetype="dashed") +
   theme_classic(base_size = 10) +
