@@ -1,5 +1,5 @@
-CHROM_INFO=$(BIOINFO_REFERENCE_ROOT)/gencode/dataset/hsapiens/32/chrom.info
-GENOME_FA=$(BIOINFO_REFERENCE_ROOT)/gencode/dataset/hsapiens/32/GRCh38.primary_assembly.genome.clean_id.fa 
+GENCODE_DIR=$(BIOINFO_REFERENCE_ROOT)/gencode/dataset/$(SPECIES)/$(VERSION)
+
 SEED?=42
 
 CONDA_ROOT="/opt/conda"
@@ -12,27 +12,24 @@ SAMPLES=$(shell cat selected_ssRNA)
 
 .SECONDARY:
 
-ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr_overlap_top1000/all_reproducibility.idr_conservative-idr_optimal_peak-overalp_conservative-overlap_optimal.regionPeak.top1000.gz
-	zcat $< | bedtools sort | gzip > $@
+##################
+#  Prepare Inputs
+
+%.fa: $(VERSION_ssRNA_FASTA)/%.fa
+	cp -a $< $@
+ChIRP.bed.split.gz: $(PEAKS)
+	zcat $< | bedtools sort | tr "-" "_" | gzip > $@
 %_pos.bed: ChIRP.bed.split.gz
 	bawk '$$5=="$*" {print $$1,$$2,$$3,$$4";"$$5,"pos"}' $< > $@
-
-rand.excl.bed: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/hg38.shuffle_blacklist.bed /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/gap.bed
+rand.excl.bed: $(GENCODE_DIR)/$(GENOME).shuffle_blacklist.bed $(GENCODE_DIR)/gap.bed
 	cut -f -3 $< $^2 | bedtools sort | bedtools merge > $@
-
-%_neg.bed: rand.excl.bed %_pos.bed /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/chrom.info.no_alt
+%_neg.bed: rand.excl.bed %_pos.bed $(GENCODE_DIR)chrom.info.no_alt
 	bedtools shuffle -excl $< -i $^2 -g $^3 -seed $(SEED) \
 	| bawk '{$$4="rand_"$$4; $$5="neg"; print}' > $@
-
 %_posneg.bed: %_pos.bed %_neg.bed
 	bawk '{$$4=$$4";"$$5; print}' $< $^2 > $@
-
-%.fa: ../v8.6_ReChIRP_idr_overlap_top1000/%.fa
-	cp -a $< $@
-
 %_posneg.fa: %_posneg.bed
 	bedtools getfasta -fi $(GENOME_FA) -bed $< -name -fo $@
-
 %_posneg.fasim.fa: %_posneg.bed
 	bawk '{split($$4,a,";"); print $$1~3,a[2]"|"$$4,$$5,$$6}' $< | bedtools getfasta -name+ -fi $(GENOME_FA) -bed - | sed 's/::/|/' > $@
 
@@ -76,4 +73,4 @@ fasimLongtarget.summary.clean.gz: $(addsuffix .fasimLongtarget.summary.clean.gz,
 # AUC cmp
 %.summary.clean.AUC_cmp.tsv: %.summary.clean.gz
 	$(CONDA_ACTIVATE) /home/cciccone/.conda/envs/pROC_Env; \
-	zcat $< | ../../local/src/ROC.R pos_neg pred1 pred2 > $@
+	zcat $< | ../../local/src/ROC.R pos_neg pred1 pred2 -d "<" -O $*.roc > $@
