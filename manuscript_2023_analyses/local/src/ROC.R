@@ -12,7 +12,9 @@ option_list <- list(
   make_option(c("-d", "--direction"), action="store", default="auto", dest="direction"
               , help="Specify in which direction to make the comparison? “auto” (default): automatically define in which group the median is higher and take the direction accordingly. “>”: if the predictor values for the control group are higher than the values of the case group (controls > t >= cases). “<”: if the predictor values for the control group are lower or equal than the values of the case group (controls < t <= cases). You should set this explicity to “>” or “<” whenever you are resampling or randomizing the data, otherwise the curves will be biased towards higher AUC values. [default \"%default\"]"),
 	make_option(c("-s", "--smoothing"), action="store", default=NULL, dest="smoothing"
-	            , help="Method for ROC curve smoothing. Available: binormal, density, fitdistr, logcondens, logcondens.smooth. [default: no smoothing]")
+	            , help="Method for ROC curve smoothing. Available: binormal, density, fitdistr, logcondens, logcondens.smooth. [default: no smoothing]"),
+	make_option(c("--negative_subsampling"), type="integer", default=0, dest="negative_subsampling"
+	            , help="Number of resampling [default: no subsampling]")
 )
 usage <- "%prog [options] outcomes_col_name [predictor_col1_name, predictor_col2_name, ...] < TABLE
 .META: stdin
@@ -48,9 +50,13 @@ z<-read.table(stdin, header=T, sep="\t")
 # Take the first argument, the outcomes_col_name (the column name of the outcomes of the classification)
 outcomes <- shift_fn(args)
 z[,outcomes] <- as.factor(z[,outcomes])
+outcomes_levels_ordered <- levels(z[,outcomes])[order(levels(z[,outcomes]))]
+controls_level <- outcomes_levels_ordered[1]
+cases_level <- outcomes_levels_ordered[2]
+
 message("The first two levels of the \"outcomes\" variable are taken as \"control\" and \"cases\" respectively. The remaining levels are ignored.\nThe specified oredered outcomes are: ")
-message(paste0("controls: ",levels(z[,outcomes])[order(levels(z[,outcomes]))][1]))
-message(paste0("cases: ",levels(z[,outcomes])[order(levels(z[,outcomes]))][2]))
+message(paste0("controls: ",controls_level))
+message(paste0("cases: ",cases_level))
 # The remaining arguments are the predictors
 predictors <- args
 # order outcomes column
@@ -63,9 +69,18 @@ z[,predictors][sapply(z[,predictors], is.infinite)] <- 1000
 
 # 2. Define ROC obj ----
 roc_formula <- as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors))))
-roc_list <- suppressMessages(roc(roc_formula, data = z, direction = opt$direction, na.rm = T))
 
-
+if(opt$negative_subsampling > 0){
+  z_cases <- z[z[,outcomes]==cases_level,]
+  z_controls <- z[z[,outcomes]==controls_level,]
+  roc_list <- list()
+  for (idx in seq(1:opt$negative_subsampling)) {
+    z_sub <- rbind(z_cases, z_controls[sample(1:nrow(z_controls),nrow(z_cases)),])
+    roc_list[[idx]] <- suppressMessages(roc(roc_formula, data = z_sub, direction = opt$direction, na.rm = T))
+  }
+} else {
+  roc_list[[1]] <- suppressMessages(roc(roc_formula, data = z, direction = opt$direction, na.rm = T))
+}
 # 3. ROC curve plot ----
 message(paste0("Saving ROC curves pdf plot as ", opt$pdf_name))
 # check smoothing opt
@@ -106,20 +121,24 @@ table_out <- data.frame(pred_1=character(),
                         p_value_cfr=double(),
                         stringsAsFactors=FALSE) 
 # Fill each row of the dataframe
-count=1
-for(i in predictors){
-  for(j in predictors){
-     if(j>i){
-	     roc.pred_1 <- suppressMessages(roc(as.formula(paste(outcomes,"~",i)), data= z, direction=opt$direction))
-	     roc.pred_2 <- suppressMessages(roc(as.formula(paste(outcomes,"~",j)), data= z, direction=opt$direction))
-	     pred_1 <- i
-	     pred_2 <- j
-	     AUC_1 <- roc.pred_1$auc
-	     AUC_2 <- roc.pred_2$auc
-	     p_value_cfr <- roc.test(roc.pred_1, roc.pred_2)$p.value
-	     table_out[count,] <- c(pred_1,pred_2,AUC_1,AUC_2,p_value_cfr)
-	     count = count + 1
-    } 
+out_row <- 1
+for (roc_objs in roc_list) {
+  for(pred_i in names(roc_objs)){
+    for(pred_j in names(roc_objs)){
+       if(pred_i>pred_j){
+  	     roc.pred_1 <- roc_objs[[pred_i]]
+  	     roc.pred_2 <- roc_objs[[pred_j]]
+  	     AUC_1 <- roc.pred_1$auc
+  	     AUC_2 <- roc.pred_2$auc
+  	     if(opt$negative_subsampling == 0) {
+  	       p_value_cfr <- roc.test(roc.pred_1, roc.pred_2)$p.value
+  	     } else {
+  	       p_value_cfr <- NA
+  	     }
+  	     table_out[out_row,] <- c(pred_i,pred_j,AUC_1,AUC_2,p_value_cfr)
+  	     out_row <- out_row + 1
+      } 
+    }
   }
 }
 # Save dataframe to stdout
