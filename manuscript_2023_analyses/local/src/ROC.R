@@ -70,17 +70,21 @@ z[,predictors][sapply(z[,predictors], is.infinite)] <- 1000
 # 2. Define ROC obj ----
 roc_formula <- as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors))))
 
+roc_list <- list()
+
 if(opt$negative_subsampling > 0){
   z_cases <- z[z[,outcomes]==cases_level,]
   z_controls <- z[z[,outcomes]==controls_level,]
-  roc_list <- list()
   for (idx in seq(1:opt$negative_subsampling)) {
     z_sub <- rbind(z_cases, z_controls[sample(1:nrow(z_controls),nrow(z_cases)),])
     roc_list[[idx]] <- suppressMessages(roc(roc_formula, data = z_sub, direction = opt$direction, na.rm = T))
   }
-} else {
+} else if(opt$negative_subsampling == 0){
   roc_list[[1]] <- suppressMessages(roc(roc_formula, data = z, direction = opt$direction, na.rm = T))
+} else {
+  stop("Negative number of resampling not acceptable. Exit")
 }
+
 # 3. ROC curve plot ----
 message(paste0("Saving ROC curves pdf plot as ", opt$pdf_name))
 # check smoothing opt
@@ -90,38 +94,35 @@ if(!is.null(opt$smoothing)){
   }
   roc_list <- lapply(roc_list, function(x){smooth(x, method=opt$smoothing)})
 }
-# Create label strings for the legend
-labels <- predictors
-for(i in seq_along(labels)){
-  l<-labels[[i]]
-  auc<-round(roc_list[[l]]$auc,3) # WARNING: this line do not consider the case in which only one preditor is specified
-  labels[[i]]<-paste0(c(l,auc),collapse=": ")
-}
-# plot
-
-#roc_list_to_plot<-list()
-#n<-1
-#for(roc_obj in roc_list){
-#  roc_list_to_plot[[paste("sub",n)]]<-roc_obj[[predictors[1]]]
-#  n<-n+1
-#}
-
-ROC_plot <- ggroc(roc_list) + 
-  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="darkgrey", linetype="dashed") +
-  theme_classic(base_size = 10) +
-  theme(plot.margin = margin(1,2,1,2, "cm")
-        , plot.title = element_text(hjust = 0.5)
-        , legend.title = element_blank()
-        , legend.position = c(0.75, 0.22)) +
-  scale_color_discrete(labels=labels) +
-  coord_fixed()
-  #scale_linetype_manual(breaks="custom_t_pot", values="dashed")
+# list of plots
+roc_plot_list <- lapply(roc_list, function(x){
+  # Create label strings for the legend
+  labels <- predictors
+  for(i in seq_along(labels)){
+    l<-labels[[i]]
+    auc<-round(x[[l]]$auc,3) # WARNING: this line do not consider the case in which only one preditor is specified
+    labels[[i]]<-paste0(c(l,auc),collapse=": ")
+  }
+  # plot
+  ggroc(x) + 
+    geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="darkgrey", linetype="dashed") +
+    theme_classic(base_size = 10) +
+    theme(plot.margin = margin(1,2,1,2, "cm")
+          , plot.title = element_text(hjust = 0.5)
+          , legend.title = element_blank()
+          , legend.position = c(0.75, 0.22)) +
+    scale_color_discrete(labels=labels) +
+    coord_fixed()
+})
 # Save plot 
-ggsave(paste0(opt$pdf_name,".pdf"), plot=ROC_plot, device="pdf",width = 6,height=6)
+pdf(paste0(opt$pdf_name,".pdf"), paper = "a4", width = 6, height=6)
+roc_plot_list
+dev.off()
 
 
 # 4. Create stdout dataframe ----
 message("Saving ROC AUC comparison table as stdout")
+# initialize empty table
 table_out <- data.frame(pred_1=character(),
                         pred_2=character(),
                         AUC_1=double(), 
