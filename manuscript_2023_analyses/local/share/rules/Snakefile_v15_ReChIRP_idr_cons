@@ -185,9 +185,9 @@ rule all_tpx_paramspace:
 	input:
 #		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.summary.gz",
 #		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.summary.neg_pos.gz",
-#		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC", 
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC", 
 #		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.Score_best.gz", 
-		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.gz",
+#		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.gz",
 			params = triplexator_paramspace.instance_patterns,
 			ssRNA = all_selected_ssRNA_id(),
 			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
@@ -497,8 +497,8 @@ rule compute_AUC_comparison:
 		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.AUC_comp.gz"
 	shell: """
 		mkdir -p `dirname logs/{output}`
-		{CONDA_ACTIVATE} bmodel_env; \
-		zcat {input} \
+		{CONDA_ACTIVATE} pROC_Env; \
+		(zcat {input} \
 		| ../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} -d "<" -O '{wildcards.file_path}/auc_comparison_plot' | gzip > {output}) &> logs/{output}.log
 	"""
 
