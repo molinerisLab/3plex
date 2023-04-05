@@ -171,7 +171,8 @@ rule fasta_shuffle:
 #	container:
 #		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
 	shell: """
-		fasta_shuffle < {input} | sed 's/{wildcards.GeneID}/{wildcards.GeneID}_shuffle/'> {output}
+		{CONDA_ACTIVATE} /home/imoliner/.conda/envs/meme; \
+		fasta-shuffle-letters -kmer {config[FASTA_SHUFFLE_K]} {input} > {output}
 	"""
 
 
