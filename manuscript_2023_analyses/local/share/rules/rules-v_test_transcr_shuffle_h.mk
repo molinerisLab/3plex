@@ -15,19 +15,13 @@ SAMPLES=$(shell cat selected_ssRNA)
 ##################
 #  Prepare Inputs
 
+%_shuffle.fa: %.fa
+	$(CONDA_ACTIVATE) /home/imoliner/.conda/envs/meme; \
+	fasta-shuffle-letters -kmer $(FASTA_SHUFFLE_K) $< | sed 's/shuf/shuffle/' > $@
 %.fa: $(VERSION_ssRNA_FASTA)/%.fa
 	cp -a $< $@
-ChIRP.bed.split.gz: $(PEAKS)
-	zcat $< | bedtools sort | tr "-" "_" | gzip > $@
-%_pos.bed: ChIRP.bed.split.gz
-	bawk '$$5=="$*" {print $$1,$$2,$$3,$$4";"$$5,"pos"}' $< > $@
-rand.excl.bed: $(GENCODE_DIR)/$(GENOME).shuffle_blacklist.bed $(GENCODE_DIR)/gap.bed
-	cut -f -3 $< $^2 | bedtools sort | bedtools merge > $@
-%_neg.bed: rand.excl.bed %_pos.bed $(GENCODE_DIR)/chrom.info.no_alt
-	bedtools shuffle -excl $< -i $^2 -g $^3 -seed $(SEED) \
-	| bawk '{$$4="rand_"$$4; $$5="neg"; print}' > $@
-%_posneg.bed: %_pos.bed %_neg.bed
-	bawk '{$$4=$$4";"$$5; print}' $< $^2 > $@
+%_posneg.bed: $(VERSION_BED)/%.neg_pos_rand.bed
+	cp -a $< $@
 %_posneg.fa: %_posneg.bed
 	bedtools getfasta -fi $(GENOME_FA) -bed $< -name -fo $@
 %_posneg.fasim.fa: %_posneg.bed
