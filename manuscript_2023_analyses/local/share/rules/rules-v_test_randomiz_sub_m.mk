@@ -39,9 +39,9 @@ rand.excl.bed: $(GENCODE_DIR)/$(GENOME).shuffle_blacklist.bed $(GENCODE_DIR)/gap
 ################
 # TPX summary
 
-%.3plex.summary.gz: %.fa %_posneg.uniq_names.fa
+%.3plex.summary.gz: %.fa %_posneg.fa
 	docker run -u `id -u`:`id -g` --rm -v $$PWD:$$PWD imolineris/3plex:v0.1.2-beta -j $(THREADS) -l 8 -L 1 -e 20 -s 0 -g 70 -c 3 $$PWD/$< $$PWD/$^2 $$PWD
-	mv $*_ssmasked-$*_posneg.uniq_names.tpx.summary.gz $@
+	mv $*_ssmasked-$*_posneg.tpx.summary.gz $@
 %.triplexAligner.summary.gz: %.fa %_posneg.fa
 	docker run -u `id -u`:`id -g` --rm -v $$PWD:$$PWD triplex_aligner $$PWD/$^2 $$PWD/$< hs | gzip > $@
 %.fasimLongtarget.summary.gz: %.fa %_posneg.fasim.fa
