@@ -23,7 +23,7 @@ ChIRP.bed.split.gz: $(PEAKS)
 	bawk '$$5=="$*" {print $$1,$$2,$$3,$$4";"$$5,"pos"}' $< > $@
 rand.excl.bed: $(GENCODE_DIR)/$(GENOME).shuffle_blacklist.bed $(GENCODE_DIR)/gap.bed
 	cut -f -3 $< $^2 | bedtools sort | bedtools merge > $@
-%_neg.bed: rand.excl.bed %_pos.bed $(GENCODE_DIR)chrom.info.no_alt
+%_neg.bed: rand.excl.bed %_pos.bed $(GENCODE_DIR)/chrom.info.no_alt
 	bedtools shuffle -excl $< -i $^2 -g $^3 -seed $(SEED) \
 	| bawk '{$$4="rand_"$$4; $$5="neg"; print}' > $@
 %_posneg.bed: %_pos.bed %_neg.bed
@@ -56,7 +56,7 @@ rand.excl.bed: $(GENCODE_DIR)/$(GENOME).shuffle_blacklist.bed $(GENCODE_DIR)/gap
 	cut -f4,5 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$12,$$7,$$10}' $^2 | find_best 1 3) 1 | \
 	bawk 'BEGIN{print "pos_neg","pred1","pred2"} {print $$4,$$2,$$3}' | gzip > $@
 %.fasimLongtarget.summary.clean.gz: %_posneg.bed %.fasimLongtarget.summary.gz
-	cut -f4,5 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$6,$$9,$$13}' $^2 | find_best 1 2) 1 | \
+	cut -f4,5 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$6,$$13,$$9}' $^2 | find_best 1 3) 1 | \
 	bawk 'BEGIN{print "pos_neg","pred1","pred2"} {print $$4,$$2,$$3}' | gzip > $@
 
 #####################
@@ -74,3 +74,11 @@ fasimLongtarget.summary.clean.gz: $(addsuffix .fasimLongtarget.summary.clean.gz,
 %.summary.clean.AUC_cmp.tsv: %.summary.clean.gz
 	$(CONDA_ACTIVATE) /home/cciccone/.conda/envs/pROC_Env; \
 	zcat $< | ../../local/src/ROC.R pos_neg pred1 pred2 -d "<" -O $*.roc > $@
+
+AUC_singles.tsv: $(addsuffix .3plex.summary.clean.AUC_cmp.tsv, $(SAMPLES)) $(addsuffix .triplexAligner.summary.clean.AUC_cmp.tsv, $(SAMPLES)) $(addsuffix .fasimLongtarget.summary.clean.AUC_cmp.tsv, $(SAMPLES))
+	matrix_reduce -t -l '$^' '*\.*\.summary.clean.AUC_cmp.tsv' | tr ";" "\t" | cut -f1,2,4,6 | grep -v AUC > $@
+AUC_singles.matrix.xlsx: AUC_singles.tsv
+	cat $< | cut -f1,2,4 | tab2matrix -r ssRNA | tab2xlsx > $^2
+
+NEAT1.triplexAligner.summary.gz.time:
+	time remake NEAT1.triplexAligner.summary.gz > $@

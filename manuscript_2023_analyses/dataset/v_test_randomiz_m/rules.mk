@@ -1,1 +1,1 @@
-../../local/share/rules/rules-v_test_randomiz_m.mk
+../../local/share/rules/rules-v_test_randomiz_h.mk
