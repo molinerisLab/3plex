@@ -1,1 +1,0 @@
-../../local/share/rules/prj_rules_v8.17.1_top1000_mouse_transcript_shuffle_k2.mk
