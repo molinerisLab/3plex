@@ -44,13 +44,13 @@ SAMPLES=$(shell cat selected_ssRNA)
 # Single summary clean 
 
 %.3plex.summary.clean.gz: %_posneg.bed %.3plex.summary.gz
-	cut -f4,5 $< | translate -a -v -e 0 <(bawk '{print $$1,$$14,$$15}' $^2) 1 | \
+	cut -f4,6 $< | translate -a -v -e 0 <(bawk '{print $$1,$$14,$$15}' $^2) 1 | \
 	bawk 'BEGIN{print "pos_neg","pred1","pred2"}{print $$4,$$2,$$3}' | gzip > $@
 %.triplexAligner.summary.clean.gz: %_posneg.bed %.triplexAligner.summary.gz
-	cut -f4,5 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$12,$$7,$$10}' $^2 | find_best 1 3) 1 | \
+	cut -f4,6 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$12,$$7,$$10}' $^2 | find_best 1 3) 1 | \
 	bawk 'BEGIN{print "pos_neg","pred1","pred2"} {print $$4,$$2,$$3}' | gzip > $@
 %.fasimLongtarget.summary.clean.gz: %_posneg.bed %.fasimLongtarget.summary.gz
-	cut -f4,5 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$6,$$13,$$9}' $^2 | find_best 1 3) 1 | \
+	cut -f4,6 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$6,$$13,$$9}' $^2 | find_best 1 3) 1 | \
 	bawk 'BEGIN{print "pos_neg","pred1","pred2"} {print $$4,$$2,$$3}' | gzip > $@
 
 #####################
@@ -76,3 +76,11 @@ AUC_singles.matrix.xlsx: AUC_singles.tsv
 
 NEAT1.triplexAligner.summary.gz.time:
 	time remake NEAT1.triplexAligner.summary.gz > $@
+
+CDKN2B_AS1%_posneg.bed:
+	cp $(VERSION_BED)/CDKN2B-AS1$*.neg_pos_rand.bed $@;
+	sed -i 's/CDKN2B-AS1/CDKN2B_AS1/g' $@
+
+CDKN2B_AS1.fa:
+	cp $(VERSION_ssRNA_FASTA)/CDKN2B-AS1.fa $@;
+	sed -i 's/CDKN2B-AS1/CDKN2B_AS1/g' $@

@@ -1,1 +1,1 @@
-../../local/share/rules/rules-v_test_transcr_shuffle_k4_h.mk
+../../local/share/rules/rules-v_test_transcr_shuffle.mk
