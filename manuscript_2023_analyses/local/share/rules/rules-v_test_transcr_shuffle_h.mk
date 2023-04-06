@@ -15,10 +15,10 @@ SAMPLES=$(shell cat selected_ssRNA)
 ##################
 #  Prepare Inputs
 
-%_shuffle.fa: %.fa
+%_shuffle.kmer_$(FASTA_SHUFFLE_K).fa: %.kmer_$(FASTA_SHUFFLE_K).fa
 	$(CONDA_ACTIVATE) /home/imoliner/.conda/envs/meme; \
 	fasta-shuffle-letters -kmer $(FASTA_SHUFFLE_K) $< | sed 's/shuf/shuffle/' > $@
-%.fa: $(VERSION_ssRNA_FASTA)/%.fa
+%.kmer_$(FASTA_SHUFFLE_K).fa: $(VERSION_ssRNA_FASTA)/%.fa
 	cp -a $< $@
 %_posneg.bed: $(VERSION_BED)/%.neg_pos_rand.bed
 	cp -a $< $@
@@ -30,7 +30,7 @@ SAMPLES=$(shell cat selected_ssRNA)
 ################
 # TPX summary
 
-%.3plex.summary.gz: %.fa %_posneg.fa
+%.3plex.summary.kmer_$(FASTA_SHUFFLE_K).gz: %.kmer_$(FASTA_SHUFFLE_K).fa %_posneg.fa
 	docker run -u `id -u`:`id -g` --rm -v $$PWD:$$PWD imolineris/3plex:v0.1.2-beta -j $(THREADS) -l 8 -L 1 -e 20 -s 0 -g 70 -c 3 $$PWD/$< $$PWD/$^2 $$PWD
 	mv $*_ssmasked-$*_posneg.tpx.summary.gz $@
 %.triplexAligner.summary.gz: %.fa %_posneg.fa
@@ -43,20 +43,20 @@ SAMPLES=$(shell cat selected_ssRNA)
 #########################
 # Single summary clean 
 
-%.3plex.summary.clean.gz: %_posneg.bed %.3plex.summary.gz
-	cut -f4,5 $< | translate -a -v -e 0 <(bawk '{print $$1,$$14,$$15}' $^2) 1 | \
+%.3plex.summary.kmer_$(FASTA_SHUFFLE_K).clean.gz: %_posneg.bed %.3plex.summary.kmer_$(FASTA_SHUFFLE_K).gz
+	cut -f4,6 $< | translate -a -v -e 0 <(bawk '{print $$1,$$14,$$15}' $^2) 1 | \
 	bawk 'BEGIN{print "pos_neg","pred1","pred2"}{print $$4,$$2,$$3}' | gzip > $@
 %.triplexAligner.summary.clean.gz: %_posneg.bed %.triplexAligner.summary.gz
-	cut -f4,5 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$12,$$7,$$10}' $^2 | find_best 1 3) 1 | \
+	cut -f4,6 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$12,$$7,$$10}' $^2 | find_best 1 3) 1 | \
 	bawk 'BEGIN{print "pos_neg","pred1","pred2"} {print $$4,$$2,$$3}' | gzip > $@
 %.fasimLongtarget.summary.clean.gz: %_posneg.bed %.fasimLongtarget.summary.gz
-	cut -f4,5 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$6,$$13,$$9}' $^2 | find_best 1 3) 1 | \
+	cut -f4,6 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$6,$$13,$$9}' $^2 | find_best 1 3) 1 | \
 	bawk 'BEGIN{print "pos_neg","pred1","pred2"} {print $$4,$$2,$$3}' | gzip > $@
 
 #####################
 # All summary clean
 
-3plex.summary.clean.gz: $(addsuffix .3plex.summary.clean.gz, $(SAMPLES))
+3plex.summary.kmer_$(FASTA_SHUFFLE_K).clean.gz: $(addsuffix .3plex.summary.kmer_$(FASTA_SHUFFLE_K).clean.gz, $(SAMPLES))
 	zcat $^ | bawk 'NR==1 || $$1!="pos_neg"' | gzip > $@
 triplexAligner.summary.clean.gz: $(addsuffix .triplexAligner.summary.clean.gz, $(SAMPLES))
 	zcat $^ | bawk 'NR==1 || $$1!="pos_neg"' | gzip > $@ 
