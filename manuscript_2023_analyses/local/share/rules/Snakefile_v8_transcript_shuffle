@@ -1,0 +1,338 @@
+from snakemake.utils import Paramspace
+import pandas as pd
+
+configfile: "config.yaml"
+
+include: "config.sk"
+
+
+######################
+#  General Parameters
+
+PWD=os.environ.get("PWD")
+REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
+BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"/bioinfotree/task/"
+
+
+#####################
+#  Conda Parameters
+
+CONDA_ROOT="/opt/conda"
+CONDA_VERSION="miniconda3"
+CONDA_ACTIVATE="set +u; source "+CONDA_ROOT+"/"+CONDA_VERSION+"/etc/profile.d/conda.sh; conda activate ; conda activate "
+
+
+#####################
+#  Gencode Parameters
+
+GENCODE_SPECIES=config["GENCODE_SPECIES"]
+GENCODE_VERSION=config["GENCODE_VERSION"]
+GENCODE_DIR=BIOINFO_REFERENCE_ROOT+"gencode/dataset/"+GENCODE_SPECIES+"/"+GENCODE_VERSION
+CCRE_DIR=BIOINFO_REFERENCE_ROOT+"encode-screen/dataset/v13/"
+GENOME_ASSEMBLY=config["GENOME_ASSEMBLY"]
+GENOME_ASSEMBLY_DIR=GENCODE_DIR+"/"+GENOME_ASSEMBLY
+
+
+######################
+#  Docker Parameters
+
+DOCKER_GROUP="10001"
+DOCKER_DATA_DIR=os.environ.get("DOCKER_DATA_DIR")
+SCRATCH=os.environ.get("SCRATCH")
+
+
+######################
+#  Triplexator Parameters
+
+triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\t"))
+
+
+
+#####################
+#  Generic rules
+
+rule header_added:
+	input:
+		"{file}"
+	output:
+		"{file}.header_added"
+	shell:"""
+		(bawk -M {input} | cut -f 2 | transpose; cat {input} ) > {output}
+	"""
+
+rule header_added_gz:
+	input:
+		"{file}.gz"
+	output:
+		"{file}.header_added.gz"
+	shell:"""
+		(bawk -M {input} | cut -f 2 | transpose; cat {input} ) | gzip > {output}
+	"""
+
+#####################
+#  Rules transcript
+
+rule get_longest_transcripts:
+	input:
+		GENCODE_DIR+"/transcripts.fa.gz"
+	output:
+		"longest_transcripts.fa"
+	shell:"""
+		zcat {input} | fasta2oneline | tr "|" "\\t" | bawk '$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold | tr "-" "_" | gzip > {output}
+	"""
+
+rule get_fasta:
+	input:  
+		"longest_transcripts.fa"
+	output: 
+		"{GeneID,[\w\.-]+}.fa"
+	shell: """
+		get_fasta -i {wildcards.GeneID} < {input} > {output}
+	"""
+
+ruleorder: fasta_shuffle > get_fasta
+rule fasta_shuffle:
+	input:  
+		"{GeneID}.fa"
+	output: 
+		"{GeneID}_shuffle_k{kmer}.fa"
+	shell: """
+		{CONDA_ACTIVATE} /home/imoliner/.conda/envs/meme; \
+		fasta-shuffle-letters -kmer {wildcards.kmer} {input} | sed 's/shuf/shuffle_k{wildcards.kmer}/' > {output}
+	"""
+
+#######################
+#  Obtain bed regions
+
+rule get_pos_bed:
+	input:
+		"../../local/share/data/ALL_v8.neg_pos_rand.bed.gz"
+	output:
+		"{ssRNA}.pos.bed"
+	shell: """
+		zgrep '{config[PEAK_VERSION]}' {input} | tr "-" "_" | bawk '$2=="{wildcards.ssRNA}" && $9=="pos" {{print $3~6";"$7,$8,$9}}' > {output}
+	"""
+
+rule get_shuffle_bed:
+	input:
+		"{ssRNA}.pos.bed"
+	output:
+		"{ssRNA}.shuffle.bed"
+	shell: """
+		bawk '{{print $1~3,"neg_"$4,$5,"neg"}}' {input} > {output}
+	"""
+
+ruleorder: bed_to_fasta > get_fasta
+rule bed_to_fasta:
+	input:
+		assembly=GENOME_ASSEMBLY_DIR+".primary_assembly.genome.clean_id.fa",
+		bed_file="{path}.bed"
+	output:
+		"{path}.bed.fa"
+	shell:"""
+		bedtools getfasta -name -fi {input.assembly} -bed {input.bed_file} -fo {output}
+	"""
+
+###############
+# Run 3plex
+
+rule all_3plex:
+	input: 
+		expand("tpx_paramspace/{ssRNA}/{ssRNA}.pos.bed/{params}/3plex.summary.gz",
+			params = triplexator_paramspace.instance_patterns,
+			ssRNA = all_selected_ssRNA_id()
+		)
+
+rule run_3plex:
+	input:
+		ssRNA_file="{ssRNA}.fa",
+		dsDNA_file="{ssRNA}.pos.bed.fa"
+	params:
+		params_instance=triplexator_paramspace.instance
+	output:
+		"tpx_paramspace/{ssRNA}/{ssRNA}.pos.bed/"+f"{triplexator_paramspace.wildcard_pattern}/3plex.summary.gz"
+	threads: 24
+	shell: """
+		docker run -u `id -u`:`id -g` --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta \
+			-j {threads}
+			-l {wildcards.min_length} \
+			-L {wildcards.max_length} \
+			-e {wildcards.error_rate} \
+			-g {wildcards.guanine_rate} \
+			-r {wildcards.filter_repeat} \
+			-c {wildcards.consecutive_errors} \
+			-s {wildcards.single_strandedness} \
+		$PWD/{input.ssRNA_file} $PWD/{input.dsDNA_file} $PWD; \
+        mv {wildcards.ssRNA}_ssmasked-{wildcards.ssRNA}.pos.bed.tpx.summary.gz {output}; \
+		rm -r {wildcards.ssRNA}_ssmasked-{wildcards.ssRNA}.pos.bed.tpx.stability.gz 3plex_tmp_directory_*
+	"""
+
+rule all_3plex_shuffle:
+	input: 
+		expand("tpx_paramspace/{ssRNA}_shuffle_k{kmer}/{ssRNA}.shuffle.bed/{params}/3plex.summary.gz",
+			params = triplexator_paramspace.instance_patterns,
+			ssRNA = all_selected_ssRNA_id(),
+			kmer = config["FASTA_SHUFFLE_K"]
+		)
+
+rule run_3plex_shuffle:
+	input:
+		ssRNA_file="{ssRNA}_shuffle_k{kmer}.fa",
+		dsDNA_file="{ssRNA}.shuffle.bed.fa"
+	params:
+		params_instance=triplexator_paramspace.instance
+	output:
+		"tpx_paramspace/{ssRNA}_shuffle_k{kmer}/{ssRNA}.shuffle.bed/"+f"{triplexator_paramspace.wildcard_pattern}/3plex.summary.gz"
+	threads: 24
+	shell: """
+		docker run -u `id -u`:`id -g` --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta \
+			-j {threads} \
+			-l {wildcards.min_length} \
+			-L {wildcards.max_length} \
+			-e {wildcards.error_rate} \
+			-g {wildcards.guanine_rate} \
+			-r {wildcards.filter_repeat} \
+			-c {wildcards.consecutive_errors} \
+			-s {wildcards.single_strandedness} \
+		$PWD/{input.ssRNA_file} $PWD/{input.dsDNA_file} $PWD; \
+        mv {wildcards.ssRNA}_shuffle_k{wildcards.kmer}_ssmasked-{wildcards.ssRNA}.shuffle.bed.tpx.summary.gz {output}; \
+		rm -r {wildcards.ssRNA}_shuffle_k{wildcards.kmer}_ssmasked-{wildcards.ssRNA}.shuffle.bed.tpx.stability.gz 3plex_tmp_directory_*
+	"""
+
+
+######################
+#  Run triplexAligner
+
+if config["GENCODE_SPECIES"] == "hsapiens":
+	SPECIES = "hs"
+elif config["GENCODE_SPECIES"] == "mmusculus":
+	SPECIES = "mm"
+
+rule all_triplexAligner:
+	input:
+		expand("triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.best_logE.gz",
+			ssRNA = all_selected_ssRNA_id()
+		)
+	output:
+		"triplexAligner/all_triplexAligner_done"
+	shell: """
+		touch {output}
+	"""
+
+rule run_triplexAligner:
+	input:
+		ssRNA="{ssRNA}.fa",
+		dsDNA="{ssRNA}.neg_pos_rand.bed.fa"
+	output:
+		"triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.gz"
+	shell: """
+		mkdir -p `dirname {output}`;\
+		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplex_aligner $PWD/{input.dsDNA} $PWD/{input.ssRNA} {SPECIES} | gzip > {output}
+"""
+
+rule best_logE_triplexAligner:
+	input:
+		triplexAlign="triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.gz",
+		neg_pos="{ssRNA}.neg_pos_rand.bed"
+	output:
+		"triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.best_logE.gz"
+	shell: """
+		cut -f4,6 {input.neg_pos} | \
+		translate -a -v -e 0 -f 2 <(zcat {input.triplexAlign} | find_best --skip_header 12 10 | cut -f10,12 ) 1 | \
+		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
+	"""
+
+rule best_score_triplexAligner:
+	input:
+		triplexAlign="triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.gz",
+		neg_pos="{ssRNA}.neg_pos_rand.bed"
+	output:
+		"triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.best_score.gz"
+	shell: """
+		cut -f4,6 {input.neg_pos} | \
+		translate -a -v -e 0 -f 2 <(zcat {input.triplexAlign} | find_best --skip_header 12 7 | cut -f10,12 ) 1 | \
+		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
+	"""
+
+########################
+#  Run fasim-LongTarget
+
+rule all_fasimLongTarget:
+	input:
+		expand("fasim_LongTarget/{ssRNA}/{ssRNA}.fasim/{ssRNA}-{ssRNA}-fastSim-TFOsorted.best_meanStab.gz",
+			ssRNA = all_selected_ssRNA_id()
+		)
+	output:
+		"fasim_LongTarget/all_fasimLongTarget_done"
+	shell: """
+		touch {output}
+	"""
+
+rule fasim_fasta_format:
+	input:
+		bed="{ssRNA}.neg_pos_rand.bed",
+		assembly=GENOME_ASSEMBLY_DIR+".primary_assembly.genome.clean_id.fa"
+	output:
+		"{ssRNA}.fasim.fa"
+	shell: """
+		 bawk '{{split($4,a,";"); print $1~3,a[2]"|"$4,$5,$6}}' {input.bed} | \
+		 bedtools getfasta -name+ -fi {input.assembly} -bed - | \
+		 sed -e 's/::/|/g' > {output}
+	"""
+
+ruleorder: fasim_fasta_format > get_fasta
+
+rule run_fasimLongTarget:
+	input:
+		ssRNA="{ssRNA}.fa",
+		dsDNA="{ssRNA}.fasim.fa"
+	output:
+		"fasim_LongTarget/{ssRNA}/{ssRNA}.fasim/{ssRNA}-{ssRNA}-fastSim-TFOsorted"
+	shell: """
+		mkdir -p `dirname {output}`;\
+		docker run --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} fasim -f1 $PWD/{input.dsDNA} -f2 $PWD/{input.ssRNA} -O $PWD/`dirname {output}`
+"""
+
+rule best_fasimLongTarget:
+	input:
+		fasim="fasim_LongTarget/{ssRNA}/{ssRNA}.fasim/{ssRNA}-{ssRNA}-fastSim-TFOsorted",
+		neg_pos="{ssRNA}.neg_pos_rand.bed"
+	output:
+		"fasim_LongTarget/{ssRNA}/{ssRNA}.fasim/{ssRNA}-{ssRNA}-fastSim-TFOsorted.best_meanStab.gz"
+	shell: """
+		cut -f4,6 {input.neg_pos} | \
+		translate -a -v -e 0 <(cut -f6,9 {input.fasim} | find_best --skip_header 1 2) 1 | \
+		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
+	"""
+
+
+###########################################################
+#  fasim-LongTarget / triplexAligner / 3plex - comparison
+
+rule neg_pos_ALL_scores:
+	input:
+		triplexAlign="triplexAligner/all_triplexAligner_done",
+		fasim="fasim_LongTarget/all_fasimLongTarget_done"
+	output:
+		"ROC/tpx.neg_pos.ALL_scores.gz"
+	shell: """
+		mkdir -p `dirname {output}`; \
+		cat <(matrix_reduce -t '*/*/*/tpx.specific_score.gz') <(matrix_reduce -t '*/*/*/tpx.best_logE.gz') <(matrix_reduce -t '*/*/*/*-*-fastSim-TFOsorted.best_meanStab.gz') | \
+		grep -v best_meanStab | grep -v Duplex_ID | \
+		bawk '{{split($1,a,";"); print $2";"$4,a[1],$3}}' | \
+		tab2matrix -r 'peak;ssRNA;neg_pos' | \
+		bawk '{{split($1,a,";"); print a[2],a[1]";"a[2],a[3],$0}}' | cut -f1-3,5- | \
+		gzip > {output}
+	"""
+
+rule ALL_scores_AUC_cmp:
+	input:
+		"ROC/tpx.neg_pos.ALL_scores.gz"
+	output:
+		table="ROC/tpx.neg_pos.ALL_scores.AUC_cmp.txt",
+		pdf="ROC/ROC_comparison.pdf"
+	shell: """
+		{CONDA_ACTIVATE} pROC_Env;\
+		zcat  {input} | \
+		../../local/src/ROC.R neg_pos $(zcat {input} | head -n1 | cut -f4- | tr "\\t" " ") -d "<" -O {output.pdf} > {output.table}
+	"""
