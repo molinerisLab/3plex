@@ -6,41 +6,64 @@ output:
 ---
 
 ```{r}
-library(dplyr)
-library(ggplot2)
-library(scattermore)
-library(pROC)
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(scattermore))
+suppressMessages(library(pROC))
 
 setwd("/home/epigen/TPXcCRE/dataset/v_test_randomiz_sub_h")
 ```
 
+# Average sensitivities and specificities 
 
-
-# Distribuzioni dei predittori utilizzati e ROC troncate
 ```{r}
+avg_roc <- function(pos_neg_file, ){
+  
+}
+z<-read.table(stdin, header=T, sep="\t")
+# Take the first argument, the outcomes_col_name (the column name of the outcomes of the classification)
+outcomes <- args[1]
+z[,outcomes] <- as.factor(z[,outcomes])
+outcomes_levels_ordered <- levels(z[,outcomes])[order(levels(z[,outcomes]))]
+controls_level <- outcomes_levels_ordered[1]
+cases_level <- outcomes_levels_ordered[2]
+
+message("The first two levels of the \"outcomes\" variable are taken as \"control\" and \"cases\" respectively. The remaining levels are ignored.\nThe specified oredered outcomes are: ")
+message(paste0("controls: ",controls_level))
+message(paste0("cases: ",cases_level))
+# Second positional argument is the predictor colname
+predictors <- args[2]
+# order outcomes column
+z <- z[order(z[,outcomes]),]
+# Coerce predictor values to 4 significant digits numbers
+z[,predictors] <- sapply(z[,predictors],function(x){x <- round(as.numeric(x), digits = 4)})
+# convert infinite values if any
+z[,predictors][sapply(z[,predictors], is.infinite)] <- 1000
 
 
-df_3plex<-read.table("3plex.summary.clean.gz", header = T)
-df_fasimLongtarget<-read.table("fasimLongtarget.summary.clean.gz", header = T)
-df_triplexAligner<-read.table("triplexAligner.summary.clean.gz", header = T)
+# 2. Define ROC obj ----
+roc_formula <- as.formula(paste(collapse = "~", c(outcomes, predictors)))
 
-df_3plex$method="3plex"
-df_fasimLongtarget$method="fasimLongtarget"
-df_triplexAligner$method="triplexAligner"
+z_cases <- z[z[,outcomes]==cases_level,]
+z_controls <- z[z[,outcomes]==controls_level,]
 
-df<-rbind(df_3plex,df_fasimLongtarget,df_triplexAligner)
-ggplot(data=df, aes(x=pred2))+geom_histogram(bins = 100)+facet_wrap(~method, scales = "free_x")+scale_y_log10() 
+sens_spec_df <- data.frame()
+for (idx in seq(1:opt$negative_subsampling)) {
+  z_sub <- rbind(z_cases, z_controls[sample(1:nrow(z_controls),nrow(z_cases)),])
+  roc_obj <- suppressMessages(roc(roc_formula, data = z_sub, direction = opt$direction, na.rm = T))
+  sens_spec_df <- rbind(sens_spec_df, cbind(idx, roc_obj$specificities, roc_obj$sensitivities))
+}
+colnames(sens_spec_df) <- c("iteration","specificities","sensitivities")
+
 ```
 
-Nel caso di 3plex e fasimLongtarget un elvato numero di 0 viene inserito, questi corrispondono ai casi o ai controlli che non producono alcun TPX predetto.
-
-Questo probabilmente spiega perchè le ROC per 3plex e fasimLongtarget risultano troncate.
 
 # Average curves
 ```{r load_sens_sped}
-df_3plex<-read.table("3plex.summary.clean.sens_spec.tsv", header = T)
-df_fasimLongtarget<-read.table("fasimLongtarget.summary.clean.sens_spec.tsv", header = T)
-df_triplexAligner<-read.table("triplexAligner.summary.clean.sens_spec.tsv", header = T)
+setwd("/home/epigen/TPXcCRE/dataset/v_test_randomiz_sub_h")
+df_3plex<-read.table("/home/epigen/TPXcCRE/dataset/v_test_randomiz_sub_h/3plex.summary.clean.sens_spec.tsv", header = T)
+df_fasimLongtarget<-read.table("/home/epigen/TPXcCRE/dataset/v_test_randomiz_sub_h/fasimLongtarget.summary.clean.sens_spec.tsv", header = T)
+df_triplexAligner<-read.table("/home/epigen/TPXcCRE/dataset/v_test_randomiz_sub_h/triplexAligner.summary.clean.sens_spec.tsv", header = T)
 
 df_3plex$method="3plex"
 df_fasimLongtarget$method="fasimLongtarget"
