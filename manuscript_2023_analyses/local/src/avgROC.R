@@ -66,9 +66,9 @@ sens_spec_df <- data.frame()
 for (idx in seq(1:opt$negative_subsampling)) {
   z_sub <- rbind(z_cases, z_controls[sample(1:nrow(z_controls),nrow(z_cases)),])
   roc_obj <- suppressMessages(roc(roc_formula, data = z_sub, direction = opt$direction, na.rm = T))
-  sens_spec_df <- rbind(sens_spec_df, cbind(idx, round(roc_obj$sensitivities,digits = 4), round(roc_obj$specificities,digits = 4)))
+  sens_spec_df <- rbind(sens_spec_df, cbind(idx, roc_obj$specificities, roc_obj$sensitivities))
 }
-colnames(sens_spec_df) <- c("iteration","sensitivities","specificities")
+colnames(sens_spec_df) <- c("iteration","specificities","sensitivities")
 
 # save dataframe to stdout
 write.table(sens_spec_df, row.names =FALSE, quote = FALSE, file="", sep="\t")
