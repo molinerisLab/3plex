@@ -333,15 +333,15 @@ rule run_fasimLongTarget_shuffle:
 		-f1 $PWD/{input.dsDNA} \
 		-f2 $PWD/{input.ssRNA} \
 		-O $PWD/`dirname {output}`; \
-		mv fasim_LongTarget/{wildcards.ssRNA}_shuffle_k{wildcards.kmer}/{wildcards.ssRNA}.shuffle.fasim/{wildcards.ssRNA}-{wildcards.ssRNA}-fastSim-TFOsorted {output}
+		mv fasim_LongTarget/{wildcards.ssRNA}_shuffle_k{wildcards.kmer}/{wildcards.ssRNA}.shuffle.fasim/{wildcards.ssRNA}-{wildcards.ssRNA}_shuffle_k{wildcards.kmer}-fastSim-TFOsorted {output}
 """
 
 rule best_fasimLongTarget:
 	input:
-		fasim="fasim_LongTarget/{ssRNA}/{dsDNA}.fasim/fastSim-TFOsorted",
+		fasim="fasim_LongTarget/{path}/{dsDNA}.fasim/fastSim-TFOsorted",
 		neg_pos="{dsDNA}.bed"
 	output:
-		"fasim_LongTarget/{ssRNA}/{dsDNA}.fasim/fastSim-TFOsorted.best_meanStab.gz"
+		"fasim_LongTarget/{path}/{dsDNA}.fasim/fastSim-TFOsorted.best_meanStab.gz"
 	shell: """
 		cut -f4,6 {input.neg_pos} | \
 		translate -a -v -e 0 <(cut -f6,9 {input.fasim} | find_best --skip_header 1 2) 1 | \
