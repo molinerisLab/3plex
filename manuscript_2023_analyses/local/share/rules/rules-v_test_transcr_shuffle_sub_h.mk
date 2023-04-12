@@ -20,7 +20,9 @@ SAMPLES=$(shell cat selected_ssRNA)
 	fasta-shuffle-letters -kmer $(FASTA_SHUFFLE_K) $< | sed 's/shuf/shuffle/' > $@
 %.fa: $(VERSION_ssRNA_FASTA)/%.fa
 	cp -a $< $@
-%_posneg.bed: $(VERSION_BED)/%.neg_pos_rand.bed
+%_posneg.bed: $(POSITIVE_BED)/%.neg_pos_rand.bed
+	cp -a $< $@
+%_posneg.bed: $(SHUFFLE_BED)/%.neg_pos_rand.bed
 	cp -a $< $@
 %_posneg.fa: %_posneg.bed
 	bedtools getfasta -fi $(GENOME_FA) -bed $< -name -fo $@

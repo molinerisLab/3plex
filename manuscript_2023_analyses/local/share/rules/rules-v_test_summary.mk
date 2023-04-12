@@ -76,3 +76,9 @@ AUC_singles.matrix.xlsx: AUC_singles.tsv
 
 NEAT1.triplexAligner.summary.gz.time:
 	time remake NEAT1.triplexAligner.summary.gz > $@
+%.summary.clean.hm.gz: ../v_test_transcr_shuffle_h/%.summary.clean.gz ../v_test_transcr_shuffle_m/%.summary.clean.gz
+	zcat $< $^2 | cut -f1,3 | gzip > $@
+%.summary.clean.test_all.gz:
+	matrix_reduce -t '../*/$*.summary.clean.gz' | cut -f1,2,4 | grep -v pred2 | bawk '{print $$0,"$*"}' | gzip > $@
+summary.clean.test_all.method_all.gz: 3plex.summary.clean.test_all.gz triplexAligner.summary.clean.test_all.gz fasimLongtarget.summary.clean.test_all.gz
+	zcat $< $^2 $^3 | grep -v v_test_exchange_peaks | grep -v v_test_randomiz_sub | sed -e 's/_h//g' -e 's/_m//g' | bawk 'BEGIN{print "rand_method","pos_neg","pred","tpx_method"}{print}' | gzip > $@

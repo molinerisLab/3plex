@@ -30,6 +30,7 @@ SAMPLES=$(shell cat selected_ssRNA)
 ################
 # TPX summary
 
+#r_10_10_1_20_10_off_3
 %.3plex.summary.gz: %.fa %_posneg.fa
 	docker run -u `id -u`:`id -g` --rm -v $$PWD:$$PWD imolineris/3plex:v0.1.2-beta -j $(THREADS) -l 8 -L 1 -e 20 -s 0 -g 70 -c 3 $$PWD/$< $$PWD/$^2 $$PWD
 	mv $*_ssmasked-$*_posneg.tpx.summary.gz $@
