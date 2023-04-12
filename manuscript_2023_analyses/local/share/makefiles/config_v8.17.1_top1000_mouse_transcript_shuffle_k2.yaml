@@ -41,7 +41,11 @@ SINGLE_STRANDEDNESS_CUTOFF:
 RNAPLFOLD_WINDOW:
         - "unpairedWindow"
 #        - "singleNt"
-
+FASTA_SHUFFLE_K:
+       - "2"
+       - "3"
+       - "4"
+PEAK_VERSION: "v8.7_ReChIRP_idr_overlap_top1000_mouse" 
 ENCODE_DIR: /sto1/ref/bioinfotree/task/encode-screen/dataset/v13
 
 ENCODE_CONDITIONS:
