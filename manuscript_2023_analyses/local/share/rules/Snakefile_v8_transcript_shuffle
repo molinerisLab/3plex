@@ -79,7 +79,7 @@ rule get_longest_transcripts:
 	output:
 		"longest_transcripts.fa"
 	shell:"""
-		zcat {input} | fasta2oneline | tr "|" "\\t" | bawk '$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold | tr "-" "_" | gzip > {output}
+		zcat {input} | fasta2oneline | tr "|" "\\t" | bawk '$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold | tr "-" "_" > {output}
 	"""
 
 rule get_fasta:
