@@ -17,21 +17,6 @@ CONDA_ACTIVATE=source $(CONDA_ROOT)/$(CONDA_VERSION)/etc/profile.d/conda.sh; con
 
 
 
-#################
-#  Anova Exclude
-
-%.anova_exclude.gz: %.gz
-	export OPENBLAS_NUM_THREADS=1; seq 1 10000 | parallel -j 50 --group ./anova_perm.sh > $@.tmp; \
-        grep -v '^>' $@.tmp | gzip > $@; \
-        rm $@.tmp
-
-#FORMULA=AUC~peak_method_all+ssRNA+n_peaks+min_len
-FORMULA=AUC~peak_method_all+technique+n_peaks+singleStrandedness+min_len+error_rate+guanine_rate+repeat_filter+consecutive_error+predictor
-
-%.true_prediction: %.gz
-	bmodel -i -a $< $(FORMULA) | grep -v '^>' > $@
-
-
 ###############
 #  ROC curves
 
