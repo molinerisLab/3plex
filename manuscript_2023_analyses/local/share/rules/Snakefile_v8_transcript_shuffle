@@ -25,10 +25,8 @@ CONDA_ACTIVATE="set +u; source "+CONDA_ROOT+"/"+CONDA_VERSION+"/etc/profile.d/co
 GENCODE_SPECIES=config["GENCODE_SPECIES"]
 GENCODE_VERSION=config["GENCODE_VERSION"]
 GENCODE_DIR=BIOINFO_REFERENCE_ROOT+"gencode/dataset/"+GENCODE_SPECIES+"/"+GENCODE_VERSION
-CCRE_DIR=BIOINFO_REFERENCE_ROOT+"encode-screen/dataset/v13/"
 GENOME_ASSEMBLY=config["GENOME_ASSEMBLY"]
 GENOME_ASSEMBLY_DIR=GENCODE_DIR+"/"+GENOME_ASSEMBLY
-GENOME_FA=GENOME_ASSEMBLY_DIR+".primary_assembly.genome.clean_id.fa"
 
 ######################
 #  Docker Parameters
@@ -41,6 +39,15 @@ SCRATCH=os.environ.get("SCRATCH")
 #  Triplexator Parameters
 
 triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\t"))
+
+#############
+# Target ALL
+
+rule all:
+	input:
+		"3plex.summary.pos_neg.ALL.matrix.AUC_cmp.gz",
+		"triplexAligner.best_logE.pos_neg.ALL.matrix.AUC_cmp.gz",
+		"fasim_LongTarget.best_meanStab.pos_neg.ALL.matrix.AUC_cmp.gz"
 
 #####################
 #  Generic Rules
@@ -289,17 +296,16 @@ rule all_triplexAligner_matrix:
 	output:
 		"triplexAligner.best_logE.pos_neg.ALL.matrix.gz"
 	shell: """
-		 bawk '{{split($1,a,";"); print $7";"$2, a[2]"_"a[4]"_"a[5]"_"a[6]"_"a[7]"_"a[8]"_"a[9]; print $7";"$2,id"_Stability_best",$3; print $7";"$2,id"_Stability_norm",$6}}' {input} \
-		 | tab2matrix -r "pos_neg;peak;ssRNA" \
-		 | bawk '{{split($1,a,";"); print a[1],$0}}' \
-		 | cut -f 1,3- | gzip > {output}
+		 bawk '{{split($1,a,";"); print $4";"$2, a[2], $3}}' {input} \
+		| tab2matrix -r "pos_neg;peak;ssRNA" \
+		| bawk '{{split($1,a,";"); print a[1],$0}}' | cut -f 1,3- | gzip > {output}
 	"""
 
 rule all_triplexAligner_matrix_auc_cmp:
 	input:
-		"3plex.summary.pos_neg.ALL.matrix.gz"
+		"triplexAligner.best_logE.pos_neg.ALL.matrix.gz"
 	output:
-		"3plex.summary.pos_neg.ALL.matrix.AUC_cmp.gz"
+		"triplexAligner.best_logE.pos_neg.ALL.matrix.AUC_cmp.gz"
 	shell: """
 		{CONDA_ACTIVATE} pROC_Env; \
 		zcat {input} \
@@ -407,36 +413,4 @@ rule all_fasimLongTarget_matrix_auc_cmp:
 		{CONDA_ACTIVATE} pROC_Env; \
 		zcat {input} \
 		| ../../local/src/ROC.R pos_neg $(zcat {input} | head -n1 | cut -f2- | tr "\\t" " ") -d "<" | gzip > {output}
-	"""
-
-
-###########################################################
-#  fasim-LongTarget / triplexAligner / 3plex - comparison
-
-rule neg_pos_ALL_scores:
-	input:
-		triplexAlign="triplexAligner/all_triplexAligner_done",
-		fasim="fasim_LongTarget/all_fasimLongTarget_done"
-	output:
-		"ROC/tpx.neg_pos.ALL_scores.gz"
-	shell: """
-		mkdir -p `dirname {output}`; \
-		cat <(matrix_reduce -t '*/*/*/tpx.specific_score.gz') <(matrix_reduce -t '*/*/*/tpx.best_logE.gz') <(matrix_reduce -t '*/*/*/*-*-fastSim-TFOsorted.best_meanStab.gz') | \
-		grep -v best_meanStab | grep -v Duplex_ID | \
-		bawk '{{split($1,a,";"); print $2";"$4,a[1],$3}}' | \
-		tab2matrix -r 'peak;ssRNA;neg_pos' | \
-		bawk '{{split($1,a,";"); print a[2],a[1]";"a[2],a[3],$0}}' | cut -f1-3,5- | \
-		gzip > {output}
-	"""
-
-rule ALL_scores_AUC_cmp:
-	input:
-		"ROC/tpx.neg_pos.ALL_scores.gz"
-	output:
-		table="ROC/tpx.neg_pos.ALL_scores.AUC_cmp.txt",
-		pdf="ROC/ROC_comparison.pdf"
-	shell: """
-		{CONDA_ACTIVATE} pROC_Env;\
-		zcat  {input} | \
-		../../local/src/ROC.R neg_pos $(zcat {input} | head -n1 | cut -f4- | tr "\\t" " ") -d "<" -O {output.pdf} > {output.table}
 	"""
