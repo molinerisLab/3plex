@@ -120,7 +120,7 @@ if(opt$negative_subsampling==0){
   # Save plot 
   pdf(paste0(opt$pdf_name,".pdf"), paper = "a4", width = 6, height=6)
   roc_plot_list
-  dev.off()
+  noprint <- dev.off()
 } else {
   message("Not saving ROC curves pdf.")
 }
