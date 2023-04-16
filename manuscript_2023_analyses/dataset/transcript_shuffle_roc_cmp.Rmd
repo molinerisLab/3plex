@@ -1,0 +1,207 @@
+---
+title: "ROC comparison"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r packages, message=FALSE, results="hide"}
+library(pROC)
+library(ggplot2)
+```
+
+Custom function: _roc.list()_
+
+```{r roc.list}
+roc.list <- function(matrix, outcomes, predictors, direction="auto", smoothing=NULL){
+  matrix[,predictors] <- sapply(matrix[,predictors],function(x){x <- round(as.numeric(x), digits = 4)})
+  matrix[,predictors][sapply(matrix[,predictors], is.infinite)] <- 1000
+  roc_formula <- as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors))))
+  roc_list <- suppressMessages(roc(roc_formula, data = matrix, direction = direction, na.rm = T))
+}
+```
+
+Custom function: _plot.roc()_
+
+The function read a list of rock obj and create a roc plot printing AUC value.
+
+```{r compute.roc}
+plot.roc <- function(roc.list, smoothing=NULL){
+  if(!is.null(smoothing)){
+    roc.list <- lapply(roc.list, function(x){smooth(x, method=opt$smoothing)})
+  }
+  labels <- names(roc.list)
+  for(i in seq_along(labels)){
+    l<-labels[[i]]
+    auc<-round(roc.list[[l]]$auc,3)
+    labels[[i]]<-paste0(c(l,auc),collapse=": ")
+  }
+  ggroc(roc.list) + 
+    geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="darkgrey", linetype="dashed") +
+    theme_classic(base_size = 10) +
+    theme(plot.margin = margin(1,2,1,2, "cm")
+          , plot.title = element_text(hjust = 0.5)
+          , legend.title = element_blank()
+          , legend.position = c(0.75, 0.22)) +
+    scale_color_discrete(labels=labels) +
+    coord_fixed()
+}
+```
+
+Custom function: _auc.df()_
+
+```{r}
+auc.df <- function(roc.list, smoothing=NULL){
+  auc.df <- as.data.frame(do.call(rbind, lapply(roc.list, function(x){x$auc})))
+  auc.df$pred <- row.names(auc.df)
+  row.names(auc.df) <- NULL
+  colnames(auc.df)[which(names(auc.df) == "V1")] <- "AUC"
+  auc.df
+}
+```
+
+
+```{r readFiles}
+pos_neg_3plex_h <- read.delim("v8.16.1_top1000_human_transcript_shuffle/3plex.summary.pos_neg.ALL.matrix.gz", header = T)
+pos_neg_triplexAligner_h <- read.delim("v8.16.1_top1000_human_transcript_shuffle/triplexAligner.best_logE.pos_neg.ALL.matrix.gz", header = T)
+pos_neg_fasimLongTarget_h <- read.delim("v8.16.1_top1000_human_transcript_shuffle/fasim_LongTarget.best_meanStab.pos_neg.ALL.matrix.gz", header = T)
+
+pos_neg_h <- list(d3plex=pos_neg_3plex_h,
+                  triplexAligner=pos_neg_triplexAligner_h,
+                  fasimLongTarget=pos_neg_fasimLongTarget_h)
+
+pos_neg_3plex_m <- read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/3plex.summary.pos_neg.ALL.matrix.gz", header = T)
+pos_neg_triplexAligner_m <- read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/triplexAligner.best_logE.pos_neg.ALL.matrix.gz", header = T)
+pos_neg_fasimLongTarget_m <- read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/fasim_LongTarget.best_meanStab.pos_neg.ALL.matrix.gz", header = T)
+
+pos_neg_m <- list(d3plex=pos_neg_3plex_m,
+                  triplexAligner=pos_neg_triplexAligner_m,
+                  fasimLongTarget=pos_neg_fasimLongTarget_m)
+```
+
+
+## ROC Human 
+
+### 3plex
+```{r}
+pos_neg_3plex_h_roc <- compute.roc(pos_neg_3plex_h,
+                 "pos_neg",
+                 colnames(pos_neg_h)[grepl("10_20_40_off_3_20_Stability_norm",x = colnames(pos_neg_h))],
+                 direction = "<")
+print(pos_neg_3plex_h_roc)
+```
+
+### triplexAligner
+```{r}
+pos_neg_triplexAligner_h_roc <- compute.roc(pos_neg_triplexAligner_h,
+                 "pos_neg",
+                 c("k1","k2","k3","k4"),
+                 direction = "<")
+print(pos_neg_triplexAligner_h_roc)
+```
+
+### fasiml_longTarget
+```{r}
+pos_neg_fasimLongTarget_h_roc <- compute.roc(pos_neg_fasimLongTarget_h,
+                 "pos_neg",
+                 c("k1","k2","k3","k4"),
+                 direction = "<")
+print(pos_neg_fasimLongTarget_h_roc)
+```
+
+### transcript shuffling [K=1]
+```{r}
+k1_list <- list(d3plex=roc.list(pos_neg_h[["d3plex"]],"pos_neg","k1_10_20_40_off_3_20_Stability_norm",direction="<"),
+                triplexALigner=roc.list(pos_neg_h[["triplexAligner"]],"pos_neg","k1",direction="<"),
+                fasimLongTarget=roc.list(pos_neg_h[["fasimLongTarget"]],"pos_neg","k1",direction="<"))
+
+plot.roc(roc.list = k1_list)
+```
+
+### transcript shuffling [K=2]
+```{r}
+k2_list <- list(d3plex=roc.list(pos_neg_h[["d3plex"]],"pos_neg","k2_10_20_40_off_3_20_Stability_norm",direction="<"),
+                triplexALigner=roc.list(pos_neg_h[["triplexAligner"]],"pos_neg","k2",direction="<"),
+                fasimLongTarget=roc.list(pos_neg_h[["fasimLongTarget"]],"pos_neg","k2",direction="<"))
+
+plot.roc(roc.list = k2_list)
+```
+
+### transcript shuffling [K=3]
+```{r}
+k3_list <- list(d3plex=roc.list(pos_neg_h[["d3plex"]],"pos_neg","k3_10_20_40_off_3_20_Stability_norm",direction="<"),
+                triplexALigner=roc.list(pos_neg_h[["triplexAligner"]],"pos_neg","k3",direction="<"),
+                fasimLongTarget=roc.list(pos_neg_h[["fasimLongTarget"]],"pos_neg","k3",direction="<"))
+
+plot.roc(roc.list = k3_list)
+```
+
+## ROC Mouse
+
+```{r}
+pos_neg_3plex_m_roc <- compute.roc(pos_neg_3plex_m,
+                 "pos_neg",
+                 colnames(pos_neg_h)[grepl("10_20_40_off_3_20_Stability_norm",x = colnames(pos_neg_h))],
+                 direction = "<")
+print(pos_neg_3plex_m_roc)
+```
+
+
+```{r}
+pos_neg_triplexAligner_m_roc <- compute.roc(pos_neg_triplexAligner_m,
+                 "pos_neg",
+                 c("k1","k2","k3","k4"),
+                 direction = "<")
+print(pos_neg_triplexAligner_m_roc)
+```
+
+```{r}
+pos_neg_fasimLongTarget_m_roc <- compute.roc(pos_neg_fasimLongTarget_m,
+                 "pos_neg",
+                 c("k1","k2","k3","k4"),
+                 direction = "<")
+print(pos_neg_fasimLongTarget_m_roc)
+```
+
+
+
+
+### Investigating other param combinations
+```{r}
+pos_neg_3plex_m_roc <- compute.roc(pos_neg_3plex_m,
+                 "pos_neg",
+                 colnames(pos_neg_h)[grepl("8_20_10_off_1_20_Stability_best",x = colnames(pos_neg_h))],
+                 direction = "<")
+print(pos_neg_3plex_m_roc)
+```
+
+
+## Combine Human and Mouse df
+```{r}
+r_hm <- rbind(pos_neg_3plex_h,pos_neg_3plex_m[,colnames(pos_neg_3plex_h)])
+```
+
+```{r}
+compute.roc(r_hm,
+                 "pos_neg",
+                 colnames(pos_neg_h)[grepl("8_20_10_off_1_0_Stability_best",x = colnames(pos_neg_h))],
+                 direction = "<")
+```
+
+
+```{r}
+roc_list_hm <- roc.list(r_hm,
+                        "pos_neg",
+                        colnames(r_hm)[which(colnames(r_hm)!="pos_neg")],
+                        direction = "<")
+auc_hm <- auc.df(roc_list_hm)
+
+auc_hm_top <- top_n(auc_hm,15,wt = AUC)
+ggplot(auc_hm_top, aes(x=reorder(as.factor(pred),AUC),y=AUC)) +
+  geom_col() +
+  coord_flip()
+```
+
+
+
+
