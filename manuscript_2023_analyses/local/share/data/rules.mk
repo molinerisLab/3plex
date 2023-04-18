@@ -420,3 +420,7 @@ RADICLseq/GSE132190_mESC_NPM_n2_significant.txt.gz:
 	31	rna_gene_strand	-
 	32	rna_gene_biotype	protein-coding
 
+Carninci_Mm1_CAGE_nuc.txt.gz:
+	wget 'https://static-content.springer.com/esm/art%3A10.1038%2Fng.2965/MediaObjects/41588_2014_BFng2965_MOESM35_ESM.zip'
+RADICLseq/GSE132190_mESC_NPM_n%_significant.txt.CAGE_exp.gencode.gz: RADICLseq/GSE132190_mESC_NPM_n%_significant.txt.gz Carninci_Mm1_CAGE_nuc.txt.gz /home/reference_data/bioinfotree/task/gencode/dataset/mmusculus/M25/basic.annotation.exon.longest_transcript.bed
+	bawk '$$rna_gene_chr!="."&& $$rna_gene_biotype=="lincRNA" {print $$rna_gene_chr,$$rna_gene_b,$$rna_gene_e,$$rna_gene_name,".",$$rna_gene_strand}' $< | bedtools intersect -a - -b <(bawk 'NR==1{print} NR>1{print $$1,$$2,$$3,$$4,($$10+$$11+$$12)/3,$$6}' $^2 | bawk '$$5>1') -s -loj | bedtools intersect -a - -b <(bawk '$$7=="lincRNA"' $^3) -loj -s | gzip > $@
