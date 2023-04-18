@@ -8,7 +8,7 @@ options(error = function() traceback(2))
 
 option_list <- list(
 	make_option(c("-O", "--pdfname"), action="store", default="ROC_comparison", dest="pdf_name", help="Specify the name of the pdf image [default: \"ROC_comparison\"]"),
-        make_option(c("-d", "--direction"), action="store", default="auto", dest="direction", help="in which direction to make the comparison? “auto” (default): automatically define in which group the median is higher and take the direction accordingly. “>”: if the predictor values for the control group are higher than the values of the case group (controls > t >= cases). “<”: if the predictor values for the control group are lower or equal than the values of the case group (controls < t <= cases). You should set this explicity to “>” or “<” whenever you are resampling or randomizing the data, otherwise the curves will be biased towards higher AUC values. [default \"%default\"]")
+  make_option(c("-d", "--direction"), action="store", default="auto", dest="direction", help="in which direction to make the comparison? “auto” (default): automatically define in which group the median is higher and take the direction accordingly. “>”: if the predictor values for the control group are higher than the values of the case group (controls > t >= cases). “<”: if the predictor values for the control group are lower or equal than the values of the case group (controls < t <= cases). You should set this explicity to “>” or “<” whenever you are resampling or randomizing the data, otherwise the curves will be biased towards higher AUC values. [default \"%default\"]")
 )
 
 # Esempio per passare stringa con più elementi da trasformare in un vettore di predittori
@@ -53,7 +53,11 @@ outcomes <- shift_fn(args)
 ### The remaining arguments are the predictors
 predictors <- args
 
-#roc_list <- suppressMessages(roc(as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors)))), data = z, direction=opt$direction))
+# round values
+z[,predictors] <- sapply(z[,predictors],function(x){x <- round(as.numeric(x), digits = 4)})
+# convert infinite values if any
+z[,predictors][sapply(z[,predictors], is.infinite)] <- 1000
+
 
 table_out<-data.frame(predictor=c(), AUC=c(), WilcoxPval=c())
 
