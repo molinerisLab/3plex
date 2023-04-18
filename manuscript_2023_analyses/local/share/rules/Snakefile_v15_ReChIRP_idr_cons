@@ -1035,17 +1035,6 @@ if config["GENCODE_SPECIES"] == "hsapiens":
 elif config["GENCODE_SPECIES"] == "mmusculus":
 	SPECIES = "mm"
 
-rule all_triplexAligner:
-	input:
-		expand("triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.best_logE.gz",
-			ssRNA = all_selected_ssRNA_id()
-		)
-	output:
-		"triplexAligner/all_triplexAligner_done"
-	shell: """
-		touch {output}
-	"""
-
 rule run_triplexAligner:
 	input:
 		ssRNA="{ssRNA}.fa",
@@ -1082,19 +1071,34 @@ rule best_score_triplexAligner:
 		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
 	"""
 
-########################
-#  Run fasim-LongTarget
-
-rule all_fasimLongTarget:
+rule all_triplexAligner:
 	input:
-		expand("fasim_LongTarget/{ssRNA}/{ssRNA}.fasim/{ssRNA}-{ssRNA}-fastSim-TFOsorted.best_meanStab.gz",
+		expand("triplexAligner/{ssRNA}/{ssRNA}.neg_pos_rand.bed/tpx.best_logE.gz",
 			ssRNA = all_selected_ssRNA_id()
 		)
 	output:
-		"fasim_LongTarget/all_fasimLongTarget_done"
+		"triplexAligner.best_logE.pos_neg.ALL.gz"
 	shell: """
-		touch {output}
+		matrix_reduce -t 'triplexAligner/*/*.neg_pos_rand.bed/tpx.best_logE.gz' \
+		| grep -v 'neg_pos' | gzip > {output}
 	"""
+
+rule all_triplexAligner_auc_cmp:
+	input:
+		"triplexAligner.best_logE.pos_neg.ALL.gz"
+	output:
+		"triplexAligner.best_logE.pos_neg.ALL.auc_no_cmp.method_species.gz"
+	shell: """
+		{CONDA_ACTIVATE} pROC_Env;\
+		zcat {input} | \
+		bawk 'BEGIN{{print "neg_pos","triplexAligner"}}{{print $4,$3}}' | \
+		../../local/src/ROC_no_comp.R neg_pos triplexAligner | \
+		bawk 'BEGIN{{print "shuffling","tpx_method","auc","species"}}{{print "genomic_regions",$2,$3,"human"}}' | gzip > {output}
+	"""
+
+
+########################
+#  Run fasim-LongTarget
 
 rule fasim_fasta_format:
 	input:
@@ -1133,6 +1137,33 @@ rule best_fasimLongTarget:
 		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
 	"""
 
+rule all_fasimLongTarget:
+	input:
+		expand("fasim_LongTarget/{ssRNA}/{ssRNA}.fasim/{ssRNA}-{ssRNA}-fastSim-TFOsorted.best_meanStab.gz",
+			ssRNA = all_selected_ssRNA_id()
+		)
+	output:
+		"fasim_LongTarget.best_meanStab.pos_neg.ALL.gz"
+	shell: """
+		matrix_reduce -t 'fasim-LongTarget/*/*.fasim/*-*-fastSim-TFOsorted.best_meanStab.gz' \
+		| grep -v 'neg_pos' | gzip > {output}
+	"""
+
+rule all_fasimLongTarget_auc_cmp:
+	input:
+		"fasim_LongTarget.best_meanStab.pos_neg.ALL.gz"
+	output:
+		"fasim_LongTarget.best_meanStab.pos_neg.ALL.auc_no_cmp.method_species.gz"
+	shell: """
+		{CONDA_ACTIVATE} pROC_Env;\
+		zcat {input} | \
+		bawk 'BEGIN{{print "neg_pos","fasimLongTarget"}}{{print $4,$3}}' | \
+		../../local/src/ROC_no_comp.R neg_pos fasimLongTarget | \
+		bawk 'BEGIN{{print "shuffling","tpx_method","auc","species"}}{{print "genomic_regions",$1,$2,"human"}}' | gzip > {output}
+	"""
+
+
+	
 
 ###########################################################
 #  fasim-LongTarget / triplexAligner / 3plex - comparison
