@@ -71,9 +71,24 @@ raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.triplex_ssRNA.Stability_
 
 method_cmp.matrix.gz: $(addsuffix /ROC/tpx.neg_pos.ALL_scores.gz, $(V8_DIRS)) raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.ALL_ssRNA.human_mouse.gz selected_ssRNA.triplex_ssRNA
 	cat <(zcat $< | cut -f2,4,5 | sed 's/peak;ssRNA/peak/') <(zcat $^2 | bawk 'NR>1{print $$2,$$4,$$5}') | translate -a <(bawk '{split($$1,a,";"); print a[1],a[2]"_"a[4]"_1_"a[6]"_"a[7]"_"a[8]"_"a[9], $$2,$$4, $$Stability_best}' $^3 | filter_1col 1 $^4 | grep -w 10_10_1_20_10_off_3 | bawk 'BEGIN{print "peak","neg_pos","d_3plex"}{print $$3,$$4,$$5}') 1 | gzip > $@
-#method_cmp.matrix.gz: $(addsuffix /ROC/tpx.neg_pos.ALL_scores.gz, $(V8_DIRS)) raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.triplex_ssRNA.Stability_norm_undercount.best_param_setting.gz
-#	cat <(zcat $< | cut -f2,4,5 | sed 's/peak;ssRNA/peak/') <(zcat $^2 | bawk 'NR>1{print $$2,$$4,$$5}') | translate -a <(zcat $^3) 1 | gzip > $@
 
 method_cmp.matrix.AUC_cmp.tsv: method_cmp.matrix.gz
 	$(CONDA_ACTIVATE) pROC_Env;\
 	zcat $< | ../../local/src/ROC.R neg_pos $$(zcat $< | head -n1 | cut -f3- | tr "\t" " ") -d "<" > $@
+
+raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.ALL_ssRNA.human_mouse.header_added.matrix.gz: raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.ALL_ssRNA.human_mouse.header_added.gz selected_ssRNA.triplex_ssRNA
+	bawk 'NR>1{split($$1,a,";"); id=a[4]"_"a[6]"_"a[7]"_"a[8]"_"a[9]"_"a[2]; print a[1],$$4";"$$2,id"_Stability_best",$$13; print a[1],$$4";"$$2,id"_Stability_norm",$$18}' $< | filter_1col 1 $^2 | cut -f2- | tab2matrix -r "pos_neg;peak;ssRNA" | bawk '{split($$1,a,";"); print a[1],$$0}' | cut -f 1,3- | gzip > $@
+%.matrix.auc_no_cmp.gz: %.matrix.gz
+	set +u; source /opt/conda/miniconda3/etc/profile.d/conda.sh; conda activate ; conda activate  pROC_Env;\
+	zcat $< | ../../local/src/ROC_no_comp.R pos_neg $$(zcat $< | head -n1 | cut -f2- | tr "\t" " ") -d "<" | gzip > $@
+%.matrix.auc_no_cmp.method_species.gz: %.matrix.auc_no_cmp.gz
+	bawk 'BEGIN{print"shuffling","tpx_method","auc","species"}{print "genomic_regions",$$1,$$2,"human_mouse"}' $< | gzip > $@
+
+3plex.summary.pos_neg.ALL.human_mouse.matrix.gz: ../v8.16.1_top1000_human_transcript_shuffle/3plex.summary.pos_neg.ALL.matrix.gz ../v8.17.1_top1000_mouse_transcript_shuffle_k2/3plex.summary.pos_neg.ALL.matrix.gz 
+	r --vanilla -e 'h <- read.delim("../v8.16.1_top1000_human_transcript_shuffle/3plex.summary.pos_neg.ALL.matrix.gz",header=T);\\
+m <- read.delim("../v8.17.1_top1000_mouse_transcript_shuffle_k2/3plex.summary.pos_neg.ALL.matrix.gz",header=T);\\
+hm <- rbind(h,m[,colnames(h)]);\\
+write.table(hm,file=gzfile("3plex.summary.pos_neg.ALL.matrix.human_mouse.gz"),quote=F,sep="\t",row.name=F,col.names=T)'
+
+3plex.summary.pos_neg.ALL.human_mouse.matrix.auc_no_cmp.method_species.gz: 3plex.summary.pos_neg.ALL.human_mouse.matrix.auc_no_cmp.gz
+	bawk 'BEGIN{print "shuffling","tpx_method","auc","species"}{split($$1,a,"_"); print a[1],"d3plex_"a[2]"_"a[3]"_"a[4]"_"a[5]"_"a[6]"_"a[7],$$2,"human_mouse"}' $< | gzip > $@

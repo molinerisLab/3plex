@@ -1,4 +1,4 @@
-V8_DIRS=../v8.16_top1000_human_transcript_shuffle ../v8.17_top1000_mouse_transcript_shuffle
+V8_DIRS=../v8.16.1_top1000_human_transcript_shuffle ../v8.17.1_top1000_mouse_transcript_shuffle
 
 BEST_PREDICTOR=Stability_best
 
