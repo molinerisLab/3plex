@@ -1,0 +1,129 @@
+---
+title: "[Publish] ROC comparison"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r packages, message=TRUE, warning=TRUE, results="hide"}
+library(pROC)
+library(ggplot2)
+```
+
+Custom function: _roc.list()_
+
+```{r roc.list}
+roc.list <- function(matrix, outcomes, predictors, direction="auto", smoothing=NULL){
+  matrix[,predictors] <- sapply(matrix[,predictors],function(x){x <- as.numeric(x)})
+  matrix[,predictors][sapply(matrix[,predictors], is.infinite)] <- 1000
+  roc.formula <- as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors))))
+  if(length(predictors)>1){
+    roc_list <- suppressMessages(roc(roc.formula, data = matrix, direction = direction, na.rm = T))
+  } else if(length(predictors)==1){
+    roc_list <- list()
+    roc_list[[predictors]] <- suppressMessages(roc(roc.formula, data = matrix, direction = direction, na.rm = T))
+  }
+  roc_list
+}
+```
+
+Custom function: _plot.roc()_
+
+The function read a list of rock obj and create a roc plot printing AUC value.
+
+```{r compute.roc}
+plot.roc <- function(roc.list, smoothing=NULL){
+  if(!is.null(smoothing)){
+    roc.list <- lapply(roc.list, function(x){smooth(x, method=smoothing)})
+  }
+  labels <- names(roc.list)
+  for(i in seq_along(labels)){
+    l<-labels[[i]]
+    auc<-round(roc.list[[l]]$auc,3)
+    labels[[i]]<-paste0(c(l,auc),collapse=": ")
+  }
+  ggroc(roc.list) + 
+    geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="darkgrey", linetype="dashed") +
+    theme_classic(base_size = 10) +
+    theme(plot.margin = margin(1,2,1,2, "cm")
+          , plot.title = element_text(hjust = 0.5)
+          , legend.title = element_blank()
+          , legend.position = c(0.75, 0.22)) +
+    scale_color_discrete(labels=labels) +
+    coord_fixed()
+}
+```
+
+Custom function: _auc.df()_
+
+```{r auc.df}
+auc.df <- function(roc.list, smoothing=NULL){
+  auc.df <- as.data.frame(do.call(rbind, lapply(roc.list, function(x){x$auc})))
+  auc.df$pred <- row.names(auc.df)
+  row.names(auc.df) <- NULL
+  colnames(auc.df)[which(names(auc.df) == "V1")] <- "AUC"
+  auc.df
+}
+```
+
+
+# Transcript shuffling framework
+```{r readFiles_transcr_shuffle}
+pos_neg_h <- list(d3plex=read.delim("v8.16.1_top1000_human_transcript_shuffle/d3plex.matrix.gz", header = T),
+                  triplexAligner=read.delim("v8.16.1_top1000_human_transcript_shuffle/triplexAligner.matrix.gz", header = T),
+                  fasimLongTarget=read.delim("v8.16.1_top1000_human_transcript_shuffle/fasim_LongTarget.matrix.gz", header = T)
+                  )
+
+pos_neg_m <- list(d3plex=read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/d3plex.matrix.gz", header = T),
+                  triplexAligner=read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/triplexAligner.matrix.gz", header = T),
+                  fasimLongTarget=read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/fasim_LongTarget.matrix.gz", header = T)
+                  )
+
+pos_neg_hm <- list(d3plex=rbind(pos_neg_h[["d3plex"]],pos_neg_m[["d3plex"]][,colnames(pos_neg_h[["d3plex"]])]),
+                   triplexAligner=rbind(pos_neg_h[["triplexAligner"]],pos_neg_m[["triplexAligner"]]),
+                   fasimLongTarget=rbind(pos_neg_h[["fasimLongTarget"]],pos_neg_m[["fasimLongTarget"]]))
+```
+
+
+Default set of 3plex params
+```{r d3plex_params}
+d3plex_parmas<-"8_20_40_off_1_0_Stability_best"
+```
+
+
+## Transcript shuffling [K=1]
+```{r shuffling_kmer}
+k1_list_hm <- list(d3plex=roc.list(pos_neg_hm[["d3plex"]],"pos_neg",paste0("k1_",d3plex_parmas),direction="<"),
+                triplexAligner=roc.list(pos_neg_hm[["triplexAligner"]],"pos_neg","k1",direction="<"),
+                fasimLongTarget=roc.list(pos_neg_hm[["fasimLongTarget"]],"pos_neg","k1",direction="<"))
+
+print(plot.roc(roc.list = lapply(k1_list_hm,"[[",1), smoothing = "binormal"))
+```
+
+# Genomic peaks shuffling framework
+```{r readFiles_peaks_shuffle}
+pos_neg_peak_h <- list(d3plex=read.delim("v8.6_ReChIRP_idr_overlap_top1000/d3plex.matrix.gz", header = T),
+                  triplexAligner=read.delim("v8.6_ReChIRP_idr_overlap_top1000/triplexAligner.matrix.gz", header = T),
+                  fasimLongTarget=read.delim("v8.6_ReChIRP_idr_overlap_top1000/fasim_LongTarget.matrix.gz", header = T)
+                  )
+
+pos_neg_peak_m <- list(d3plex=read.delim("v8.7_ReChIRP_idr_overlap_top1000_mouse/d3plex.matrix.gz", header = T),
+                  triplexAligner=read.delim("v8.7_ReChIRP_idr_overlap_top1000_mouse/triplexAligner.matrix.gz", header = T),
+                  fasimLongTarget=read.delim("v8.7_ReChIRP_idr_overlap_top1000_mouse/fasim_LongTarget.matrix.gz", header = T)
+                  )
+
+pos_neg_peak_hm <- list(d3plex=rbind(pos_neg_peak_h[["d3plex"]],pos_neg_peak_m[["d3plex"]][,colnames(pos_neg_peak_h[["d3plex"]])]),
+                   triplexAligner=rbind(pos_neg_peak_h[["triplexAligner"]],pos_neg_peak_m[["triplexAligner"]]),
+                   fasimLongTarget=rbind(pos_neg_peak_h[["fasimLongTarget"]],pos_neg_peak_m[["fasimLongTarget"]]))
+```
+
+
+
+```{r peaks_shuffle_hm}
+peak_hm <- list(d3plex=roc.list(pos_neg_peak_hm[["d3plex"]],"pos_neg",colnames(pos_neg_peak_hm[["d3plex"]])[grepl(d3plex_parmas,x = colnames(pos_neg_peak_hm[["d3plex"]]))],direction = "<"),
+                triplexAligner=roc.list(pos_neg_peak_hm[["triplexAligner"]],"pos_neg","genomic_regions"),
+                fasimLongTarget=roc.list(pos_neg_peak_hm[["fasimLongTarget"]],"pos_neg","genomic_regions"))
+plot.roc(roc.list = lapply(peak_hm,"[[",1), smoothing = "binormal")
+```
+
+
