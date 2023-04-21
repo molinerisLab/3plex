@@ -5,7 +5,7 @@ output:
   html_notebook: default
 ---
 
-```{r packages, message=FALSE, results="hide"}
+```{r packages, message=TRUE, warning=TRUE, results="hide"}
 library(pROC)
 library(ggplot2)
 ```
@@ -14,10 +14,16 @@ Custom function: _roc.list()_
 
 ```{r roc.list}
 roc.list <- function(matrix, outcomes, predictors, direction="auto", smoothing=NULL){
-  matrix[,predictors] <- sapply(matrix[,predictors],function(x){x <- round(as.numeric(x), digits = 4)})
+  matrix[,predictors] <- sapply(matrix[,predictors],function(x){x <- as.numeric(x)})
   matrix[,predictors][sapply(matrix[,predictors], is.infinite)] <- 1000
-  roc_formula <- as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors))))
-  roc_list <- suppressMessages(roc(roc_formula, data = matrix, direction = direction, na.rm = T))
+  roc.formula <- as.formula(paste(collapse = "~", c(outcomes, paste(collapse = "+", predictors))))
+  if(length(predictors)>1){
+    roc_list <- suppressMessages(roc(roc.formula, data = matrix, direction = direction, na.rm = T))
+  } else if(length(predictors)==1){
+    roc_list <- list()
+    roc_list[[predictors]] <- suppressMessages(roc(roc.formula, data = matrix, direction = direction, na.rm = T))
+  }
+  roc_list
 }
 ```
 
@@ -28,7 +34,7 @@ The function read a list of rock obj and create a roc plot printing AUC value.
 ```{r compute.roc}
 plot.roc <- function(roc.list, smoothing=NULL){
   if(!is.null(smoothing)){
-    roc.list <- lapply(roc.list, function(x){smooth(x, method=opt$smoothing)})
+    roc.list <- lapply(roc.list, function(x){smooth(x, method=smoothing)})
   }
   labels <- names(roc.list)
   for(i in seq_along(labels)){
@@ -50,7 +56,7 @@ plot.roc <- function(roc.list, smoothing=NULL){
 
 Custom function: _auc.df()_
 
-```{r}
+```{r auc.df}
 auc.df <- function(roc.list, smoothing=NULL){
   auc.df <- as.data.frame(do.call(rbind, lapply(roc.list, function(x){x$auc})))
   auc.df$pred <- row.names(auc.df)
@@ -61,147 +67,129 @@ auc.df <- function(roc.list, smoothing=NULL){
 ```
 
 
-```{r readFiles}
-pos_neg_3plex_h <- read.delim("v8.16.1_top1000_human_transcript_shuffle/3plex.summary.pos_neg.ALL.matrix.gz", header = T)
-pos_neg_triplexAligner_h <- read.delim("v8.16.1_top1000_human_transcript_shuffle/triplexAligner.best_logE.pos_neg.ALL.matrix.gz", header = T)
-pos_neg_fasimLongTarget_h <- read.delim("v8.16.1_top1000_human_transcript_shuffle/fasim_LongTarget.best_meanStab.pos_neg.ALL.matrix.gz", header = T)
+Read files produced with transcript shuffling
+```{r readFiles_transcr_shuffle}
+pos_neg_h <- list(d3plex=read.delim("v8.16.1_top1000_human_transcript_shuffle/d3plex.matrix.gz", header = T),
+                  triplexAligner=read.delim("v8.16.1_top1000_human_transcript_shuffle/triplexAligner.matrix.gz", header = T),
+                  fasimLongTarget=read.delim("v8.16.1_top1000_human_transcript_shuffle/fasim_LongTarget.matrix.gz", header = T)
+                  )
 
-pos_neg_h <- list(d3plex=pos_neg_3plex_h,
-                  triplexAligner=pos_neg_triplexAligner_h,
-                  fasimLongTarget=pos_neg_fasimLongTarget_h)
+pos_neg_m <- list(d3plex=read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/d3plex.matrix.gz", header = T),
+                  triplexAligner=read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/triplexAligner.matrix.gz", header = T),
+                  fasimLongTarget=read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/fasim_LongTarget.matrix.gz", header = T)
+                  )
 
-pos_neg_3plex_m <- read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/3plex.summary.pos_neg.ALL.matrix.gz", header = T)
-pos_neg_triplexAligner_m <- read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/triplexAligner.best_logE.pos_neg.ALL.matrix.gz", header = T)
-pos_neg_fasimLongTarget_m <- read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/fasim_LongTarget.best_meanStab.pos_neg.ALL.matrix.gz", header = T)
-
-pos_neg_m <- list(d3plex=pos_neg_3plex_m,
-                  triplexAligner=pos_neg_triplexAligner_m,
-                  fasimLongTarget=pos_neg_fasimLongTarget_m)
+pos_neg_hm <- list(d3plex=rbind(pos_neg_h[["d3plex"]],pos_neg_m[["d3plex"]][,colnames(pos_neg_h[["d3plex"]])]),
+                   triplexAligner=rbind(pos_neg_h[["triplexAligner"]],pos_neg_m[["triplexAligner"]]),
+                   fasimLongTarget=rbind(pos_neg_h[["fasimLongTarget"]],pos_neg_m[["fasimLongTarget"]]))
 ```
 
 
-## ROC Human 
-
-### 3plex
-```{r}
-pos_neg_3plex_h_roc <- compute.roc(pos_neg_3plex_h,
-                 "pos_neg",
-                 colnames(pos_neg_h)[grepl("10_20_40_off_3_20_Stability_norm",x = colnames(pos_neg_h))],
-                 direction = "<")
-print(pos_neg_3plex_h_roc)
+Default set of 3plex params
+```{r d3plex_params}
+d3plex_parmas<-"8_20_40_off_1_0_Stability_best"
 ```
 
-### triplexAligner
-```{r}
-pos_neg_triplexAligner_h_roc <- compute.roc(pos_neg_triplexAligner_h,
-                 "pos_neg",
-                 c("k1","k2","k3","k4"),
-                 direction = "<")
-print(pos_neg_triplexAligner_h_roc)
+
+
+## 3plex [Human - Mouse - All]
+```{r d3plex_transcr_shuffle}
+plot.roc(roc.list(pos_neg_h[["d3plex"]],"pos_neg",colnames(pos_neg_h[["d3plex"]])[grepl(d3plex_parmas,x = colnames(pos_neg_h[["d3plex"]]))],direction = "<"))
+plot.roc(roc.list(pos_neg_m[["d3plex"]],"pos_neg",colnames(pos_neg_m[["d3plex"]])[grepl(d3plex_parmas,x = colnames(pos_neg_m[["d3plex"]]))],direction = "<"))
+plot.roc(roc.list(pos_neg_hm[["d3plex"]],"pos_neg",colnames(pos_neg_hm[["d3plex"]])[grepl(d3plex_parmas,x = colnames(pos_neg_hm[["d3plex"]]))],direction = "<"))
 ```
 
-### fasiml_longTarget
-```{r}
-pos_neg_fasimLongTarget_h_roc <- compute.roc(pos_neg_fasimLongTarget_h,
-                 "pos_neg",
-                 c("k1","k2","k3","k4"),
-                 direction = "<")
-print(pos_neg_fasimLongTarget_h_roc)
+## triplexAligner [Human - Mouse - All]
+```{r triplexAligner_transcr_shuffle}
+print(plot.roc(roc.list(pos_neg_h[["triplexAligner"]],"pos_neg",c("k1","k2","k3"),direction = "<")))
+print(plot.roc(roc.list(pos_neg_m[["triplexAligner"]],"pos_neg",c("k1","k2","k3"),direction = "<")))
+print(plot.roc(roc.list(pos_neg_hm[["triplexAligner"]],"pos_neg",c("k1","k2","k3"),direction = "<")))
 ```
 
-### transcript shuffling [K=1]
-```{r}
-k1_list <- list(d3plex=roc.list(pos_neg_h[["d3plex"]],"pos_neg","k1_10_20_40_off_3_20_Stability_norm",direction="<"),
-                triplexALigner=roc.list(pos_neg_h[["triplexAligner"]],"pos_neg","k1",direction="<"),
-                fasimLongTarget=roc.list(pos_neg_h[["fasimLongTarget"]],"pos_neg","k1",direction="<"))
-
-plot.roc(roc.list = k1_list)
+## fasimLongTarget [Human - Mouse - All]
+```{r fasimLongTarget_transcr_shuffle}
+print(plot.roc(roc.list(pos_neg_h[["fasimLongTarget"]],"pos_neg",c("k1","k2","k3"),direction = "<")))
+print(plot.roc(roc.list(pos_neg_m[["fasimLongTarget"]],"pos_neg",c("k1","k2","k3"),direction = "<")))
+print(plot.roc(roc.list(pos_neg_hm[["fasimLongTarget"]],"pos_neg",c("k1","k2","k3"),direction = "<")))
 ```
 
-### transcript shuffling [K=2]
-```{r}
-k2_list <- list(d3plex=roc.list(pos_neg_h[["d3plex"]],"pos_neg","k2_10_20_40_off_3_20_Stability_norm",direction="<"),
-                triplexALigner=roc.list(pos_neg_h[["triplexAligner"]],"pos_neg","k2",direction="<"),
+## Transcript shuffling [K=1, K=2, K=3]
+```{r shuffling_kmer}
+k1_list_hm <- list(d3plex=roc.list(pos_neg_hm[["d3plex"]],"pos_neg",paste0("k1_",d3plex_parmas),direction="<"),
+                triplexAligner=roc.list(pos_neg_hm[["triplexAligner"]],"pos_neg","k1",direction="<"),
+                fasimLongTarget=roc.list(pos_neg_hm[["fasimLongTarget"]],"pos_neg","k1",direction="<"))
+
+k2_list_h <- list(d3plex=roc.list(pos_neg_h[["d3plex"]],"pos_neg",paste0("k2_",d3plex_parmas),direction="<"),
+                  triplexAligner=roc.list(pos_neg_h[["triplexAligner"]],"pos_neg","k2",direction="<"),
                 fasimLongTarget=roc.list(pos_neg_h[["fasimLongTarget"]],"pos_neg","k2",direction="<"))
 
-plot.roc(roc.list = k2_list)
-```
-
-### transcript shuffling [K=3]
-```{r}
-k3_list <- list(d3plex=roc.list(pos_neg_h[["d3plex"]],"pos_neg","k3_10_20_40_off_3_20_Stability_norm",direction="<"),
-                triplexALigner=roc.list(pos_neg_h[["triplexAligner"]],"pos_neg","k3",direction="<"),
+k3_list_h <- list(d3plex=roc.list(pos_neg_h[["d3plex"]],"pos_neg",paste0("k3_",d3plex_parmas),direction="<"),
+                triplexAligner=roc.list(pos_neg_h[["triplexAligner"]],"pos_neg","k3",direction="<"),
                 fasimLongTarget=roc.list(pos_neg_h[["fasimLongTarget"]],"pos_neg","k3",direction="<"))
 
-plot.roc(roc.list = k3_list)
+print(plot.roc(roc.list = lapply(k1_list_hm,"[[",1), smoothing = "binormal"))
+print(plot.roc(roc.list = lapply(k2_list_h,"[[",1), smoothing = "binormal"))
+print(plot.roc(roc.list = lapply(k3_list_h,"[[",1)))
 ```
 
-## ROC Mouse
+## Genomic peaks shuffling
+```{r readFiles_peaks_shuffle}
+pos_neg_peak_h <- list(d3plex=read.delim("v8.6_ReChIRP_idr_overlap_top1000/d3plex.matrix.gz", header = T),
+                  triplexAligner=read.delim("v8.6_ReChIRP_idr_overlap_top1000/triplexAligner.matrix.gz", header = T),
+                  fasimLongTarget=read.delim("v8.6_ReChIRP_idr_overlap_top1000/fasim_LongTarget.matrix.gz", header = T)
+                  )
 
-```{r}
-pos_neg_3plex_m_roc <- compute.roc(pos_neg_3plex_m,
-                 "pos_neg",
-                 colnames(pos_neg_h)[grepl("10_20_40_off_3_20_Stability_norm",x = colnames(pos_neg_h))],
-                 direction = "<")
-print(pos_neg_3plex_m_roc)
-```
+pos_neg_peak_m <- list(d3plex=read.delim("v8.7_ReChIRP_idr_overlap_top1000_mouse/d3plex.matrix.gz", header = T),
+                  triplexAligner=read.delim("v8.7_ReChIRP_idr_overlap_top1000_mouse/triplexAligner.matrix.gz", header = T),
+                  fasimLongTarget=read.delim("v8.7_ReChIRP_idr_overlap_top1000_mouse/fasim_LongTarget.matrix.gz", header = T)
+                  )
 
-
-```{r}
-pos_neg_triplexAligner_m_roc <- compute.roc(pos_neg_triplexAligner_m,
-                 "pos_neg",
-                 c("k1","k2","k3","k4"),
-                 direction = "<")
-print(pos_neg_triplexAligner_m_roc)
-```
-
-```{r}
-pos_neg_fasimLongTarget_m_roc <- compute.roc(pos_neg_fasimLongTarget_m,
-                 "pos_neg",
-                 c("k1","k2","k3","k4"),
-                 direction = "<")
-print(pos_neg_fasimLongTarget_m_roc)
+pos_neg_peak_hm <- list(d3plex=rbind(pos_neg_peak_h[["d3plex"]],pos_neg_peak_m[["d3plex"]][,colnames(pos_neg_peak_h[["d3plex"]])]),
+                   triplexAligner=rbind(pos_neg_peak_h[["triplexAligner"]],pos_neg_peak_m[["triplexAligner"]]),
+                   fasimLongTarget=rbind(pos_neg_peak_h[["fasimLongTarget"]],pos_neg_peak_m[["fasimLongTarget"]]))
 ```
 
 
-
-
-### Investigating other param combinations
-```{r}
-pos_neg_3plex_m_roc <- compute.roc(pos_neg_3plex_m,
-                 "pos_neg",
-                 colnames(pos_neg_h)[grepl("8_20_10_off_1_20_Stability_best",x = colnames(pos_neg_h))],
-                 direction = "<")
-print(pos_neg_3plex_m_roc)
+## 3plex [Human - Mouse - All]
+```{r d3plex_peaks_shuffle}
+plot.roc(roc.list(pos_neg_peak_h[["d3plex"]],"pos_neg",colnames(pos_neg_peak_h[["d3plex"]])[grepl(d3plex_parmas,x = colnames(pos_neg_peak_h[["d3plex"]]))],direction = "<"))
+plot.roc(roc.list(pos_neg_peak_m[["d3plex"]],"pos_neg",colnames(pos_neg_peak_m[["d3plex"]])[grepl(d3plex_parmas,x = colnames(pos_neg_peak_m[["d3plex"]]))],direction = "<"))
+plot.roc(roc.list(pos_neg_peak_hm[["d3plex"]],"pos_neg",colnames(pos_neg_peak_hm[["d3plex"]])[grepl(d3plex_parmas,x = colnames(pos_neg_peak_hm[["d3plex"]]))],direction = "<"))
 ```
 
-
-## Combine Human and Mouse df
-```{r}
-r_hm <- rbind(pos_neg_3plex_h,pos_neg_3plex_m[,colnames(pos_neg_3plex_h)])
+## triplexAligner [Human - Mouse - All]
+```{r triplexAligner_peaks_shuffle}
+plot.roc(roc.list(pos_neg_peak_h[["triplexAligner"]],"pos_neg","genomic_regions")) #,direction = "<"
+plot.roc(roc.list(pos_neg_peak_h[["triplexAligner"]],"pos_neg","genomic_regions"))
+plot.roc(roc.list(pos_neg_peak_hm[["triplexAligner"]],"pos_neg","genomic_regions"))
 ```
 
-```{r}
-compute.roc(r_hm,
-                 "pos_neg",
-                 colnames(pos_neg_h)[grepl("8_20_10_off_1_0_Stability_best",x = colnames(pos_neg_h))],
-                 direction = "<")
+## triplexAligner [Human - Mouse - All]
+```{r fasimLongTarget_peaks_shuffle}
+plot.roc(roc.list(pos_neg_peak_h[["fasimLongTarget"]],"pos_neg","genomic_regions"))#,direction = "<"
+plot.roc(roc.list(pos_neg_peak_h[["fasimLongTarget"]],"pos_neg","genomic_regions"))
+plot.roc(roc.list(pos_neg_peak_hm[["fasimLongTarget"]],"pos_neg","genomic_regions"))
 ```
 
-
-```{r}
-roc_list_hm <- roc.list(r_hm,
-                        "pos_neg",
-                        colnames(r_hm)[which(colnames(r_hm)!="pos_neg")],
-                        direction = "<")
-auc_hm <- auc.df(roc_list_hm)
-
-auc_hm_top <- top_n(auc_hm,15,wt = AUC)
-ggplot(auc_hm_top, aes(x=reorder(as.factor(pred),AUC),y=AUC)) +
-  geom_col() +
-  coord_flip()
+```{r peaks_shuffle_hm}
+peak_hm <- list(d3plex=roc.list(pos_neg_peak_hm[["d3plex"]],"pos_neg",colnames(pos_neg_peak_hm[["d3plex"]])[grepl(d3plex_parmas,x = colnames(pos_neg_peak_hm[["d3plex"]]))],direction = "<"),
+                triplexAligner=roc.list(pos_neg_peak_hm[["triplexAligner"]],"pos_neg","genomic_regions"),
+                fasimLongTarget=roc.list(pos_neg_peak_hm[["fasimLongTarget"]],"pos_neg","genomic_regions"))
+plot.roc(roc.list = lapply(peak_hm,"[[",1), smoothing = "binormal")
 ```
 
+```{r peaks_shuffle_h}
+peak_h <- list(d3plex=roc.list(pos_neg_peak_h[["d3plex"]],"pos_neg",colnames(pos_neg_peak_h[["d3plex"]])[grepl(d3plex_parmas,x = colnames(pos_neg_peak_h[["d3plex"]]))],direction = "<"),
+                triplexAligner=roc.list(pos_neg_peak_h[["triplexAligner"]],"pos_neg","genomic_regions"),
+                fasimLongTarget=roc.list(pos_neg_peak_h[["fasimLongTarget"]],"pos_neg","genomic_regions"))
+plot.roc(roc.list = lapply(peak_h,"[[",1), smoothing = "binormal")
+```
 
+```{r peaks_shuffle_m}
+peak_m <- list(d3plex=roc.list(pos_neg_peak_m[["d3plex"]],"pos_neg",colnames(pos_neg_peak_m[["d3plex"]])[grepl(d3plex_parmas,x = colnames(pos_neg_peak_m[["d3plex"]]))],direction = "<"),
+                triplexAligner=roc.list(pos_neg_peak_m[["triplexAligner"]],"pos_neg","genomic_regions"),
+                fasimLongTarget=roc.list(pos_neg_peak_m[["fasimLongTarget"]],"pos_neg","genomic_regions"))
+plot.roc(roc.list = lapply(peak_m,"[[",1), smoothing = "binormal")
+```
 
 
