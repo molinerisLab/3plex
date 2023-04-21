@@ -53,7 +53,7 @@ rand.excl.bed: $(GENCODE_DIR)/$(GENOME).shuffle_blacklist.bed $(GENCODE_DIR)/gap
 # Single summary clean 
 
 %.3plex.summary.clean.gz: %_posneg.bed %.3plex.summary.gz
-	cut -f4,5 $< | translate -a -v -e 0 <(bawk '{print $$1,$$14,$$15}' $^2) 1 | \
+	cut -f4,5 $< | translate -a -v -e 0 <(bawk '{print $$1,$$15,$$12}' $^2) 1 | \
 	bawk 'BEGIN{print "pos_neg","pred1","pred2"}{print $$4,$$2,$$3}' | gzip > $@
 %.triplexAligner.summary.clean.gz: %_posneg.bed %.triplexAligner.summary.gz
 	cut -f4,5 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$12,$$7,$$10}' $^2 | find_best 1 3) 1 | \
@@ -81,4 +81,24 @@ fasimLongtarget.summary.clean.gz: $(addsuffix .fasimLongtarget.summary.clean.gz,
 AUC_singles.tsv: $(addsuffix .3plex.summary.clean.AUC_cmp.tsv, $(SAMPLES)) $(addsuffix .triplexAligner.summary.clean.AUC_cmp.tsv, $(SAMPLES)) $(addsuffix .fasimLongtarget.summary.clean.AUC_cmp.tsv, $(SAMPLES))
 	matrix_reduce -t -l '$^' '*\.*\.summary.clean.AUC_cmp.tsv' | tr ";" "\t" | cut -f1,2,4,6 | grep -v AUC > $@
 AUC_singles.matrix.xlsx: AUC_singles.tsv
-	cat $< | cut -f1,2,4 | tab2matrix -r ssRNA | tab2xlsx > $^2
+	cat $< | cut -f1,2,4 | tab2matrix -r ssRNA | tab2xlsx > $@
+
+AUC_singles.tsv: $(addsuffix .3plex.summary.clean.AUC_cmp.tsv, $(SAMPLES)) $(addsuffix .triplexAligner.summary.clean.AUC_cmp.tsv, $(SAMPLES)) $(addsuffix .fasimLongtarget.summary.clean.AUC_cmp.tsv, $(SAMPLES))
+	matrix_reduce -t -l '$^' '*\.*\.summary.clean.AUC_cmp.tsv' | tr ";" "\t" | cut -f1,2,4,6 | grep -v AUC > $@
+AUC_singles.matrix.xlsx: AUC_singles.tsv
+	cat $< | cut -f1,2,4 | tab2matrix -r ssRNA | tab2xlsx > $@
+
+
+##########
+# Avg ROC
+BIN=20
+%.summary.clean.sens_spec.tsv: %.summary.clean.gz
+	$(CONDA_ACTIVATE) /home/cciccone/.conda/envs/pROC_Env; \
+	zcat $< | ../../local/src/avgROC.R pos_neg pred2 --negative_subsampling $(NEGATIVE_AMPLIFICATION) > $@
+# In order to obtain equally populated bins on the specificities axis (x-axis)
+%.summary.clean.sens_spec.bin: %.summary.clean.sens_spec.tsv
+	bawk 'NR>1 {print $$specificities}' $< | round_table -p 4 | sort -k1,1g | uniq | enumerate_rows | perl -lane 'BEGIN{$$,="\t"; $$i=0; print ">$$i"; $$i++} $$F[0] = $$F[0] % int((2216/$(BIN))-1); if($$F[0]==0){print ">$$i"; $$i++} print $$F[1]' | fasta2tab > $@
+%.summary.clean.sens_spec.bin.avg: %.summary.clean.sens_spec.bin
+	stat_base -o -g -a < $< > $@
+%.summary.clean.sens_spec.tsv.spec_bin_avg: %.summary.clean.sens_spec.tsv %.summary.clean.sens_spec.bin %.summary.clean.sens_spec.bin.avg
+	cat $< | round_table -p 4 | uniq | translate -a -f 2 <(echo -e "spec_bin\tspecificities"; cat $^2) 2 | translate -a <(echo -e "spec_bin\tspec_bin_avg"; cat $^3) 4 > $@

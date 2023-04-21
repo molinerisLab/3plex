@@ -53,7 +53,7 @@ rand.excl.bed: $(GENCODE_DIR)/$(GENOME).shuffle_blacklist.bed $(GENCODE_DIR)/gap
 # Single summary clean 
 
 %.3plex.summary.clean.gz: %_posneg.bed %.3plex.summary.gz
-	cut -f4,5 $< | translate -a -v -e 0 <(bawk '{print $$1,$$14,$$15}' $^2) 1 | \
+	cut -f4,5 $< | translate -a -v -e 0 <(bawk '{print $$1,$$15,$$12}' $^2) 1 | \
 	bawk 'BEGIN{print "pos_neg","pred1","pred2"}{print $$4,$$2,$$3}' | gzip > $@
 %.triplexAligner.summary.clean.gz: %_posneg.bed %.triplexAligner.summary.gz
 	cut -f4,5 $< | translate -a -v -e 0 <(bawk 'NR>1{print $$12,$$7,$$10}' $^2 | find_best 1 3) 1 | \
