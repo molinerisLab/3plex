@@ -1,5 +1,7 @@
-V8_DIRS=../v8.16_top1000_human_transcript_shuffle ../v8.17_top1000_mouse_transcript_shuffle
+V8_DIRS=../v8.16.1_top1000_human_transcript_shuffle ../v8.17.1_top1000_mouse_transcript_shuffle_k2
 
 BEST_PREDICTOR=Stability_best
 
 BEST_PARAMS=10_10_1_20_10_off_3
+
+SHUFFLE_METHOD=transcript
