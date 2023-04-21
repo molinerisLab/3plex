@@ -755,3 +755,15 @@ raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.0_8_1_20_70_off_3.AUC_cm
 	zcat $< | ../../local/src/ROC.R neg_pos Stability_norm_undercount t_pot_norm Stability_best Score_best -d "<" -O raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.0_8_1_20_70_off_3.roc > $@
 raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.10_10_1_20_10_off_3.gz:
 	matrix_reduce -t 'tpx_paramspace/*_ss10_unpairedWindow/*.neg_pos_rand.bed/min_length~10/max_length~-1/error_rate~20/guanine_rate~10/filter_repeat~off/consecutive_errors~3/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.gz' | bawk 'NR==1 || $$2!="Duplex_ID" {split($$1,a,";"); print a[1],$$0}' | cut -f1,3- | gzip > $@
+method_cmp.matrix.AUC_cmp.tsv: method_cmp.matrix.gz
+	$(CONDA_ACTIVATE) pROC_Env;\
+	zcat $< | ../../local/src/ROC.R neg_pos $$(zcat $< | head -n1 | cut -f3- | tr "\t" " ") -d "<" > $@
+
+raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.ALL_ssRNA.matrix.gz: raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.ALL_ssRNA.gz selected_ssRNA.triplex_ssRNA
+	bawk 'NR>1{split($$1,a,";"); id="d3plex_"a[4]"_"a[6]"_"a[7]"_"a[8]"_"a[9]"_"a[2]; print a[1],$$4";"$$2,id"_Stability_best",$$13; print a[1],$$4";"$$2,id"_Stability_norm",$$18}' $< | filter_1col 1 $^2 | cut -f2- | tab2matrix -r "pos_neg;peak;ssRNA" | bawk '{split($$1,a,";"); print a[1],$$0}' | cut -f 1,3- | gzip > $@
+raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.ALL_ssRNA.matrix.auc_no_cmp.gz: raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.ALL_ssRNA.matrix.gz ../../local/src/ROC_no_comp.R
+	set +u; source /opt/conda/miniconda3/etc/profile.d/conda.sh; conda activate ; conda activate  pROC_Env;\
+	zcat $< | $^2 pos_neg $$(zcat $< | head -n1 | cut -f2- | tr "\t" " ") -d "<" | gzip > $@
+raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.ALL_ssRNA.matrix.auc_no_cmp.method.gz: raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.ALL_ssRNA.matrix.auc_no_cmp.gz
+	bawk 'BEGIN{print"shuffling","tpx_method","auc","species"}{print "genomic_regions",$$1,$$2,"human"}' $< | gzip > $@
+
