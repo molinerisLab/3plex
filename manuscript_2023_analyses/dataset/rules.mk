@@ -235,3 +235,39 @@ best_single_params.ALL_ssRNA.tsv: tpx_paramspace_AUC.method.Npeaks_version.techn
 tpx_paramspace_AUC.method.Npeaks_version.technique.best_ss.matrix: tpx_paramspace_AUC.method.Npeaks_version.technique.gz
 	bawk '{print $$ssRNA,$$singleStrandedness,$$AUC}' $< | find_best 1:2 3 | tab2matrix -r lncRNA > $@
 
+matrix.auc_no_cmp.method_species.all_versions.gz:
+	zcat */*auc_no_cmp.method_species.gz | bawk 'NR==1 || $$1!="shuffling"' | gzip > $@
+matrix.auc_no_cmp.method_species.all_versions.clean.gz: matrix.auc_no_cmp.method_species.all_versions.gz
+	zcat $< | sed -e 's/triplexAligner/triplexAligner_NA_NA_NA_NA_NA_NA_NA_NA/g' -e 's/fasimLongtarget/fasim_LongTarget_NA_NA_NA_NA_NA_NA_NA_NA/g' | bawk '{split($$2,a,"_"); print $$1,a[1],a[2],a[3],a[4],a[5],a[6],a[7],a[9],$$3,$$4}' | gzip > $^2
+
+
+
+
+
+
+
+
+############################
+# Genomic Peaks subsampling
+
+v_test_randomiz_sub.%.summary.clean.gz:
+	matrix_reduce -t 'v_test_randomiz_sub_*/*.$*.summary.clean.gz' | bawk 'NR==1{print $$2,$$3,$$4}NR>1 && $$2!="pos_neg" {print$$2,$$3,$$4}' | gzip > $@
+v_test_randomiz_sub.summary.clean.tpx_method.gz:
+	matrix_reduce -t 'v_test_randomiz_sub.*.summary.clean.gz' | grep -v pos_neg | cut -f 1,3,5 | bawk 'BEGIN{print "tpx_method","pos_neg","Stability_best"}{print}' | gzip > $@
+
+AUC_singles.tsv: $(addsuffix .3plex.summary.clean.AUC_cmp.tsv, $(SAMPLES)) $(addsuffix .triplexAligner.summary.clean.AUC_cmp.tsv, $(SAMPLES)) $(addsuffix .fasimLongtarget.summary.clean.AUC_cmp.tsv, $(SAMPLES))
+	matrix_reduce -t -l '$^' '*\.*\.summary.clean.AUC_cmp.tsv' | tr ";" "\t" | cut -f1,2,4,6 | grep -v AUC > $@
+AUC_singles.matrix.xlsx: AUC_singles.tsv
+	cat $< | cut -f1,2,4 | tab2matrix -r ssRNA | tab2xlsx > $@
+
+
+##########
+# Avg ROC
+BIN=20
+NEGATIVE_AMPLIFICATION=50
+#NEGATIVE_AMPLIFICATION=1000
+%.summary.clean.sens_spec.tsv: %.summary.clean.gz
+	$(CONDA_ACTIVATE) /home/cciccone/.conda/envs/pROC_Env; \
+	zcat $< | ../local/src/avgROC.R pos_neg pred2 --negative_subsampling $(NEGATIVE_AMPLIFICATION) > $@
+v_test_randomiz_sub.summary.clean.sens_spec.tpx_method.gz:
+	matrix_reduce -t 'v_test_randomiz_sub.*.summary.clean.sens_spec.tsv' | grep -v specificities | bawk 'BEGIN{print "tpx_method","iteration","specificities","sensitivities"}{print}' | gzip > $@
