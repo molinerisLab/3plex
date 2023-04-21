@@ -1083,6 +1083,15 @@ rule all_triplexAligner:
 		| grep -v 'neg_pos' | gzip > {output}
 	"""
 
+rule all_triplexAligner_matrix:
+	input:
+		"triplexAligner.best_logE.pos_neg.ALL.gz"
+	output:
+		"triplexAligner.matrix.gz"
+	shell:"""
+		zcat {input} | bawk 'BEGIN{{print "pos_neg","genomic_regions"}}{{print $4,$3}}' | gzip > {output}
+	"""
+
 rule all_triplexAligner_auc_cmp:
 	input:
 		"triplexAligner.best_logE.pos_neg.ALL.gz"
@@ -1093,7 +1102,7 @@ rule all_triplexAligner_auc_cmp:
 		zcat {input} | \
 		bawk 'BEGIN{{print "neg_pos","triplexAligner"}}{{print $4,$3}}' | \
 		../../local/src/ROC_no_comp.R neg_pos triplexAligner | \
-		bawk 'BEGIN{{print "shuffling","tpx_method","auc","species"}}{{print "genomic_regions",$2,$3,"human"}}' | gzip > {output}
+		bawk 'BEGIN{{print "shuffling","tpx_method","auc","species"}}{{print "genomic_regions",$1,$2,"{SPECIES_FULL}"}}' | gzip > {output}
 	"""
 
 
@@ -1149,6 +1158,20 @@ rule all_fasimLongTarget:
 		| grep -v 'neg_pos' | gzip > {output}
 	"""
 
+rule all_fasimLongTarget_matrix:
+	input:
+		"fasim_LongTarget.best_meanStab.pos_neg.ALL.gz"
+	output:
+		"fasim_LongTarget.matrix.gz"
+	shell:"""
+		zcat {input} | bawk 'BEGIN{{print "pos_neg","genomic_regions"}}{{print $4,$3}}' | gzip > {output}
+	"""
+
+if config["GENCODE_SPECIES"] == "hsapiens":
+	SPECIES_FULL = "human"
+elif config["GENCODE_SPECIES"] == "mmusculus":
+	SPECIES_FULL = "mouse"
+
 rule all_fasimLongTarget_auc_cmp:
 	input:
 		"fasim_LongTarget.best_meanStab.pos_neg.ALL.gz"
@@ -1159,7 +1182,7 @@ rule all_fasimLongTarget_auc_cmp:
 		zcat {input} | \
 		bawk 'BEGIN{{print "neg_pos","fasimLongTarget"}}{{print $4,$3}}' | \
 		../../local/src/ROC_no_comp.R neg_pos fasimLongTarget | \
-		bawk 'BEGIN{{print "shuffling","tpx_method","auc","species"}}{{print "genomic_regions",$1,$2,"human"}}' | gzip > {output}
+		bawk 'BEGIN{{print "shuffling","tpx_method","auc","species"}}{{print "genomic_regions",$1,$2,"{SPECIES_FULL}"}}' | gzip > {output}
 	"""
 
 
