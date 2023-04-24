@@ -8,6 +8,7 @@ output:
 ```{r packages, message=TRUE, warning=TRUE, results="hide"}
 library(pROC)
 library(ggplot2)
+library(ggsci)
 ```
 
 Custom function: _roc.list()_
@@ -39,8 +40,7 @@ plot.roc <- function(roc.list, smoothing=NULL){
   labels <- names(roc.list)
   for(i in seq_along(labels)){
     l<-labels[[i]]
-    #auc<-round(roc.list[[l]]$auc,3)
-    auc <- roc.list[[l]]$auc
+    auc<-round(roc.list[[l]]$auc,3)
     labels[[i]]<-paste0(c(l,auc),collapse=": ")
   }
   ggroc(roc.list) + 
@@ -50,7 +50,7 @@ plot.roc <- function(roc.list, smoothing=NULL){
           , plot.title = element_text(hjust = 0.5)
           , legend.title = element_blank()
           , legend.position = c(0.75, 0.22)) +
-    scale_color_discrete(labels=labels) +
+    scale_color_aaas(labels=labels,) +
     coord_fixed()
 }
 ```
@@ -68,73 +68,38 @@ auc.df <- function(roc.list, smoothing=NULL){
 ```
 
 
-# Transcript shuffling framework
-```{r readFiles_transcr_shuffle}
-pos_neg_h <- list(d3plex=read.delim("v8.16.1_top1000_human_transcript_shuffle/d3plex.matrix.gz", header = T),
-                  triplexAligner=read.delim("v8.16.1_top1000_human_transcript_shuffle/triplexAligner.matrix.gz", header = T),
-                  fasimLongTarget=read.delim("v8.16.1_top1000_human_transcript_shuffle/fasim_LongTarget.matrix.gz", header = T)
-                  )
+# Transcript shuffling framework [K=1]
+```{r transcr.shuffle}
+transcr.shuffle.hm <- read.delim("v8.summary_transcript_shuffle/matrix.human_mouse.tpx_method.gz", header=T)
+transcr.shuffle.hm <- split(transcr.shuffle.hm, transcr.shuffle.hm$tpx_method)
 
-pos_neg_m <- list(d3plex=read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/d3plex.matrix.gz", header = T),
-                  triplexAligner=read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/triplexAligner.matrix.gz", header = T),
-                  fasimLongTarget=read.delim("v8.17.1_top1000_mouse_transcript_shuffle_k2/fasim_LongTarget.matrix.gz", header = T)
-                  )
-
-pos_neg_hm <- list(d3plex=rbind(pos_neg_h[["d3plex"]],pos_neg_m[["d3plex"]][,colnames(pos_neg_h[["d3plex"]])]),
-                   triplexAligner=rbind(pos_neg_h[["triplexAligner"]],pos_neg_m[["triplexAligner"]]),
-                   fasimLongTarget=rbind(pos_neg_h[["fasimLongTarget"]],pos_neg_m[["fasimLongTarget"]]))
+transcr.shuffle.hm.roc <- lapply(transcr.shuffle.hm, function(x){
+  roc.list(x,"pos_neg","k1")
+})
+print(plot.roc(roc.list = lapply(transcr.shuffle.hm.roc,"[[","k1"), smoothing = "binormal"))
 ```
 
-
-Default set of 3plex params
-```{r d3plex_params}
-d3plex_parmas<-"8_20_40_off_1_0_Stability_best"
-```
-
-
-## Transcript shuffling [K=1]
-```{r shuffling_kmer}
-k1_list_hm <- list(d3plex=roc.list(pos_neg_hm[["d3plex"]],"pos_neg",paste0("k1_",d3plex_parmas),direction="<"),
-                triplexAligner=roc.list(pos_neg_hm[["triplexAligner"]],"pos_neg","k1",direction="<"),
-                fasimLongTarget=roc.list(pos_neg_hm[["fasimLongTarget"]],"pos_neg","k1",direction="<"))
-
-print(plot.roc(roc.list = lapply(k1_list_hm,"[[",1), smoothing = "binormal"))
-```
 
 # Genomic peaks shuffling framework
-```{r readFiles_peaks_shuffle}
-pos_neg_peak_h <- list(d3plex=read.delim("v8.6_ReChIRP_idr_overlap_top1000/d3plex.matrix.gz", header = T),
-                  triplexAligner=read.delim("v8.6_ReChIRP_idr_overlap_top1000/triplexAligner.matrix.gz", header = T),
-                  fasimLongTarget=read.delim("v8.6_ReChIRP_idr_overlap_top1000/fasim_LongTarget.matrix.gz", header = T)
-                  )
+```{r peaks_shuffle}
+peaks.shuffle.hm <- read.delim("v8.summary_peaks_shuffle/matrix.human_mouse.tpx_method.gz", header=T)
+peaks.shuffle.hm <- split(peaks.shuffle.hm, peaks.shuffle.hm$tpx_method)
 
-pos_neg_peak_m <- list(d3plex=read.delim("v8.7_ReChIRP_idr_overlap_top1000_mouse/d3plex.matrix.gz", header = T),
-                  triplexAligner=read.delim("v8.7_ReChIRP_idr_overlap_top1000_mouse/triplexAligner.matrix.gz", header = T),
-                  fasimLongTarget=read.delim("v8.7_ReChIRP_idr_overlap_top1000_mouse/fasim_LongTarget.matrix.gz", header = T)
-                  )
-
-pos_neg_peak_hm <- list(d3plex=rbind(pos_neg_peak_h[["d3plex"]],pos_neg_peak_m[["d3plex"]][,colnames(pos_neg_peak_h[["d3plex"]])]),
-                   triplexAligner=rbind(pos_neg_peak_h[["triplexAligner"]],pos_neg_peak_m[["triplexAligner"]]),
-                   fasimLongTarget=rbind(pos_neg_peak_h[["fasimLongTarget"]],pos_neg_peak_m[["fasimLongTarget"]]))
+peaks.shuffle.hm.roc <- lapply(peaks.shuffle.hm, function(x){
+  roc.list(x,"pos_neg","score")
+})
+print(plot.roc(roc.list = lapply(peaks.shuffle.hm.roc,"[[","score"), smoothing = "binormal"))
 ```
 
 
-
-```{r peaks_shuffle_hm}
-peak_hm <- list(d3plex=roc.list(pos_neg_peak_hm[["d3plex"]],"pos_neg",colnames(pos_neg_peak_hm[["d3plex"]])[grepl(d3plex_parmas,x = colnames(pos_neg_peak_hm[["d3plex"]]))],direction = "<"),
-                triplexAligner=roc.list(pos_neg_peak_hm[["triplexAligner"]],"pos_neg","genomic_regions"),
-                fasimLongTarget=roc.list(pos_neg_peak_hm[["fasimLongTarget"]],"pos_neg","genomic_regions"))
-plot.roc(roc.list = lapply(peak_hm,"[[",1), smoothing = "binormal")
-```
-
-# Genomic Peaks shuffling 
+# AVG ROC version - Genomic Peaks shuffling 
 ```{r}
 pos_neg_peak_sub_hm <- read.delim("v_test_randomiz_sub.summary.clean.sens_spec.tpx_method.gz",header=T)
 
 pos_neg_peak_sub_hm <- pos_neg_peak_sub_hm %>% mutate(spec_bin = cut(specificities, breaks=c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1), include.lowest=T))
 
 pos_neg_peak_sub_hm_avg <- pos_neg_peak_sub_hm %>%
-  group_by(spec_bin,tpx_method) %>%
+  group_by(spec_bin, tpx_method) %>%
   summarise(  mean_sens = mean(sensitivities)
             , mean_spec = mean(specificities)
             , ymin = mean(mean_sens) - sd(sensitivities)/2
