@@ -32,14 +32,19 @@ m <- read.delim("$^2",header=T);\\
 hm <- rbind(h,m[,colnames(h)]);\\
 write.table(hm,file=gzfile("$@"),quote=F,sep="\t",row.name=F,col.names=T)'
 
-d3plex.matrix.human_mouse.gz: $(addsuffix /d3plex.matrix.gz, $(V8_DIRS))
+d3plex.matrix.human_mouse.all.gz: $(addsuffix /d3plex.matrix.gz, $(V8_DIRS))
 	r --vanilla -e 'h <- read.delim("$<",header=T);\\
 m <- read.delim("$^2",header=T);\\
 hm <- rbind(h,m[,colnames(h)]);\\
 write.table(hm,file=gzfile("$@"),quote=F,sep="\t",row.name=F,col.names=T)'
 
+d3plex.matrix.human_mouse.gz: d3plex.matrix.human_mouse.all.gz
+	bawk '{print $$pos_neg,$$k1_8_20_40_off_1_0_Stability_best,$$k2_8_20_40_off_1_0_Stability_best,$$k3_8_20_40_off_1_0_Stability_best}' $< | gzip > $@
+d3plex.matrix.human_mouse.gz: d3plex.matrix.human_mouse.all.gz
+	bawk '{print $$pos_neg,$$d3plex_8_20_40_off_1_0_Stability_best}' $< | gzip > $@
+
 %.matrix.human_mouse.auc_no_cmp.gz: %.matrix.human_mouse.gz
-	set +u; source /opt/conda/miniconda3/etc/profile.d/conda.sh; conda activate ; conda activate  pROC_Env;\
+	$(CONDA_ACTIVATE)  pROC_Env;\
 	zcat $< | ../../local/src/ROC_no_comp.R pos_neg $$(zcat $< | head -n1 | cut -f2- | tr "\t" " ") -d "<" | gzip > $@
 
 %.matrix.human_mouse.auc_no_cmp.method_species.gz: %.matrix.human_mouse.auc_no_cmp.gz
@@ -53,6 +58,10 @@ d3plex.matrix.human_mouse.auc_no_cmp.method_species.gz: d3plex.matrix.human_mous
 		bawk 'BEGIN{print"shuffling","tpx_method","auc","species"}{print "genomic_regions",$$1,$$2,"human_mouse"}' $< | gzip > $@
 endif
 
+matrix.human_mouse.tpx_method.gz:
+	matrix_reduce -t '*.matrix.human_mouse.gz' | bawk 'BEGIN{print "tpx_method","pos_neg","k1","k2","k3","k4"}NR>1{print}' | gzip > $@
+matrix.human_mouse.tpx_method.gz:
+	matrix_reduce -t '*.matrix.human_mouse.gz' | bawk 'BEGIN{print "tpx_method","pos_neg","score"}NR>1{print}' | gzip > $@
 
 
 
