@@ -1,0 +1,1 @@
+../../local/share/rules/prj_rules_v8.6_timing_tests.mk

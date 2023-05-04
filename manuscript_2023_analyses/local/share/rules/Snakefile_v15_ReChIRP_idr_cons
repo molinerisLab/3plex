@@ -63,7 +63,6 @@ triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\
 
 #PREDICTORS_COL_NAMES=os.environ.get("PREDICTORS_COL_NAMES",config["PREDICTORS_COL_NAMES"])
 
-
 # More parameters are specified in config.yaml
 
 ##############################################################
