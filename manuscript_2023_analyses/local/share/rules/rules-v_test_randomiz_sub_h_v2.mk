@@ -10,8 +10,8 @@ THREADS=16
 
 SAMPLES=$(shell cat selected_ssRNA)
 
-#NEGATIVE_AMPLIFICATION?=50
-NEGATIVE_AMPLIFICATION?=1000
+NEGATIVE_AMPLIFICATION?=50
+#NEGATIVE_AMPLIFICATION?=1000
 
 .SECONDARY:
 
@@ -20,28 +20,32 @@ NEGATIVE_AMPLIFICATION?=1000
 
 %.fa: $(VERSION_ssRNA_FASTA)/%.fa
 	cp -a $< $@
-ChIRP.bed.split.gz: $(PEAKS)
-	zcat $< | bedtools sort | tr "-" "_" | gzip > $@
+ChIRP.bed.split.gz: ../../local/share/data/ReChIRP/idr_overlap_top1000/all_reproducibility.idr_conservative-idr_optimal_peak-overalp_conservative-overlap_optimal.regionPeak.top1000.gz
+	bawk '{sub("-","_",$$1); print}' $< | bedtools sort | gzip > $@
 %_pos.bed: ChIRP.bed.split.gz
 	bawk '$$5=="$*" {print $$1,$$2,$$3,$$4";"$$5,"pos"}' $< > $@
-rand.excl.bed: $(GENCODE_DIR)/$(GENOME).shuffle_blacklist.bed $(GENCODE_DIR)/gap.bed
-	cut -f -3 $< $^2 | bedtools sort | bedtools merge > $@
-%_posneg.fasim.fa: %_posneg.bed
-	bawk '{split($$4,a,";"); print $$1~3,a[2]"|"$$4,$$5,$$6}' $< | bedtools getfasta -name+ -fi $(GENOME_FA) -bed - | sed 's/::/|/' > $@
-%_neg.bed: rand.excl.bed %_pos.bed $(GENCODE_DIR)/chrom.info.no_alt
+# idr + overlap top 1000 are considered positive but all the called peaks are considered in the blacklist
+%_ALLpos.bed: ../../local/share/data/ReChIRP/idr_overlap_top1000/all_reproducibility.idr_conservative-idr_optimal_peak-overalp_conservative-overlap_optimal.regionPeak.gz
+	bawk '{sub("-","_",$$1); print}' $< | bawk '$$1=="$*" {print $$2~4}' > $@
+%_rand.excl.bed: $(GENCODE_DIR)/$(GENOME).shuffle_blacklist.bed $(GENCODE_DIR)/gap.bed %_ALLpos.bed
+	cut -f-3 $^ | bedtools sort | bedtools merge > $@
+%_neg.bed: %_rand.excl.bed %_pos.bed $(GENCODE_DIR)/chrom.info.no_alt
 	parallel 'bedtools shuffle -excl $< -i $^2 -g $^3 -seed ' ::: {1..$(NEGATIVE_AMPLIFICATION)} | \
 	bawk '{$$4="rand_chirp_peak_"NR";$*";$$5="neg"; print}' > $@
 %_posneg.bed: %_pos.bed %_neg.bed
 	bawk '{$$4=$$4";"$$5; print}' $< $^2 > $@
 %_posneg.fa: %_posneg.bed
 	bedtools getfasta -fi $(GENOME_FA) -bed $< -name -fo $@
+%_posneg.fasim.fa: %_posneg.bed
+	bawk '{split($$4,a,";"); print $$1~3,a[2]"|"$$4,$$5,$$6}' $< | bedtools getfasta -name+ -fi $(GENOME_FA) -bed - | sed 's/::/|/' > $@
+
 
 ################
 # TPX summary
 
-%.3plex.summary.gz: %.fa %_posneg.uniq_names.fa
-	docker run -u `id -u`:`id -g` --rm -v $$PWD:$$PWD imolineris/3plex:v0.1.2-beta -j $(THREADS) -l 8 -L 1 -e 20 -s 0 -g 70 -c 3 $$PWD/$< $$PWD/$^2 $$PWD
-	mv $*_ssmasked-$*_posneg.uniq_names.tpx.summary.gz $@
+%.3plex.summary.gz: %.fa %_posneg.fa
+	docker run -u `id -u`:`id -g` --rm -v $$PWD:$$PWD imolineris/3plex:v0.1.2-beta -j $(THREADS) -l 8 -L 1 -e 20 -s 0 -g 40 -c 1 $$PWD/$< $$PWD/$^2 $$PWD
+	mv $*_ssmasked-$*_posneg.tpx.summary.gz $@
 %.triplexAligner.summary.gz: %.fa %_posneg.fa
 	docker run -u `id -u`:`id -g` --rm -v $$PWD:$$PWD triplex_aligner $$PWD/$^2 $$PWD/$< hs | gzip > $@
 %.fasimLongtarget.summary.gz: %.fa %_posneg.fasim.fa
