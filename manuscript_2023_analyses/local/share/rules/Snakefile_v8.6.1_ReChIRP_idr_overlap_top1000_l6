@@ -73,16 +73,6 @@ rule header_added_gz:
 #####################
 #  Transcript Rules
 
-rule get_selected_ssRNA:
-	input:
-		redc_n1="../../local/share/data/RedC/GSM4041593_K562_rep1.hg38.tsv.gencode.cpm.gz",
-		redc_n2="../../local/share/data/RedC/GSM4041595_K562_rep2.hg38.tsv.gencode.cpm.gz"
-	output:
-		"selected_ssRNA"
-	shell:"""
-		zcat {input} | bawk '$10=="lncRNA" && $13>5 && $14>5 {{print $11}}' | sort -u  | tr "-" "_" > {output}
-	"""
-
 rule get_longest_transcripts:
 	input:
 		GENCODE_DIR+"/transcripts.fa.gz"
@@ -104,19 +94,13 @@ rule get_fasta:
 #########################
 #  Genomic Regions Rules
 
-# (bawk '$11=="{wildcards.ssRNA}"{{print $1~3,"n1"}}' {input.redc_n1}; bawk '$11=="{wildcards.ssRNA}"{{print $1~3,"n2"}}' {input.redc_n2}) | \
 rule get_pos_bed:
 	input:
-		redc_n1="../../local/share/data/RedC/GSM4041593_K562_rep1.hg38.tsv.gencode.cpm.clean.gz",
-		redc_n2="../../local/share/data/RedC/GSM4041595_K562_rep2.hg38.tsv.gencode.cpm.clean.gz",
-		chrom_info=GENCODE_DIR+"/chrom.info.no_alt"
+		"../../local/share/data/ALL_v8.neg_pos_rand.bed.gz"
 	output:
 		"{ssRNA}.pos.bed"
 	shell: """
-		(bawk '$4=="{wildcards.ssRNA}" {{print $1~3,"n1"}}' {input.redc_n1}; bawk '$4=="{wildcards.ssRNA}" {{print $1~3,"n2"}}' {input.redc_n2}) \
-		| bedtools sort \
-		| bedtools merge -i - -c 4 -o distinct \
-		| bawk '{{print $1~3,"RedC_peak_"NR";{wildcards.ssRNA}","pos",$4}}' > {output}
+		zgrep '{config[PEAK_VERSION]}' {input} | tr "-" "_" | bawk '$2=="{wildcards.ssRNA}" && $9=="pos" {{print $3~6";"$7,$8,$9}}' > {output}
 	"""
 
 rule rand_exclude:
@@ -187,7 +171,7 @@ rule add_zeros_3plex:
 	output:
 		"{prefix}/{bed_file}.bed/{path}/3plex.summary.add_zeros.gz"
 	shell:"""
-		 bawk 'BEGIN{{print "Duplex_ID","pos_neg","rep"}}{{print $4,$5,$6}}' {input.bed} | translate -a -v -e 0 <(zcat {input.score_3plex}) 1  | cut -f1,12- | gzip > {output} 
+		 bawk 'BEGIN{{print "Duplex_ID","pos_neg","rep"}}{{print $4,$5,$6}}' {input.bed} | translate -a -v -e 0 <(zcat {input.score_3plex}) 1  | gzip > {output} 
 	"""
 
 rule all_3plex:
@@ -199,169 +183,19 @@ rule all_3plex:
 	output:
 		"3plex.summary.add_zeros.ALL.gz"
 	shell: """
-		matrix_reduce -t 'tpx_paramspace/*/*.pos_neg.bed/min_length~*/max_length~-1/error_rate~*/guanine_rate~*/filter_repeat~*/consecutive_errors~*/single_strandedness~*/3plex.summary.add_zeros.gz' \
+		matrix_reduce -t 'tpx_paramspace/*/*.pos_neg.bed/min_length~*/max_length~-1/error_rate~{config[ERROR_RATE]}/guanine_rate~{config[G_RATE]}/filter_repeat~off/consecutive_errors~{config[CONS_ERROR]}/single_strandedness~{config[SSTRAND]}/3plex.summary.add_zeros.gz' \
 		| grep -v 'pos_neg' | gzip > {output}
 	"""
 
-rule all_3plex_config_params:
+rule all_3plex_clean:
 	input: 
-		expand("tpx_paramspace/{ssRNA}/{ssRNA}.pos_neg.bed/{params}/3plex.summary.add_zeros.gz",
-				params = triplexator_paramspace.instance_patterns,
-				ssRNA = all_selected_ssRNA_id()
-			)
+		"3plex.summary.add_zeros.ALL.gz"
 	output:
-		"3plex.summary.add_zeros.config_params.pos_neg.ALL.gz"
+		"3plex.summary.add_zeros.ALL.clean.gz"
 	shell: """
-		matrix_reduce -t 'tpx_paramspace/*/*.pos_neg.bed/min_length~{config[MIN_LEN]}/max_length~-1/error_rate~{config[ERROR_RATE]}/guanine_rate~{config[G_RATE]}/filter_repeat~off/consecutive_errors~{config[CONS_ERROR]}/single_strandedness~{config[SSTRAND]}/3plex.summary.add_zeros.gz' \
-		| grep -v 'pos_neg' | gzip > {output}
+		bawk '{{split($1,a,";"); print a[3],$2,$3,$7,$8}}' {input} | bawk 'BEGIN{{print "min_len","peak","pos_neg","score"}} $4!="neg"{{print $1,$2,$5,$3}} $4=="neg"{{print $1,$2,$4,$3}}' | gzip > {output}
 	"""
 
 """
-.META:
-	1	Params
-	2	Duplex_ID
-	3	Stability_best
-	4	Stability_tot
-	5	Score_best
-	6	Stability_norm
-	7	pos_neg
-	8	rep
-
+bawk '{split($1,a,";"); print a[3],$2,$5,$(NF-1),$(NF)}' 3plex.summary.add_zeros.ALL.gz | bawk 'BEGIN{{print "min_len","peak","pos_neg","score"}} $4!="neg"{{print $1,$2,$5,$3}} $4=="neg"{{print $1,$2,$4,$3}}' | gzip > 3plex.summary.add_zeros.ALL.clean.gz
 """
-
-rule auc_no_cmp:
-	input:
-		"{file_name}.gz"
-	output:
-		"{file_name}.auc_no_cmp"
-	shell:"""
-		{CONDA_ACTIVATE} pROC_Env;\
-		zcat {input} | ../../local/src/ROC_no_comp.R pos_neg Stability_best Stability_norm -d "<"
-	"""
-
-
-####################
-# Run triplxAligner
-
-if config["GENCODE_SPECIES"] == "hsapiens":
-	SPECIES = "hs"
-elif config["GENCODE_SPECIES"] == "mmusculus":
-	SPECIES = "mm"
-
-rule run_triplexAligner:
-	input:
-		ssRNA="{ssRNA}.fa",
-		dsDNA="{ssRNA}.pos_neg.bed.fa"
-	output:
-		"triplexAligner/{ssRNA}/{ssRNA}.pos_neg.bed/tpx.gz"
-	shell: """
-		mkdir -p `dirname {output}`;\
-		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplex_aligner $PWD/{input.dsDNA} $PWD/{input.ssRNA} {SPECIES} | gzip > {output}
-"""
-
-rule best_score_triplexAligner:
-	input:
-		triplexAlign="triplexAligner/{ssRNA}/{dsDNA}.bed/tpx.gz",
-		neg_pos="{dsDNA}.bed"
-	output:
-		"triplexAligner/{ssRNA}/{dsDNA}.bed/tpx.best_logE.gz"
-	shell: """
-		cut -f4,5 {input.neg_pos} | \
-		translate -a -v -e 0 -f 2 <(zcat {input.triplexAlign} | find_best --skip_header 12 10 | cut -f10,12 ) 1 | \
-		bawk 'BEGIN{{print "peak","best_score","neg_pos"}}{{print}}' | gzip > {output}
-	"""
-
-rule all_triplexAligner:
-	input:
-		expand("triplexAligner/{ssRNA}/{ssRNA}.pos_neg.bed/tpx.best_logE.gz",
-			ssRNA = all_selected_ssRNA_id()
-		)
-	output:
-		"triplexAligner.best_logE.pos_neg.ALL.gz"
-	shell: """
-		matrix_reduce -t 'triplexAligner/*/*.pos_neg.bed/tpx.best_logE.gz' \
-		| bawk 'NR>1 && $3!="best_score"{{print $2";"$4,"triplexAligner",$3}}' | gzip > {output}
-	"""
-
-
-#######################
-# Run fasim-Longtarget
-
-ruleorder: fasim_fasta_format > get_fasta
-rule fasim_fasta_format:
-	input:
-		bed="{path}.bed",
-		assembly=GENOME_ASSEMBLY_DIR+".primary_assembly.genome.clean_id.fa"
-	output:
-		"{path}.fasim.fa"
-	shell: """
-		 bawk '{{split($4,a,";"); print $1~3,a[2]"|"$4,$5,$6}}' {input.bed} | \
-		 bedtools getfasta -name+ -fi {input.assembly} -bed - | \
-		 sed -e 's/::/|/g' > {output}
-	"""
-
-rule run_fasimLongTarget:
-	input:
-		ssRNA="{ssRNA}.fa",
-		dsDNA="{ssRNA}.pos_neg.fasim.fa"
-	output:
-		"fasim_LongTarget/{ssRNA}/{ssRNA}.pos_neg.fasim/fastSim-TFOsorted"
-	shell: """
-		mkdir -p `dirname {output}`;\
-		docker run --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} fasim \
-		-f1 $PWD/{input.dsDNA} \
-		-f2 $PWD/{input.ssRNA} \
-		-O $PWD/`dirname {output}`; \
-		mv fasim_LongTarget/{wildcards.ssRNA}/{wildcards.ssRNA}.pos_neg.fasim/{wildcards.ssRNA}-{wildcards.ssRNA}-fastSim-TFOsorted {output}
-"""
-
-rule best_fasimLongTarget:
-	input:
-		fasim="fasim_LongTarget/{path}/{dsDNA}.fasim/fastSim-TFOsorted",
-		neg_pos="{dsDNA}.bed"
-	output:
-		"fasim_LongTarget/{path}/{dsDNA}.fasim/fastSim-TFOsorted.best_meanStab.gz"
-	shell: """
-		cut -f4,5 {input.neg_pos} | \
-		translate -a -v -e 0 <(cut -f6,9 {input.fasim} | find_best --skip_header 1 2) 1 | \
-		bawk 'BEGIN{{print "peak","best_score","neg_pos"}}{{print}}' | gzip > {output}
-	"""
-
-rule all_fasimLongTarget:
-	input:
-		expand("fasim_LongTarget/{ssRNA}/{ssRNA}.pos_neg.fasim/fastSim-TFOsorted.best_meanStab.gz",
-			ssRNA = all_selected_ssRNA_id()
-		)
-	output:
-		"fasim_LongTarget.best_meanStab.pos_neg.ALL.gz"
-	shell: """
-		matrix_reduce -t 'fasim_LongTarget/*/*.pos_neg.fasim/fastSim-TFOsorted.best_meanStab.gz' \
-		| bawk 'NR>1 && $3!="best_score"{{print $2";"$4,"fasimLongTarget",$3}}' | gzip > {output}
-	"""
-
-
-###################
-# All tpx summary
-
-#rule all_tpx_methods_matrix:
-#	input:
-#		d3plex="3plex.summary.add_zeros.config_params.pos_neg.ALL.gz",
-#		triplexAligner="triplexAligner.best_logE.pos_neg.ALL.gz",
-#		fasim="fasim_LongTarget.best_meanStab.pos_neg.ALL.gz"
-#	output:
-#		"all_tpx_methods.matrix.gz"
-#	shell: """
-#		zcat {input} \
-#		| tab2matrix -r 'peak;ssRNA;pos_neg' | tr ";" "\t" | cut -f3- \
-#		| gzip > {output}
-#	"""
-
-rule all_tpx_methods_matrix:
-	input:
-		"all_tpx_methods.matrix.gz"
-	output:
-		"all_tpx_methods.matrix.AUC_no_cmp.tsv"
-	shell:"""
-		{CONDA_ACTIVATE} pROC_Env; \
-		zcat {input} | ../../local/src/ROC_no_comp.R pos_neg fasimLongTarget d3plex triplexAligner -d "<" > {output}
-	"""
