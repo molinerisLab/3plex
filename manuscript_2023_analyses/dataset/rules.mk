@@ -259,7 +259,11 @@ AUC_singles.tsv: $(addsuffix .3plex.summary.clean.AUC_cmp.tsv, $(SAMPLES)) $(add
 	matrix_reduce -t -l '$^' '*\.*\.summary.clean.AUC_cmp.tsv' | tr ";" "\t" | cut -f1,2,4,6 | grep -v AUC > $@
 AUC_singles.matrix.xlsx: AUC_singles.tsv
 	cat $< | cut -f1,2,4 | tab2matrix -r ssRNA | tab2xlsx > $@
-
+v_test_randomiz_sub.%.summary.clean.AUC_cmp.tsv: v_test_randomiz_sub.%.summary.clean.gz
+	$(CONDA_ACTIVATE) pROC_Env;\
+	zcat $< | ../local/src/ROC.R pos_neg pred1 pred2 -d "<" --negative_subsampling 1000 -O $*.sub.roc > $@
+v_test_randomiz_sub.%.summary.clean.AUC_cmp.stats: v_test_randomiz_sub.%.summary.clean.AUC_cmp.tsv
+	bawk 'NR>1{print $$4}' $< | stat_base -a -m -s -l -b -L -S > $@
 
 ##########
 # Avg ROC
@@ -271,3 +275,9 @@ NEGATIVE_AMPLIFICATION=50
 	zcat $< | ../local/src/avgROC.R pos_neg pred2 --negative_subsampling $(NEGATIVE_AMPLIFICATION) > $@
 v_test_randomiz_sub.summary.clean.sens_spec.tpx_method.gz:
 	matrix_reduce -t 'v_test_randomiz_sub.*.summary.clean.sens_spec.tsv' | grep -v specificities | bawk 'BEGIN{print "tpx_method","iteration","specificities","sensitivities"}{print}' | gzip > $@
+
+#############
+# Min len 6
+
+3plex.summary.add_zeros.ALL.l6.gz: v8.6.1_ReChIRP_idr_overlap_top1000_l6/3plex.summary.add_zeros.ALL.clean.gz v8.7.1_ReChIRP_idr_overlap_top1000_mouse_l6/3plex.summary.add_zeros.ALL.clean.gz
+	matrix_reduce -t -l '$^' '*/3plex.summary.add_zeros.ALL.clean.gz' | bawk 'NR==1{print} NR>1 && $$2!="min_len"{print}' | cut -f2- | gzip > $@
