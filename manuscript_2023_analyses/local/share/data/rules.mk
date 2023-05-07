@@ -366,25 +366,15 @@ all_bed.regionPeak.counts_matrix: /sto1/epigen/TPXcCRE/dataset/v8_ChIRP_neg_rand
 
 
 
-### RADICL-seq ###
+#############
+# RADICL-seq
 
+Carninci_Mm1_CAGE_nuc.txt.gz:
+	wget 'https://static-content.springer.com/esm/art%3A10.1038%2Fng.2965/MediaObjects/41588_2014_BFng2965_MOESM35_ESM.zip'
 RADICLseq/GSE132190_mESC_NPM_n1_significant.txt.gz:
 	wget -O $@ 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132190&format=file&file=GSE132190%5FmESC%5FNPM%5Fn1%5Fsignificant%2Etxt%2Egz'
-
 RADICLseq/GSE132190_mESC_NPM_n2_significant.txt.gz:
 	wget -O $@ 'https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE132190&format=file&file=GSE132190%5FmESC%5FNPM%5Fn2%5Fsignificant%2Etxt%2Egz'
-
-#RADICLseq/GSE132190_mESC_NPM_n%_significant.merge_distinct.gz: RADICLseq/GSE132190_mESC_NPM_n%_significant.txt.gz /home/reference_data/bioinfotree/task/gencode/dataset/mmusculus/M25/chrom.info
-#	bawk '$$29!="."' $< | bedtools slop -i - -g $^2 -b 2500 | bedtools sort | bedtools merge -i - -c 29 -o distinct | gzip > $@
-
-#RADICLseq/GSE132190_mESC_NPM_ALL_significant.merge_distinct.matrix_reduce.merge_replicates.biotypes.gz: /home/reference_data/bioinfotree/task/gencode/dataset/mmusculus/M25/primary_assembly.annotation.ensg2gene_symbol2biotype.map
-#	matrix_reduce -t 'RADICLseq/GSE132190_mESC_NPM_*_significant.merge_distinct.gz' | \
-#	expandsets 5 -s , | \
-#	bawk '{print $$2~5";"$$1}' | \
-#	bedtools sort | bedtools merge -i - -c 4 -o distinct | \
-#	expandsets 4 -s , | tr ";" "\t" | collapsesets 5 | \
-#	translate -a -k -d <(cut -f2,3 $<) 4 | \
-#	gzip > $@
 
 .META: GSE132190_mESC_NPM_n*_significant.txt.gz
 	1	dna_chr	chr3
@@ -420,9 +410,18 @@ RADICLseq/GSE132190_mESC_NPM_n2_significant.txt.gz:
 	31	rna_gene_strand	-
 	32	rna_gene_biotype	protein-coding
 
-Carninci_Mm1_CAGE_nuc.txt.gz:
-	wget 'https://static-content.springer.com/esm/art%3A10.1038%2Fng.2965/MediaObjects/41588_2014_BFng2965_MOESM35_ESM.zip'
 RADICLseq/GSE132190_mESC_NPM_n%_significant.txt.CAGE_exp.gencode.gz: RADICLseq/GSE132190_mESC_NPM_n%_significant.txt.gz Carninci_Mm1_CAGE_nuc.txt.gz /home/reference_data/bioinfotree/task/gencode/dataset/mmusculus/M25/basic.annotation.exon.longest_transcript.bed
 	bawk '$$rna_gene_chr!="."&& $$rna_gene_biotype=="lincRNA" {print $$rna_gene_chr,$$rna_gene_b,$$rna_gene_e,$$rna_gene_name,".",$$rna_gene_strand}' $< | bedtools intersect -a - -b <(bawk 'NR==1{print} NR>1{print $$1,$$2,$$3,$$4,($$10+$$11+$$12)/3,$$6}' $^2 | bawk '$$5>1') -s -loj | bedtools intersect -a - -b <(bawk '$$7=="lincRNA"' $^3) -loj -s | gzip > $@
 RADICLseq/GSE132190_mESC_NPM_n%_significant.txt.gencode.gz: RADICLseq/GSE132190_mESC_NPM_n%_significant.txt.gz RADICLseq/GSE132190_mESC_NPM_n%_significant.txt.CAGE_exp.gencode.gz
 	zcat $< | translate -d -j -a -v -e . <(bawk '$$7!="." && $$13!="." {print $$4,$$20}' $^2 | sort -u) 29 | gzip > $@
+
+
+########
+# Red-C
+
+RedC/%.hg38.tsv.gencode.gz: RedC/%.hg38.tsv.gz /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/basic.annotation.exon.longest_transcript.bed /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/chrom.info.no_alt
+	zcat $< | tr " " "\t" | bawk 'NR>1{print $$2,$$3,$$4,".",".",$$5~14}' | bedtools intersect -s -a - -b $^2 -wao | bawk '$$16!="." {print $$13,$$14+($$15-$$14),$$14+($$15-$$14),$$16~24}' | bedtools slop -i - -g $^3 -b 2500 | gzip > $@
+RedC/%.hg38.tsv.gencode.cpm.gz: RedC/%.hg38.tsv.gencode.gz RedC/GSM4041596_K562_RNASeq.tsv.gz
+	zcat $< | translate -a -k <(zcat $^2) 11 | gzip > $@
+RedC/%.hg38.tsv.gencode.cpm.clean.gz: RedC/%.hg38.tsv.gencode.cpm.gz
+	bawk '$$10=="lncRNA" {print $$1,$$2,$$3,$$11}' $< | tr "-" "_" | gzip > $@
