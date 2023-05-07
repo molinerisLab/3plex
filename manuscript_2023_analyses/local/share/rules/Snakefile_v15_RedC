@@ -75,12 +75,12 @@ rule header_added_gz:
 
 rule get_selected_ssRNA:
 	input:
-		radicl_n1="../../local/share/data/RADICLseq/GSE132190_mESC_NPM_n1_significant.txt.CAGE_exp.gencode.gz",
-		radicl_n2="../../local/share/data/RADICLseq/GSE132190_mESC_NPM_n2_significant.txt.CAGE_exp.gencode.gz"
+		redc_n1="../../local/share/data/RedC/GSM4041593_K562_rep1.hg38.tsv.gencode.cpm.gz",
+		redc_n2="../../local/share/data/RedC/GSM4041595_K562_rep2.hg38.tsv.gencode.cpm.gz"
 	output:
 		"selected_ssRNA"
 	shell:"""
-		zcat {input} | bawk '$7!="." && $13!="." {{print $20}}' | sort -u > {output}
+		zcat {input} | bawk '$10=="lncRNA" && $13>5 && $14>5 {{print $11}}' | sort -u  | tr "-" "_" > {output}
 	"""
 
 rule get_longest_transcripts:
@@ -104,19 +104,19 @@ rule get_fasta:
 #########################
 #  Genomic Regions Rules
 
+# (bawk '$11=="{wildcards.ssRNA}"{{print $1~3,"n1"}}' {input.redc_n1}; bawk '$11=="{wildcards.ssRNA}"{{print $1~3,"n2"}}' {input.redc_n2}) | \
 rule get_pos_bed:
 	input:
-		radicl_n1="../../local/share/data/RADICLseq/GSE132190_mESC_NPM_n1_significant.txt.gencode.gz",
-		radicl_n2="../../local/share/data/RADICLseq/GSE132190_mESC_NPM_n2_significant.txt.gencode.gz",
+		redc_n1="../../local/share/data/RedC/GSM4041593_K562_rep1.hg38.tsv.gencode.cpm.clean.gz",
+		redc_n2="../../local/share/data/RedC/GSM4041595_K562_rep2.hg38.tsv.gencode.cpm.clean.gz",
 		chrom_info=GENCODE_DIR+"/chrom.info.no_alt"
 	output:
 		"{ssRNA}.pos.bed"
 	shell: """
-		(bawk '$30=="{wildcards.ssRNA}"{{print $1~3,"n1"}}' {input.radicl_n1}; bawk '$30=="{wildcards.ssRNA}"{{print $1~3,"n2"}}' {input.radicl_n2}) | \
-		bedtools slop -i - -g {input.chrom_info} -b 2500 | \
-		bedtools sort | \
-		bedtools merge -i - -c 4 -o distinct \
-		| bawk '{{print $1~3,"RADICL_peak_"NR";{wildcards.ssRNA}","pos",$4}}' > {output}
+		(bawk '$4=="{wildcards.ssRNA}" {{print $1~3,"n1"}}' {input.redc_n1}; bawk '$4=="{wildcards.ssRNA}" {{print $1~3,"n2"}}' {input.redc_n2}) \
+		| bedtools sort \
+		| bedtools merge -i - -c 4 -o distinct \
+		| bawk '{{print $1~3,"RedC_peak_"NR";{wildcards.ssRNA}","pos",$4}}' > {output}
 	"""
 
 rule rand_exclude:
@@ -203,6 +203,19 @@ rule all_3plex:
 		| grep -v 'pos_neg' | gzip > {output}
 	"""
 
+rule all_3plex_config_params:
+	input: 
+		expand("tpx_paramspace/{ssRNA}/{ssRNA}.pos_neg.bed/{params}/3plex.summary.add_zeros.gz",
+				params = triplexator_paramspace.instance_patterns,
+				ssRNA = all_selected_ssRNA_id()
+			)
+	output:
+		"3plex.summary.add_zeros.config_params.pos_neg.ALL.gz"
+	shell: """
+		matrix_reduce -t 'tpx_paramspace/*/*.pos_neg.bed/min_length~{config[MIN_LEN]}/max_length~-1/error_rate~{config[ERROR_RATE]}/guanine_rate~{config[G_RATE]}/filter_repeat~off/consecutive_errors~{config[CONS_ERROR]}/single_strandedness~{config[SSTRAND]}/3plex.summary.add_zeros.gz' \
+		| grep -v 'pos_neg' | gzip > {output}
+	"""
+
 """
 .META:
 	1	Params
@@ -215,16 +228,6 @@ rule all_3plex:
 	8	rep
 
 """
-
-rule select_3plex_params:
-	input:
-		"3plex.summary.add_zeros.ALL.gz"
-	output:
-		"3plex.summary.add_zeros.config_params.gz"
-	shell:"""
-		zcat {input} | tr ";" "\\t" \
-		| bawk 'BEGIN{{print "DuplexID","pos_neg","Stability_best","Stability_norm"}} $3=={config[MIN_LEN]} && $4=={config[ERROR_RATE]} && $5=={config[G_RATE]} && $7=={config[CONS_ERROR]} && $8=={config[SSTRAND]} {{print $9";"$10,$15,$11,$12}}' | gzip > {output}
-	"""
 
 rule auc_no_cmp:
 	input:
@@ -256,7 +259,7 @@ rule run_triplexAligner:
 		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplex_aligner $PWD/{input.dsDNA} $PWD/{input.ssRNA} {SPECIES} | gzip > {output}
 """
 
-rule best_logE_triplexAligner:
+rule best_score_triplexAligner:
 	input:
 		triplexAlign="triplexAligner/{ssRNA}/{dsDNA}.bed/tpx.gz",
 		neg_pos="{dsDNA}.bed"
@@ -265,7 +268,7 @@ rule best_logE_triplexAligner:
 	shell: """
 		cut -f4,5 {input.neg_pos} | \
 		translate -a -v -e 0 -f 2 <(zcat {input.triplexAlign} | find_best --skip_header 12 10 | cut -f10,12 ) 1 | \
-		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
+		bawk 'BEGIN{{print "peak","best_score","neg_pos"}}{{print}}' | gzip > {output}
 	"""
 
 rule all_triplexAligner:
@@ -277,7 +280,7 @@ rule all_triplexAligner:
 		"triplexAligner.best_logE.pos_neg.ALL.gz"
 	shell: """
 		matrix_reduce -t 'triplexAligner/*/*.pos_neg.bed/tpx.best_logE.gz' \
-		| grep -v 'neg_pos' | gzip > {output}
+		| bawk 'NR>1 && $3!="best_score"{{print $2";"$4,"triplexAligner",$3}}' | gzip > {output}
 	"""
 
 
@@ -321,7 +324,7 @@ rule best_fasimLongTarget:
 	shell: """
 		cut -f4,5 {input.neg_pos} | \
 		translate -a -v -e 0 <(cut -f6,9 {input.fasim} | find_best --skip_header 1 2) 1 | \
-		bawk 'BEGIN{{print "peak","best_meanStab","neg_pos"}}{{print}}' | gzip > {output}
+		bawk 'BEGIN{{print "peak","best_score","neg_pos"}}{{print}}' | gzip > {output}
 	"""
 
 rule all_fasimLongTarget:
@@ -330,16 +333,35 @@ rule all_fasimLongTarget:
 			ssRNA = all_selected_ssRNA_id()
 		)
 	output:
-		"fasim_LongTarget.best_meanStab.ALL.gz"
+		"fasim_LongTarget.best_meanStab.pos_neg.ALL.gz"
 	shell: """
 		matrix_reduce -t 'fasim_LongTarget/*/*.pos_neg.fasim/fastSim-TFOsorted.best_meanStab.gz' \
-		| grep -v 'neg_pos' | gzip > {output}
+		| bawk 'NR>1 && $3!="best_score"{{print $2";"$4,"fasimLongTarget",$3}}' | gzip > {output}
 	"""
 
 
-###############
-#
+###################
+# All tpx summary
 
-"""
-zcat 3plex.summary.add_zeros.config_params.gz | translate -a -v -e triplexAligner <(zcat triplexAligner.best_logE.pos_neg.ALL.gz | cut -f2,3) 1 | translate -a -v -e fasimLongTarget <(zcat fasim_LongTarget.best_meanStab.ALL.gz | cut -f2,3) 1 | gzip > all_methods.matrix.gz
-"""
+#rule all_tpx_methods_matrix:
+#	input:
+#		d3plex="3plex.summary.add_zeros.config_params.pos_neg.ALL.gz",
+#		triplexAligner="triplexAligner.best_logE.pos_neg.ALL.gz",
+#		fasim="fasim_LongTarget.best_meanStab.pos_neg.ALL.gz"
+#	output:
+#		"all_tpx_methods.matrix.gz"
+#	shell: """
+#		zcat {input} \
+#		| tab2matrix -r 'peak;ssRNA;pos_neg' | tr ";" "\t" | cut -f3- \
+#		| gzip > {output}
+#	"""
+
+rule all_tpx_methods_matrix:
+	input:
+		"all_tpx_methods.matrix.gz"
+	output:
+		"all_tpx_methods.matrix.AUC_no_cmp.tsv"
+	shell:"""
+		{CONDA_ACTIVATE} pROC_Env; \
+		zcat {input} | ../../local/src/ROC_no_comp.R pos_neg fasimLongTarget d3plex triplexAligner -d "<" > {output}
+	"""
