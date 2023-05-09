@@ -1,0 +1,1 @@
+../../local/share/rules/prj_rules_v13_InVitroDiff_NPC_H9.mk

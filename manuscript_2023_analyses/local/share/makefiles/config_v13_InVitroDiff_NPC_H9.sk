@@ -1,0 +1,49 @@
+
+def all_selected_ssRNA_id(not_used=None):
+	with open("selected_ssRNA", mode='rt') as fh:
+		for line in fh:
+			(ssRNA, logFC, Pval, Pval_Adj, mark_seqc) = line.rstrip().split("\t")
+			yield ssRNA
+
+#def all_selected_ssRNA_id(input_condition=None):
+#	with open("selected_ssRNA.conditions.up_down.balanced.clean", mode='rt') as fh:
+#		for line in fh:
+#			(ssRNA, condition, staminal, up_down, logFC) = line.rstrip().split("\t")
+#			if input_condition is not None and condition!=input_condition:
+#				continue
+#			yield ssRNA
+
+def get_all_triplexator_selected_input(wildcards):
+	for condition in config['ENCODE_CONDITIONS']:
+		for ssRNA in all_selected_ssRNA_id():
+			for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx.stability.gz",
+					condition = condition, 
+					params = triplexator_paramspace.instance_patterns,
+					ssRNA = ssRNA,
+					single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+					window=config["RNAPLFOLD_WINDOW"]
+				):
+				yield target
+
+rule all_triplexator:
+	input:
+		get_all_triplexator_selected_input
+
+def get_all_stab_fisher(wildcards):
+       for condition in config['ENCODE_CONDITIONS']:
+               for ssRNA in all_selected_ssRNA_id(condition):
+                       for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-{condition}.bed/{params}/raw.tpx.{summarize}.neg_pos.fisher_select_cutoff.gz",
+                                       condition = condition, 
+                                       params = triplexator_paramspace.instance_patterns,
+                                       ssRNA = ssRNA,
+                                       single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+                                       window=config["RNAPLFOLD_WINDOW"],
+                                       summarize=config['TPXcCRE_SCORE_SUMMARIZE_METHODS']
+                               ):
+                               yield target
+
+
+rule all_stab_fisher:
+       input:
+               get_all_stab_fisher
+

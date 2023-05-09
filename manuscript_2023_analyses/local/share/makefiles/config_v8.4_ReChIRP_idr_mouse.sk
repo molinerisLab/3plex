@@ -1,0 +1,106 @@
+################
+#  config.sk
+#
+
+def all_selected_ssRNA_id():
+	with open("selected_ssRNA", mode='rt') as fh:
+		for line in fh:
+			ssRNA = line.rstrip()
+			yield ssRNA
+
+def get_all_triplexator_selected_input(wildcards):
+	for ssRNA in all_selected_ssRNA_id():
+		for target in expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.gz",
+				params = triplexator_paramspace.instance_patterns,
+				ssRNA = all_selected_ssRNA_id(),
+				single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+				window=config["RNAPLFOLD_WINDOW"]
+			):
+			yield target
+
+rule all_triplexator:
+	input:
+		get_all_triplexator_selected_input
+
+#rule all_stab_fisher:
+#	input:
+#		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/cCRE-ALLcond.bed/{params}/raw.tpx.{summarize}.{condition}.neg_pos.fisher_select_cutoff.gz",
+#			condition = config["ENCODE_CONDITIONS"], 
+#			params = triplexator_paramspace.instance_patterns,
+#			ssRNA = all_selected_ssRNA_id(),
+#			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+#			window = config["RNAPLFOLD_WINDOW"],
+#			summarize = config["TPXcCRE_SCORE_SUMMARIZE_METHODS"])
+
+
+# Before running this rule run the following:
+# for ssRNA in $(cat selected_ssRNA); do bmake ${ssRNA}.neg_pos_rand.bed; done
+
+ruleorder: AK156552 > cCRE_fasta
+
+rule AK156552:
+        input:
+                "../../local/share/data/mmusculus/ssRNA_fasta/AK156552.1.fa"
+        output:
+                "AK156552.1.fa"
+        shell: """
+                cp {input} {output}
+        """
+
+ruleorder: DT926623 > cCRE_fasta
+	
+rule DT926623:
+	input:
+		"../../local/share/data/mmusculus/ssRNA_fasta/DT926623.1.fa"
+	output:
+		"DT926623.1.fa"
+	shell: """
+		cp {input} {output}
+	"""
+
+ruleorder: lncSmad7 > cCRE_fasta
+
+rule lncSmad7:
+	input:
+		"../../local/share/data/mmusculus/ssRNA_fasta/lncSmad7.fa"
+	output:
+		"lncSmad7.fa"
+	shell: """
+		cp {input} {output}
+	"""
+
+
+ruleorder: cCRE_fasta_condition > get_fasta_ingore_condition
+ruleorder: cCRE_fasta_condition > cCRE_fasta
+ 
+rule cCRE_fasta_condition:
+	input:
+		assembly=GENOME_ASSEMBLY_DIR+".primary_assembly.genome.clean_id.fa",
+		cCRE_bed="{ssRNA}@{condition}.neg_pos_rand.bed"
+	output:
+		"{ssRNA}@{condition}.neg_pos_rand.bed.fa"
+	container:
+		"../../local/share/images/bit.wip-rnaseq.0.8.sif"
+#{CONDA_ACTIVATE} bit_rnaseq_3.1;
+	shell:"""
+		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}.tmp; \
+		bawk '{{if($1 ~ />/){{split($1,a,"::"); print a[1]}} else {{print}}}}' {output}.tmp > {output}; \
+		rm {output}.tmp	
+	"""
+
+ruleorder: RNAplfold_lunp_condition > RNAplfold_lunp
+rule RNAplfold_lunp_condition:
+	input:
+		"{ssRNA}@{condition}.fa"
+	output:
+		lunp="RNAplfold/{ssRNA}@{condition}_lunp",
+		basepairs="RNAplfold/{ssRNA}@{condition}_basepairs"
+	container:
+		"../../local/share/images/viennarna.2.5.0.simg"
+	shell: """
+		#{CONDA_ACTIVATE} rnaFoldRand_v0.1
+		mkdir -p RNAplfold;\
+		RNAplfold -W {config[RNAPLFOLD_WINDOW_SIZE]} -L {config[RNAPLFOLD_SPAN_SIZE]} -u {config[RNAPLFOLD_UNPAIRED_WINDOW]} -o < {input}; \
+		mv {wildcards.ssRNA}_lunp {output.lunp}; mv {wildcards.ssRNA}_basepairs {output.basepairs}
+        """
+

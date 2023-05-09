@@ -1,0 +1,109 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r}
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(scattermore))
+suppressMessages(library(pROC))
+
+setwd("/home/epigen/TPXcCRE/dataset/v_test_randomiz_sub_h")
+```
+
+# Average sensitivities and specificities 
+
+```{r}
+avg_roc <- function(pos_neg_file, ){
+  
+}
+z<-read.table(stdin, header=T, sep="\t")
+# Take the first argument, the outcomes_col_name (the column name of the outcomes of the classification)
+outcomes <- args[1]
+z[,outcomes] <- as.factor(z[,outcomes])
+outcomes_levels_ordered <- levels(z[,outcomes])[order(levels(z[,outcomes]))]
+controls_level <- outcomes_levels_ordered[1]
+cases_level <- outcomes_levels_ordered[2]
+
+message("The first two levels of the \"outcomes\" variable are taken as \"control\" and \"cases\" respectively. The remaining levels are ignored.\nThe specified oredered outcomes are: ")
+message(paste0("controls: ",controls_level))
+message(paste0("cases: ",cases_level))
+# Second positional argument is the predictor colname
+predictors <- args[2]
+# order outcomes column
+z <- z[order(z[,outcomes]),]
+# Coerce predictor values to 4 significant digits numbers
+z[,predictors] <- sapply(z[,predictors],function(x){x <- round(as.numeric(x), digits = 4)})
+# convert infinite values if any
+z[,predictors][sapply(z[,predictors], is.infinite)] <- 1000
+
+
+# 2. Define ROC obj ----
+roc_formula <- as.formula(paste(collapse = "~", c(outcomes, predictors)))
+
+z_cases <- z[z[,outcomes]==cases_level,]
+z_controls <- z[z[,outcomes]==controls_level,]
+
+sens_spec_df <- data.frame()
+for (idx in seq(1:opt$negative_subsampling)) {
+  z_sub <- rbind(z_cases, z_controls[sample(1:nrow(z_controls),nrow(z_cases)),])
+  roc_obj <- suppressMessages(roc(roc_formula, data = z_sub, direction = opt$direction, na.rm = T))
+  sens_spec_df <- rbind(sens_spec_df, cbind(idx, roc_obj$specificities, roc_obj$sensitivities))
+}
+colnames(sens_spec_df) <- c("iteration","specificities","sensitivities")
+
+```
+
+
+# Average curves
+```{r load_sens_sped}
+setwd("/home/epigen/TPXcCRE/dataset/v_test_randomiz_sub_h")
+df_3plex<-read.table("/home/epigen/TPXcCRE/dataset/v_test_randomiz_sub_h/3plex.summary.clean.sens_spec.tsv", header = T)
+df_fasimLongtarget<-read.table("/home/epigen/TPXcCRE/dataset/v_test_randomiz_sub_h/fasimLongtarget.summary.clean.sens_spec.tsv", header = T)
+df_triplexAligner<-read.table("/home/epigen/TPXcCRE/dataset/v_test_randomiz_sub_h/triplexAligner.summary.clean.sens_spec.tsv", header = T)
+
+df_3plex$method="3plex"
+df_fasimLongtarget$method="fasimLongtarget"
+df_triplexAligner$method="triplexAligner"
+
+df<-rbind(df_3plex,df_fasimLongtarget,df_triplexAligner)
+#df %>% mutate(spec_bin=ntile(specificities, n=10)) -> df
+ggplot(data=df, aes(x=1-specificities, y=sensitivities))+geom_scattermore()+facet_wrap(~method)+theme_bw()
+```
+
+```{r}
+df %>% mutate(spec_bin = cut(specificities, breaks=c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1), include.lowest=T)) -> df
+#df %>% mutate(spec_bin = cut(specificities, breaks=c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1), include.lowest=T)) -> df # with this code include.lowest=T seems not working
+
+df_avg <- df %>%
+  group_by(spec_bin,method) %>%
+  summarise(  mean_sens = mean(sensitivities)
+            , mean_spec = mean(specificities)
+            , ymin = mean(mean_sens) - sd(sensitivities)/2
+            , ymax = mean(mean_sens) + sd(sensitivities)/2
+            , ymin2 = min(sensitivities)
+            , ymax2 = max(sensitivities)
+            , median_sens = median(sensitivities)
+            , ymin3 = quantile(sensitivities, probs = c(0.25))[1]
+            , ymax3 = quantile(sensitivities, probs = c(0.75))[1])
+
+p<-ggplot(df_avg) +
+  scale_x_reverse() +
+  geom_ribbon(aes(x = mean_spec, y = mean_sens, ymin = ymin2, ymax = ymax2, group=method), fill = "grey90") +
+  geom_ribbon(aes(x = mean_spec, y = mean_sens, ymin = ymin, ymax = ymax, group=method), fill = "grey50") +
+  geom_line(aes(x = mean_spec, y = mean_sens, color=method)) +
+  theme_classic() +
+  coord_fixed() +
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="darkgray", linetype="dashed", size = 0.3) +
+  theme(plot.margin = margin(1,2,1,2, "cm"))
+
+ggsave(filename = "methods_comparison_roc_avg.pdf", plot = p, device = "pdf")
+
+p
+```
+
+Vedi anche versione della figura in pdf stand-alone in methods_comparison_roc_avg.pdf
+

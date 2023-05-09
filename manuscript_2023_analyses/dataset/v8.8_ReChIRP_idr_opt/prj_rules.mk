@@ -1,0 +1,1 @@
+../../local/share/rules/prj_rules_v8.8_ReChIRP_idr_opt.mk

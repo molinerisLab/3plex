@@ -1,0 +1,197 @@
+from snakemake.utils import Paramspace
+import pandas as pd
+
+configfile: "config.yaml"
+
+include: "config.sk"
+
+######################
+#  General Parameters
+
+PWD=os.environ.get("PWD")
+REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
+BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"/bioinfotree/task/"
+
+####################
+#  Conda Parameters
+
+CONDA_ROOT="/opt/conda"
+CONDA_VERSION="miniconda3"
+CONDA_ACTIVATE="set +u; source "+CONDA_ROOT+"/"+CONDA_VERSION+"/etc/profile.d/conda.sh; conda activate ; conda activate "
+
+######################
+#  Gencode Parameters
+
+GENCODE_SPECIES=config["GENCODE_SPECIES"]
+GENCODE_VERSION=config["GENCODE_VERSION"]
+GENOME=config["GENOME"]
+GENCODE_DIR=BIOINFO_REFERENCE_ROOT+"gencode/dataset/"+GENCODE_SPECIES+"/"+GENCODE_VERSION
+GENOME_ASSEMBLY=config["GENOME_ASSEMBLY"]
+GENOME_ASSEMBLY_DIR=GENCODE_DIR+"/"+GENOME_ASSEMBLY
+
+
+######################
+#  Docker Parameters
+
+DOCKER_GROUP="10001"
+DOCKER_DATA_DIR=os.environ.get("DOCKER_DATA_DIR")
+SCRATCH=os.environ.get("SCRATCH")
+
+##########################
+#  Triplexator Parameters
+
+triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\t"))
+
+#############
+# target ALL
+
+rule all:
+	input:
+		"3plex.summary.add_zeros.ALL.gz"
+
+#####################
+#  Generic Rules
+
+rule header_added:
+	input:
+		"{file}"
+	output:
+		"{file}.header_added"
+	shell:"""
+		(bawk -M {input} | cut -f 2 | transpose; cat {input} ) > {output}
+	"""
+
+rule header_added_gz:
+	input:
+		"{file}.gz"
+	output:
+		"{file}.header_added.gz"
+	shell:"""
+		(bawk -M {input} | cut -f 2 | transpose; cat {input} ) | gzip > {output}
+	"""
+
+#####################
+#  Transcript Rules
+
+rule get_longest_transcripts:
+	input:
+		GENCODE_DIR+"/transcripts.fa.gz"
+	output:
+		"longest_transcripts.fa"
+	shell:"""
+		zcat {input} | fasta2oneline | tr "|" "\\t" | bawk '$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold | tr "-" "_" > {output}
+	"""
+
+rule get_fasta:
+	input:  
+		"longest_transcripts.fa"
+	output: 
+		"{GeneID,[\w\.-]+}.fa"
+	shell: """
+		get_fasta -i {wildcards.GeneID} < {input} > {output}
+	"""
+
+#########################
+#  Genomic Regions Rules
+
+rule get_pos_bed:
+	input:
+		"../../local/share/data/ALL_v8.neg_pos_rand.bed.gz"
+	output:
+		"{ssRNA}.pos.bed"
+	shell: """
+		zgrep '{config[PEAK_VERSION]}' {input} | tr "-" "_" | bawk '$2=="{wildcards.ssRNA}" && $9=="pos" {{print $3~6";"$7,$8,$9}}' > {output}
+	"""
+
+rule rand_exclude:
+	input:
+		blacklist=GENCODE_DIR+"/"+GENOME+".shuffle_blacklist.bed",
+		gap=GENCODE_DIR+"/gap.bed"
+	output:
+		"rand.excl.bed"
+	shell:"""
+		cut -f -3 {input.blacklist} {input.gap} | bedtools sort | bedtools merge > {output}
+	"""
+
+rule get_neg_bed:
+	input:
+		rand_exclude="rand.excl.bed",
+		pos_bed="{ssRNA}.pos.bed", 
+		chrom_info=GENCODE_DIR+"/chrom.info.no_alt"
+	output:
+		"{ssRNA}.neg.bed"
+	shell: """
+		bedtools shuffle -excl {input.rand_exclude} -i {input.pos_bed} -g {input.chrom_info} -seed {config[SEED]} \
+        | bawk '{{$4="rand_"$4; $5="neg"; print}}' > {output}
+	"""
+
+rule pos_neg_bed:
+	input:
+		pos_bed="{ssRNA}.pos.bed",
+		neg_bed="{ssRNA}.neg.bed"
+	output:
+		"{ssRNA}.pos_neg.bed"
+	shell:"""
+		cat {input.pos_bed} {input.neg_bed} > {output}
+	"""
+
+ruleorder: bed_to_fasta > get_fasta
+rule bed_to_fasta:
+	input:
+		assembly=GENOME_ASSEMBLY_DIR+".primary_assembly.genome.clean_id.fa",
+		bed_file="{path}.bed"
+	output:
+		"{path}.bed.fa"
+	shell:"""
+		bedtools getfasta -name -fi {input.assembly} -bed {input.bed_file} -fo {output}
+	"""
+
+###############
+# Run 3plex
+
+rule run_3plex:
+	input:
+		ssRNA_file="{ssRNA}.fa",
+		dsDNA_file="{ssRNA}.pos_neg.bed.fa"
+	params:
+		params_instance=triplexator_paramspace.instance
+	output:
+		"tpx_paramspace/{ssRNA}/{ssRNA}.pos_neg.bed/"+f"{triplexator_paramspace.wildcard_pattern}/3plex.summary.gz"
+	threads: 24
+	shell: """
+		docker run -u `id -u`:`id -g` --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta -j {threads} -l {wildcards.min_length} -L {wildcards.max_length} -e {wildcards.error_rate} -g {wildcards.guanine_rate} -r {wildcards.filter_repeat} -c {wildcards.consecutive_errors} -s {wildcards.single_strandedness} $PWD/{input.ssRNA_file} $PWD/{input.dsDNA_file} $PWD; \
+        mv {wildcards.ssRNA}_ssmasked-{wildcards.ssRNA}.pos_neg.bed.tpx.summary.gz {output}; \
+		rm {wildcards.ssRNA}_ssmasked-{wildcards.ssRNA}.pos_neg.bed.tpx.stability.gz
+	"""
+
+rule add_zeros_3plex:
+	input:
+		bed="{bed_file}.bed",
+		score_3plex="{prefix}/{bed_file}.bed/{path}/3plex.summary.gz"
+	output:
+		"{prefix}/{bed_file}.bed/{path}/3plex.summary.add_zeros.gz"
+	shell:"""
+		 bawk 'BEGIN{{print "Duplex_ID","pos_neg","rep"}}{{print $4,$5,$6}}' {input.bed} | translate -a -v -e 0 <(zcat {input.score_3plex}) 1  | gzip > {output} 
+	"""
+
+rule all_3plex:
+	input: 
+		expand("tpx_paramspace/{ssRNA}/{ssRNA}.pos_neg.bed/{params}/3plex.summary.add_zeros.gz",
+				params = triplexator_paramspace.instance_patterns,
+				ssRNA = all_selected_ssRNA_id()
+			)
+	output:
+		"3plex.summary.add_zeros.ALL.gz"
+	shell: """
+		matrix_reduce -t 'tpx_paramspace/*/*.pos_neg.bed/min_length~*/max_length~-1/error_rate~{config[ERROR_RATE]}/guanine_rate~{config[G_RATE]}/filter_repeat~off/consecutive_errors~{config[CONS_ERROR]}/single_strandedness~{config[SSTRAND]}/3plex.summary.add_zeros.gz' \
+		| grep -v 'pos_neg' | gzip > {output}
+	"""
+
+rule all_3plex_clean:
+	input: 
+		"3plex.summary.add_zeros.ALL.gz"
+	output:
+		"3plex.summary.add_zeros.ALL.clean.gz"
+	shell: """
+		bawk '{{split($1,a,";"); print a[3],$2,$3,$7,$8}}' {input} | bawk 'BEGIN{{print "min_len","peak","pos_neg","score"}} $4!="neg"{{print $1,$2,$5,$3}} $4=="neg"{{print $1,$2,$4,$3}}' | gzip > {output}
+	"""

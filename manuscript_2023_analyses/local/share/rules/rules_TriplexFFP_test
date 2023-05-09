@@ -1,0 +1,13 @@
+selected_ssRNA_mouse.fa: selected_ssRNA_mouse ../v8.4_ReChIRP_idr_mouse/longest_transcripts.fa
+	get_fasta_pl -w -f $< $^2 > $@
+	cat ../../local/share/data/mmusculus/ssRNA_fasta/lncSmad7.fa >> $@
+
+
+selected_ssRNA_human.fa: selected_ssRNA_human ../v8_ChIRP_neg_rand/longest_transcripts.fa
+	get_fasta_pl -w -f $< $^2 > $@
+
+selected_ssRNA.fa: selected_ssRNA_mouse.fa selected_ssRNA_human.fa
+	cat $< $^2 > $^3
+
+selected_ssRNA_results.csv:
+	cp ncraw:~/prj/TriplexFPP/output/selected_ssRNA_results.csv $@

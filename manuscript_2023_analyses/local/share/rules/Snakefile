@@ -1,0 +1,755 @@
+from snakemake.utils import Paramspace
+import pandas as pd
+
+
+configfile: "config.yaml"
+
+######################
+#  General Parameters
+
+NCPUS=os.environ.get("NCPUS",10)
+PWD=os.environ.get("PWD")
+REFERENCE_ROOT=os.environ.get("REFERENCE_ROOT")
+BIOINFO_REFERENCE_ROOT=REFERENCE_ROOT+"bioinfotree/task/"
+CONDA_ACTIVATE="set +u; source %s/miniconda*/etc/profile.d/conda.sh ; conda activate ; conda activate" % REFERENCE_ROOT
+
+
+#####################
+#  Gencode Parameters
+
+GENCODE_SPECIES="hsapiens"
+GENCODE_VERSION="32"
+GENCODE_DIR=BIOINFO_REFERENCE_ROOT+"gencode/dataset/"+GENCODE_SPECIES+"/"+GENCODE_VERSION
+CCRE_DIR=BIOINFO_REFERENCE_ROOT+"encode-screen/dataset/v13/"
+
+
+######################
+#  Docker Parameters
+
+#DOCKER_GROUP=os.environ.get("DOCKER_GROUP")
+DOCKER_GROUP="10001"
+DOCKER_DATA_DIR=os.environ.get("DOCKER_DATA_DIR")
+SCRATCH=os.environ.get("SCRATCH")
+
+
+######################
+#  Triplexator Parameters
+
+TRIPLEXATOR_PARAM=os.environ.get("TRIPLEXATOR_PARAM",None)
+if TRIPLEXATOR_PARAM is None:
+	TRIPLEXATOR_PARAM="-L -1 -e 20 -E -1 -l {}".format(config["TRIPLEXATOR_MIN_LEN"])
+
+
+#######################
+# Other Parameters
+
+PREDICTORS_COL_NAMES=os.environ.get("PREDICTORS_COL_NAMES",config["PREDICTORS_COL_NAMES"])
+
+
+
+# More parameters are specified in config.yaml
+
+
+triplexator_paramspace = Paramspace(pd.read_csv("triplexator_params.tsv", sep="\t"))
+
+
+
+
+#####################
+#  Generic rules
+
+rule header_added:
+	input:
+		"{file}"
+	output:
+		"{file}.header_added"
+	shell:"""
+		(bawk -M {input} | cut -f 2 | transpose; cat {input} ) > {output}
+	"""
+		
+
+
+
+
+#####################
+#  Rules
+
+def all_selected_ssRNA_id():
+	with open("selected_ssRNA_id", mode='rt') as fh:
+		for line in fh:
+			yield line.rstrip()
+
+def get_all_triplexator_selected_input(wildcards):
+	for GeneID in all_selected_ssRNA_id():
+                yield "precomputed_tpx/{}-cCRE.bed.tpx.gz".format(GeneID)
+
+rule all_triplexator:
+	input:
+		get_all_triplexator_selected_input
+
+
+def get_all_fisher_selected_condition(wildcards):
+	with open("selected_lncRNA.ALLconditions",mode='rt') as fh:
+		for line in fh:
+			ssRNA,diff,stem = line.rstrip().split("\t")
+			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}_{}_neg_pos.fisher_select_cutoff".format(ssRNA,diff,stem)
+
+
+rule all_fisher_selected_condition:
+	input:
+		get_all_fisher_selected_condition
+
+
+def get_all_fisher(wildcards):
+	with open("all_lncRNA.ALLconditions",mode='rt') as fh:
+		for line in fh:
+			ssRNA,diff,stem = line.rstrip().split("\t")
+			yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}_{}_neg_pos.fisher_select_cutoff".format(ssRNA,diff,stem)
+
+def get_all_fisher_neg_pos_rand(wildcards):
+	for ssRNA in all_selected_ssRNA_id():
+		yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}-neg_pos_rand.fisher_select_cutoff".format(ssRNA,ssRNA)
+
+def get_all_fisher_neg_pos_nocCRE(wildcards):
+	for ssRNA in all_selected_ssRNA_id():
+		yield "tpx_analysis/{}/cCRE.tpx.best.complete.{}-neg_pos.fisher_select_cutoff".format(ssRNA,ssRNA)
+
+rule all_fisher:
+	input:
+		get_all_fisher
+
+rule all_fisher_neg_pos_rand:
+	input:
+		get_all_fisher_neg_pos_rand
+
+rule all_fisher_neg_pos_nocCRE:
+	input:
+		get_all_fisher_neg_pos_nocCRE
+
+
+
+
+rule cCRE_fasta:
+	input:
+		assembly=GENCODE_DIR+"/GRCh38.primary_assembly.genome.clean_id.fa",
+		cCRE_bed="{path}.bed"
+	output:
+		"{path}.bed.fa"
+#	priority: 100
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bedtools getfasta -name -fi {input.assembly} -bed {input.cCRE_bed} -fo {output}
+	"""
+
+rule get_fasta:
+	input:  
+		"longest_transcripts.fa"
+	output: 
+	#	temp("{GeneID,[\w\.-]+}.fa")
+		"{GeneID,[\w\.-]+}.fa"
+        #container:
+        #        "../../local/share/images/bit.wip-rnaseq.0.4.img"
+	threads: 1
+	shell: """
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		get_fasta -i {wildcards.GeneID} < {input} > {output}
+	"""
+
+ruleorder: cCRE_fasta > get_fasta
+
+rule get_longest_transcripts:
+	input:
+		GENCODE_DIR+"/gencode.v32.transcripts.fa.gz"
+	output:
+		"longest_transcripts.fa"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8; 
+		zcat {input} | fasta2oneline | tr "|" "\t" | bawk '$8!="retained_intron"' | find_best 6 7 | cut -f 6,10 | tab2fasta | fold > {output}
+	"""
+
+
+rule cCRE_bed:
+	input:
+		CCRE_DIR+"GRCh38-ccREs.bed"
+	output:
+		"cCRE.bed"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bawk '$6=="PLS" || $6=="dELS" || $6=="pELS"' {input} > {output}
+	"""
+
+
+TRIPLEXATOR_ALN_2_ONE_LINE=""
+if config["TRIPLEXATOR_ALN"]==1:
+
+
+
+
+
+#############################
+#  Triplex scoring methods  #
+#############################
+
+# target:
+rule all_tpx_paramspace:
+	input:
+		expand("tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{ssRNA}.neg_pos_rand.bed/{params}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.gz", \
+			params = triplexator_paramspace.instance_patterns,
+			ssRNA = all_selected_ssRNA_id(),
+			single_strandedness_cutoff = config["SINGLE_STRANDEDNESS_CUTOFF"],
+			window=config["RNAPLFOLD_WINDOW"]
+		)
+
+rule triplexator_param_exploration:
+	input:
+		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta",
+		dsDNA_file="{dsDNA}.fa"
+	params:
+		params_instance=triplexator_paramspace.instance
+	output:
+		tpx	="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.stability.gz",
+		summary ="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}/"+f"{triplexator_paramspace.wildcard_pattern}/raw.tpx.summary"
+	wildcard_constraints:
+		single_strandedness_cutoff	= "\d+",
+		window				= "\w+",
+		ssRNA				= "[^/]+",
+		dsDNA				= "[^/]+"
+			
+	shell: """
+		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
+		mkdir -p $(dirname {output.tpx}); cd $(dirname {output.tpx});\
+		triplexator \
+			-l  {wildcards.min_length} \
+			-L  {wildcards.max_length} \
+			-e  {wildcards.error_rate} \
+			-g  {wildcards.guanine_rate} \
+			-fr {wildcards.filter_repeat} \
+			-c  {wildcards.consecutive_errors} \
+			-fm 0 -of {config[TRIPLEXATOR_ALN]} -o raw.tpx -rm 2 -p {NCPUS} -ss {PWD}/{input.ssRNA_file} -ds {PWD}/{input.dsDNA_file}"
+		cd $(dirname {output.tpx});
+		unhead raw.tpx -f raw.tpx.head | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | unhead > {output.tpx}.tmp;
+		cat {output.tpx}.tmp | ../../local/src/tpx_thermal_stability.py | gzip > {output.tpx}
+		rm raw.tpx raw.tpx.head {output.tpx}.tmp
+	"""
+# cat raw.tpx.head {output.tpx}.tmp | gzip > {output.tpx}
+# rm raw.tpx raw.tpx.head {output.tpx}.tmp
+
+rule summary_neg_pos:
+	input:
+		summary="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary",
+		neg_pos_bed="{dsDNA}.bed"
+	output:
+		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{dsDNA}.bed/{triplexator_params}/raw.tpx.summary.neg_pos"
+	shell: """
+		translate -a -r -v -e 0 {input.summary} 4 < {input.neg_pos_bed} |  bawk 'BEGIN{{print "Duplex_ID","neg_pos","t_pot","t_pot_norm","Duplex_length"}} {{print $4,$6,$8,$9,$3-$2}}' > {output}
+	"""
+
+rule custom_summary:
+	input:
+		tpx="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.stability.gz",
+		summary_neg_pos="tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.summary.neg_pos",
+		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}_{window}.fasta"
+	output:
+		"tpx_paramspace/{ssRNA}_ss{single_strandedness_cutoff}_{window}/{path1}/min_length~{min_length}/max_length~{max_length}/{path2}/raw.tpx.custom_summary.neg_pos"
+	wildcard_constraints:
+		ssRNA="[^/]+",
+		min_length="\d+",
+		max_length="-*\d+"
+	shell: """
+		unhead {input.summary_neg_pos} \
+		| translate -a -v -e 0 -z <(zcat {input.tpx} | unhead | cut -f 4 | symbol_count) 1 \
+		| append_each_row "$(unhead {input.ssRNA_file} | tr -d "N\\n" | wc -c)"  \
+        | ../../local/src/tiplexator_t_pot_norm.py -l {wildcards.min_length} -L {wildcards.max_length} > {output}
+	"""
+
+rule summary_covered_by_tts:
+	input:
+		tpx="{path}/raw.tpx.stability.gz",
+		summary="{path}/raw.tpx.custom_summary.neg_pos",
+	output:
+		"{path}/raw.tpx.custom_summary.neg_pos.covered_by_tts"	
+	shell: """
+		cat {input.summary} \
+		| translate -a -r -v -e 0 \
+			<(bawk '{{print $4,$5,$6}}' {input.tpx} | unhead \
+			 | bedtools sort | bedtools merge | bawk '{{print $1,$3-$2}}' \
+			 | stat_base -g -t \
+			 | bawk 'BEGIN{{print "Duplex_ID","TTS_covered_len"}} {{print $1,$2}}' \
+			) 1 \
+		| bawk 'NR==1 {{print $0,"TTS_covered_frac"}} NR>1 {{ print $0,$10/$6}}'> {output}
+	"""
+
+rule stability_best:
+	input:
+		"{file_path}/raw.tpx.stability.gz"
+	output:
+		"{file_path}/raw.best.tpx.stability"
+	shell: """
+		zcat {input} | find_best 4 14 > {output}
+	"""
+
+rule stability_tot_overcount:
+	input:
+		"{file_path}/raw.tpx.stability.gz"
+	output:
+		"{file_path}/raw.tpx.stability.tot_overcount"
+	shell: """
+		zcat {input} | cut -f 4,14 | bsort | stat_base -g -t \
+		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_overcount"}} {{print}}' > {output}
+	"""
+
+rule stability_tot_undercount:
+	input:
+		"{file_path}/raw.tpx.stability.gz"
+	output:
+		"{file_path}/raw.tpx.stability.tot_undercount"
+	shell: """
+		bawk '{{print $Duplex_ID,$TTS_start,$TTS_end,$Stability}}' {input} | bedtools sort | bedtools merge -c 4 -o max | cut -f 1,4 | bsort | stat_base -g -t \
+		| bawk 'BEGIN{{print "Duplex_ID","Stability_tot_undercount"}} {{print}}' > {output}
+	"""
+
+rule summary_covered_by_tts_stability:
+	input:
+		summary			 = "{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts",
+		stability_best           = "{file_path}/raw.best.tpx.stability.header_added",
+		stability_tot_overcount  = "{file_path}/raw.tpx.stability.tot_overcount",
+		stability_tot_undercount = "{file_path}/raw.tpx.stability.tot_undercount"
+	output:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability"
+	shell: """
+		cat {input.summary} \
+		| translate -a -r -v -e 0 <(bawk '{{if(NR==1){{$Stability="Stability_best"}} print $Duplex_ID,$Stability}}' {input.stability_best}) 1 \
+		| translate -a -r -v -e 0 {input.stability_tot_overcount} 1 \
+		| translate -a -r -v -e 0 {input.stability_tot_undercount} 1 > {output}.tmp
+		bawk 'NR==1 {{print $0,"Stability_norm_overcount","Stability_norm_undercount" }} NR>1 {{print $0,$Stability_tot_overcount/$Duplex_length, $Stability_tot_undercount/$Duplex_length}}' {output}.tmp > {output}
+		rm {output}.tmp
+	"""
+
+rule summary_covered_by_tts_stability_logistic_full:
+	input:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability"
+	output:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic_full"
+	shell: """
+		bmodel -c -s -d -n {input} "neg_pos~Stability_best+Stability_norm_undercount" > {output}
+	"""
+
+rule summary_covered_by_tts_stability_logistic:
+	input:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic_full"
+	output:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic"
+	shell: """
+		fasta2tab {input} \
+		| perl -wlane 'BEGIN{{$,="\t"; $neg=0}} \
+			if($neg==1 || ($F[0] eq "coefficients" && $F[1] ne "(Intercept)" && $F[2]<0)){{$neg=1;}} \
+			if($F[0] eq "data_and_prob"){{\
+				 if($F[17] ne "PROB__fitted_model" and $neg){{$F[17]=0}}\
+			 shift(@F); print @F}}' > {output}
+	"""
+
+
+rule compute_AUC_comparison:
+	input:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic"
+	output:
+		"{file_path}/raw.tpx.custom_summary.neg_pos.covered_by_tts.stability.logistic.AUC_comp"
+	shell: """
+		../../local/src/ROC.R {config[OUTCOMES_COL_NAME]} {config[PREDICTORS_COL_NAMES]} -d "<" -O '{wildcards.file_path}/auc_comparison_plot' < {input} > {output}
+	"""
+
+
+
+################
+# 2D structure #
+################
+
+rule RNAplfold_lunp:
+	input:
+		"{ssRNA}.fa"
+	output:
+		lunp="RNAplfold/{ssRNA}_lunp",
+		basepairs="RNAplfold/{ssRNA}_basepairs"
+	shell: """
+		{CONDA_ACTIVATE} rnaFoldRand_v0.1; \
+		mkdir -p RNAplfold;\
+		RNAplfold -W {config[RNAPLFOLD_WINDOW_SIZE]} -L {config[RNAPLFOLD_SPAN_SIZE]} -u {config[RNAPLFOLD_UNPAIRED_WINDOW]} -o < {input}; \
+		mv {wildcards.ssRNA}_lunp {output.lunp}; mv {wildcards.ssRNA}_basepairs {output.basepairs}
+	"""
+
+# Unpaired window
+rule RNAplfold_lunp_unpairedWindow_modif_zscore:
+	input:
+		"RNAplfold/{ssRNA}_lunp"
+	output:
+		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
+	shell:"""
+		{CONDA_ACTIVATE} pybigwig; \
+		grep -v '#' {input} | bawk '{{print $(NF)}}' | ../../local/src/distMedian.py > {output}
+	"""
+
+
+# set the shift for bed file positions
+WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2
+if(config["RNAPLFOLD_UNPAIRED_WINDOW"] % 2 != 0):
+	WINDOW_CENTER=config["RNAPLFOLD_UNPAIRED_WINDOW"] / 2 + 0.5
+
+rule mask_fasta_unpairedWindow:
+	input:
+		RNAplfold_prob="RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore",
+		fasta="{ssRNA}.fa"
+	output:
+		"{ssRNA}_ss{percentile}_unpairedWindow.fasta"
+	shell:"""
+		PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
+		fasta_mask <(bawk -v perc=$PERC '$1<perc {{print "{wildcards.ssRNA}",NR - 1 + {WINDOW_CENTER}, NR + {WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge) < {input.fasta} > {output}
+	"""
+
+
+# Single nt base pairing probability
+rule RNAplfold_lunp_singleNt_modif_zscore:
+	input:
+		"RNAplfold/{ssRNA}_lunp"
+	output:
+		"RNAplfold/{ssRNA}_lunp.singleNt.modif_zscore"
+	shell: """
+		{CONDA_ACTIVATE} pybigwig; \
+		grep -v '#' {input} | bawk '{{print $2}}' | ../../local/src/distMedian.py > {output}
+	"""
+
+
+# no shift for bed file
+rule mask_fasta_singleNt:
+	input:
+		RNAplfold_prob="RNAplfold/{ssRNA}_lunp.singleNt.modif_zscore",
+		fasta="{ssRNA}.fa"
+	output:
+		"{ssRNA}_ss{percentile}_singleNt.fasta"
+	shell:"""
+		PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
+		fasta_mask <(bawk -v perc=$PERC '$1<perc {{print "{wildcards.ssRNA}",NR - 1, NR}}' {input.RNAplfold_prob} | bedtools merge) < {input.fasta} > {output}
+	"""
+
+#rule RNAplfold_lunp_singleNt:
+#	input:
+#		"RNAplfold/{ssRNA}_lunp"
+#	output:
+#		"RNAplfold/{ssRNA}_lunp.singleNt"
+#	shell:"""
+#		grep -v '#' {input} | bawk '{{print $1}}' > {output}
+#	"""
+
+#rule triplexator:
+#	input:
+#		ssRNA_file="{ssRNA}.fa",
+#		dsDNA_file="{dsDNA}.fa"
+#	output:
+#		tpx="{ssRNA}-{dsDNA}.tpx.raw_%s" % TRIPLEXATOR_PARAM.replace(" ",""), 
+#		summary="{ssRNA}-{dsDNA}.tpx.raw_%s.summary" % TRIPLEXATOR_PARAM.replace(" ","")
+#	#log: 
+#	#	"logs/{ssRNA}-{dsDNA}.tpx.log"
+#	#shadow: "shallow"
+#	shell: """
+#		mkdir -p logs;
+#		docker run -u `id -u`:{DOCKER_GROUP} --rm -v {DOCKER_DATA_DIR}:{DOCKER_DATA_DIR} -v {SCRATCH}:{SCRATCH} triplexator:{config[TRIPLEXATOR_DOCKER]} bash -c "cd {PWD};
+#		triplexator {TRIPLEXATOR_PARAM} -fm 0 -of {config[TRIPLEXATOR_ALN]} -o {output.tpx} -rm 2 -p {NCPUS} -ss {input.ssRNA_file} -ds {input.dsDNA_file}";
+#		""" + \
+#		TRIPLEXATOR_ALN_2_ONE_LINE + \
+#		"""
+#		mv {output.tpx}.log logs/
+#	"""
+
+#rule triplexator_filter:
+#	input:
+#		"{path}.tpx.raw"
+#	output:
+#		"{path}.tpx"
+#	shell: """
+#		bawk '$Score>={config[TRIPLEXATOR_SCORE_CUTOFF]}' {input} > {output}
+#	"""
+
+
+#rule gzip_precomputed_tpx_file:
+#	input:
+#		raw="{file_name}.tpx.raw",
+#		filtered="{file_name}.tpx",
+#		summary="{file_name}.tpx.raw.summary"
+#	output:
+#		raw="precomputed_tpx/{file_name}.tpx.raw.gz",
+#		filtered="precomputed_tpx/{file_name}.tpx.gz",
+#		summary="precomputed_tpx/{file_name}.tpx.raw.summary.gz"
+#	shell:"""
+#		mkdir -p precomputed_tpx;
+#		gzip < {input.raw} > {output.raw};
+#		gzip < {input.filtered} > {output.filtered};
+#		gzip < {input.summary} > {output.summary};
+#		rm {input.raw} {input.filtered} {input.summary}
+#	"""
+
+
+#rule link_tpx:
+#	input:
+#		"precomputed_tpx/{ssRNA}-cCRE.bed.tpx.gz"
+#	output:
+#		"tpx_analysis/{ssRNA}/cCRE.tpx.gz"
+#	shell: """
+#		mkdir -p tpx_analysis/{wildcards.ssRNA};
+#		cd tpx_analysis/{wildcards.ssRNA};
+#		ln -s ../../{input} cCRE.tpx.gz
+#	"""
+
+	
+rule tpx_stability_tfo_profile:
+	input:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.gz"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.stability.cut_{stability_cutoff}.tfo_profile"
+	shell:"""	
+		bawk '$Stability>={wildcards.stability_cutoff} {{print $Duplex_ID,$Stability,$1,$2,$3,$4}}' {input} | find_best 1 2 | cut -f 3- | bedtools sort | bedtools merge -c 4 -o count_distinct > {output}
+	"""
+
+
+rule longTarget_best_score_complete:
+	input:
+		cCRE_bed="cCRE.bed",
+		tpx_best="tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.gz"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		zcat {input.tpx_best} | tab2matrix -e 0 -C <(cut -f 4 {input.cCRE_bed}) | matrix2tab | gzip > {output}
+	""" 
+
+
+rule longTarget_best_score_complete_active:
+	input:
+		cCRE_bed="cCRE.bed",
+		tpx_best_complete="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.gz",
+		cond_neg_pos_bed="{condition}.{neg_pos}.bed"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos,\w+}.gz"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		zcat {input.tpx_best_complete} | translate -a -r -k <(cut -f 4- {input.cond_neg_pos_bed}) 2 | gzip > {output}
+	"""
+
+rule fisher_select_cutoff:
+	input:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.gz"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		zcat {input} | bawk '{{print $1"@"$4,$3,$5}}' | fisher_select_cutoff | tr "@" "\\t" > {output}
+	"""
+#zcat {input} | bawk '{{print $1";"$4,int($3/10),$5}}' | fisher_select_cutoff | tr ";" "\\t" > {output}
+
+
+rule fisher_best_cutoff:
+	input:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+	shell:"""
+		find_best -r 1 9 < {input} > {output}
+	"""
+
+rule fisher_best_cutoff_cut:
+	input:
+		neg_pos="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.gz",
+		cutoff="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+	output:
+		"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.best_cut.gz"
+	shell:"""
+		bawk -v C=$(bawk '{{print $3}}' {input.cutoff}) '$3>=C' {input.neg_pos} | gzip > {output}
+	"""
+
+	#	cutoff="tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}-{neg_pos}.fisher_select_cutoff.best"
+#rule tpx_stability_best_cutoff:
+#	input:
+#		tpx_stability="tpx_analysis/{ssRNA}/cCRE.tpx.best.gz"
+#	output:
+#		"tpx_analysis/{ssRNA}/cCRE.tpx.best.cutoff_{}.gz"
+#	shell:"""
+#		ciao
+#	"""
+
+rule:
+	input:
+		tpx="tpx_analysis/{ssRNA}/{target_regions}.tpx.gz",
+		bed="{target_regions}.bed"
+	output:
+		"tpx_analysis/{ssRNA}/{target_regions}.tpx.tts_genom_coords.pre"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		zcat {input.tpx} | unhead | translate -r -a -f 4 <(cut -f -4 {input.bed}) 4 > {output}
+	"""
+rule:
+	input:
+		"{file}.tpx.tts_genom_coords.pre"	
+	output:
+		"{file}.tpx.tts_genom_coords"
+	shell:"""
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bawk '{{TTS_start_genom=$TTS_start+$region_b; TTS_end_genom=$TTS_end+$region_b; print $0,TTS_start_genom,TTS_end_genom}}' {input} > {output}
+	"""
+rule:
+	input:
+		"{file}.tpx.tts_genom_coords"	
+	output:
+		"{file}.tpx.tts_genom_coords.bed"
+	shell:"""
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bawk '{{print $region_chr,$TTS_start_genom,$TTS_end_genom, $sequence_id "-" $Duplex_ID, $Score,$Strand,$sequence_id,$TFO_start,$TFO_end,$Error_rate,$Errors,$Motif,$Orientation,$Guanine_rate,$Duplex_ID,$region_b,$region_e}}' {input}\
+		| id2count -a 4  > {output}
+	"""
+rule assoc_genehancer:
+	input:
+		tpx="{file}.tpx.tts_genom_coords.bed",
+		genehancer="/sto1/ref/bioinfotree/task/GeneHancer/dataset/v5/genehancer.connected_genes.signif.clean_ensg.entrez.rr_coords.tissue.bed"
+	output:
+		"{file}.tpx.tts_genom_coords.assoc_genes"
+	shell:"""
+		#{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		bedtools intersect -loj -a {input.tpx} -b {input.genehancer}\
+		| bawk '{{print $7,$15,$22,$23,$24, $5}}' > {output}
+	"""
+
+"""
+
+.META: *.tpx.gz
+	1       ssRNA
+	2       TFO_start
+	3       TFO_end
+	4       Duplex_ID
+	5       TTS_start
+	6       TTS_end
+	7       Score
+	8       Error_rate
+	9       Errors
+	10      Motif
+	11      Strand
+	12      Orientation
+	13      Guanine_rate
+
+.META: *.tpx.stability.gz *.tpx.stability
+	1	ssRNA
+	2	TFO_start
+	3	TFO_end
+	4	Duplex_ID
+	5	TTS_start
+	6	TTS_end
+	7	Score
+	8	Error_rate
+	9	Errors
+	10	Motif
+	11	Strand
+	12	Orientation
+	13	Guanine_rate
+	14	Stability
+
+.META: *.tpx.tts_genom_coords.assoc_genes
+	1	ssRNA
+	2	cCRE
+	2	genehancer_region
+	3	gene
+	4	EntrezGene
+	4	tpx_score	
+
+.META: *.tpx.tts_genom_coords.pre
+	1	sequence_id
+	2	TFO_start
+	3	TFO_end
+	4	Duplex_ID
+	5	TTS_start
+	6	TTS_end
+	7	Score
+	8	Error_rate
+	9	Errors
+	10	Motif
+	11	Strand
+	12	Orientation
+	13	Guanine_rate
+	14	region_chr
+	15	region_b
+	16	region_e
+
+.META: *.tpx.tts_genom_coords
+	1	sequence_id
+	2	TFO_start
+	3	TFO_end
+	4	Duplex_ID
+	5	TTS_start
+	6	TTS_end
+	7	Score
+	8	Error_rate
+	9	Errors
+	10	Motif
+	11	Strand
+	12	Orientation
+	13	Guanine_rate
+	14	region_chr
+	15	region_b
+	16	region_e
+	17	TTS_start_genom
+	18	TTS_end_genom
+
+.META: *.tpx.tts_genom_coords.bed
+	1	region_chr
+	2	TTS_start
+	3	TTS_end
+	4	TTS_name
+	5	Score
+	6	Strand
+	7	sequence_id
+	8	TFO_start
+	9	TFO_end
+	10	Error_rate
+	11	Errors
+	12	Motif
+	13	Orientation
+	14	Guanine_rate
+	15	region_name
+	16	region_b
+	17	region_e
+
+.META: *.fisher_select_cutoff
+	1	ssRNA
+	2	greater_and_positive
+	3	lower_and_positive
+	4	greater_and_negative
+	5	lower_and_negative
+	6	oddsratio
+	7	pvalue
+
+.META: cCRE.tpx.best.complete.*-neg_pos.gz
+	1	ssRNA	HOTTIP
+	2	region	merged_ChIRP_1
+	3	score	0
+	4	condition	HOTTIP
+	5	neg_pos	pos
+
+.META: cCRE.tpx.best.complete.*-neg_pos_rand.gz
+	1	ssRNA	HOTTIP
+	2	region	merged_ChIRP_1
+	3	score	0
+	4	condition	HOTTIP
+	5	neg_pos	pos
+
+
+"""
+
+
+rule barplot_lncRNA_condition:
+	input:
+		#"tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.fisher_select_cutoff"
+		"{file}.fisher_select_cutoff"
+	output:
+		# tpx_analysis/{ssRNA}/cCRE.tpx.best.complete.{condition}_neg_pos.fisher_select_cutoff.barplot.pdf
+		"{file}.fisher_select_cutoff.barplot.pdf"
+	shell:"""
+		{CONDA_ACTIVATE} bit_rnaseq_2.8;
+		../../local/src/single_barplot.R < {input} > {output}
+	"""
+
+

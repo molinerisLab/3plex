@@ -1,0 +1,13 @@
+name: pybigwig
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - meme
+  - python=3.6
+  - matplotlib
+  - pybigwig
+  - cgat-apps
+  - numpy
+  - pandas
