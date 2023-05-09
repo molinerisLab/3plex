@@ -5,13 +5,18 @@ output:
   html_notebook: default
 ---
 
-```{r packages, message=TRUE, warning=TRUE, results="hide"}
+## Setup
+
+```{r packages, message=FALSE, warning=FALSE, results="hide"}
+# libraries
 library(pROC)
 library(ggplot2)
 library(ggsci)
+library(dplyr)
+library(ggpubr)
 
 # working directory
-setwd("/sto1/epigen/TPXcCRE/dataset")
+setwd("/home/epigen/TPXcCRE/dataset")
 ```
 
 Custom function: _roc.list()_
@@ -53,7 +58,8 @@ plot.roc <- function(roc.list, smoothing=NULL){
           , plot.title = element_text(hjust = 0.5)
           , legend.title = element_blank()
           , legend.position = c(0.75, 0.22)) +
-    scale_color_aaas(labels=labels,) +
+    #scale_color_discrete(labels=labels) +
+    scale_color_aaas(labels=labels) +
     coord_fixed()
 }
 ```
@@ -72,80 +78,75 @@ auc.df <- function(roc.list, smoothing=NULL){
 
 
 # Transcript shuffling framework [K=1]
-```{r transcr.shuffle}
+
+```{r transcr.shuffle, message=FALSE, warning=FALSE}
 transcr.shuffle.hm <- read.delim("v8.summary_transcript_shuffle/matrix.human_mouse.tpx_method.gz", header=T)
 transcr.shuffle.hm <- split(transcr.shuffle.hm, transcr.shuffle.hm$tpx_method)
 
 transcr.shuffle.hm.roc <- lapply(transcr.shuffle.hm, function(x){
   roc.list(x,"pos_neg","k1")
 })
+
 print(plot.roc(roc.list = lapply(transcr.shuffle.hm.roc,"[[","k1"), smoothing = "binormal"))
+
+# save
+pdf("transcr.shuffle.hm.roc.pdf", paper = "a4", width = 5, height = 5)
+print(plot.roc(roc.list = lapply(transcr.shuffle.hm.roc,"[[","k1"), smoothing = "binormal"))
+dev.off()
 ```
 
 
 # Genomic peaks shuffling framework
-```{r peaks_shuffle}
+
+```{r peaks_shuffle, message=FALSE, warning=FALSE}
 peaks.shuffle.hm <- read.delim("v8.summary_peaks_shuffle/matrix.human_mouse.tpx_method.gz", header=T)
 peaks.shuffle.hm <- split(peaks.shuffle.hm, peaks.shuffle.hm$tpx_method)
 
 peaks.shuffle.hm.roc <- lapply(peaks.shuffle.hm, function(x){
   roc.list(x,"pos_neg","score")
 })
+
 print(plot.roc(roc.list = lapply(peaks.shuffle.hm.roc,"[[","score"), smoothing = "binormal"))
+
+# save
+pdf("peaks.shuffle.hm.roc.pdf", paper = "a4", width = 5, height = 5)
+print(plot.roc(roc.list = lapply(peaks.shuffle.hm.roc,"[[","score"), smoothing = "binormal"))
+dev.off()
 ```
 
 
-# AVG ROC version - Genomic Peaks shuffling 
-```{r}
-pos_neg_peak_sub_hm <- read.delim("v_test_randomiz_sub.summary.clean.sens_spec.tpx_method.gz",header=T)
+# Min len 6 version - Genomic Peaks shuffling 
 
-pos_neg_peak_sub_hm <- pos_neg_peak_sub_hm %>% mutate(spec_bin = cut(specificities, breaks=c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1), include.lowest=T))
+```{r minlen6, message=FALSE, warning=FALSE}
+peaks.shuffle.hm.l6 <- read.delim("3plex.summary.add_zeros.ALL.l6.gz", header=T)
+peaks.shuffle.hm.l6 <- filter(peaks.shuffle.hm.l6,min_len<=12)
 
-pos_neg_peak_sub_hm_avg <- pos_neg_peak_sub_hm %>%
-  group_by(spec_bin, tpx_method) %>%
-  summarise(  mean_sens = mean(sensitivities)
-            , mean_spec = mean(specificities)
-            , ymin = mean(mean_sens) - sd(sensitivities)/2
-            , ymax = mean(mean_sens) + sd(sensitivities)/2
-            , ymin2 = min(sensitivities)
-            , ymax2 = max(sensitivities)
-            , median_sens = median(sensitivities)
-            , ymin3 = quantile(sensitivities, probs = c(0.25))[1]
-            , ymax3 = quantile(sensitivities, probs = c(0.75))[1])
+peaks.shuffle.hm.l6 <- split(peaks.shuffle.hm.l6, peaks.shuffle.hm.l6$min_len)
 
-ggplot(pos_neg_peak_sub_hm_avg) +
-  scale_x_reverse() +
-  geom_ribbon(aes(x = mean_spec, y = mean_sens, ymin = ymin2, ymax = ymax2, group=tpx_method), fill = "grey90") +
-  geom_ribbon(aes(x = mean_spec, y = mean_sens, ymin = ymin, ymax = ymax, group=tpx_method), fill = "grey50") +
-  geom_line(aes(x = mean_spec, y = mean_sens, color=tpx_method)) +
-  theme_classic() +
-  coord_fixed() +
-  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="darkgray", linetype="dashed", size = 0.3) +
-  theme(plot.margin = margin(1,2,1,2, "cm"))
-```
-
-
-
-# TF Average ROC curves
-```{r tf.roc}
-tf <- read.delim("v8.10_TFBS/ALL_TFs.fimo_score.matrix.header_added.gz", header = T)
-tf <- split(tf,tf$Gene_ID)
-tf.roc <- lapply(tf, function(x){
-  roc.list(x,"neg_pos","score")
+peaks.shuffle.hm.l6.roc <- lapply(peaks.shuffle.hm.l6, function(x){
+  roc.list(x,"pos_neg","score")
 })
-print(plot.roc(roc.list = lapply(tf.roc,"[[","score"), smoothing = "binormal"))
+
+print(plot.roc(roc.list = lapply(peaks.shuffle.hm.l6.roc,"[[","score")))
+
+# save
+pdf("peaks.shuffle.hm.l6.roc.pdf",paper = "a4",width=5,height = 5)
+print(plot.roc(roc.list = lapply(peaks.shuffle.hm.l6.roc,"[[","score")))
+dev.off()
 ```
 
 
-```{r}
-avg.tf <- read.delim("avg_roc_pre.tsv", header=T)
+# Average TF ROC Curves
 
-avg.tf <- avg.tf %>% 
+```{r avgTF, message=FALSE, warning=FALSE}
+tf.avg.roc <- read.delim("avg_roc_pre.tsv", header=T)
+
+tf.avg.roc <- tf.avg.roc %>% 
   mutate(spec_bin = cut(spec, 
                         breaks=c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1),
                         include.lowest=T))
 
-avg.tf <- avg.tf %>%
+tf.avg.roc <- tf.avg.roc %>%
   group_by(spec_bin) %>%
   summarise(mean_sens = mean(sens),
             mean_spec = mean(spec),
@@ -157,10 +158,10 @@ avg.tf <- avg.tf %>%
             ymin3 = quantile(sens, probs = c(0.25))[1],
             ymax3 = quantile(sens, probs = c(0.75))[1])
 
-avg.tf <- rbind(avg.tf, c(0,1,0,1,1,1,1,1,1,1))
-avg.tf <- rbind(avg.tf, c(1,0,1,0,0,0,0,0,0,0))
+tf.avg.roc <- rbind(tf.avg.roc, c(0,1,0,1,1,1,1,1,1,1))
+tf.avg.roc <- rbind(tf.avg.roc, c(1,0,1,0,0,0,0,0,0,0))
 
-ggplot(avg.tf) +
+ggplot(tf.avg.roc) +
   scale_x_reverse() +
   geom_ribbon(aes(x = mean_spec, y = mean_sens, ymin = ymin2, ymax = ymax2), fill = "grey90") +
   geom_ribbon(aes(x = mean_spec, y = mean_sens, ymin = ymin, ymax = ymax), fill = "grey50") +
@@ -171,5 +172,80 @@ ggplot(avg.tf) +
   theme(plot.margin = margin(1,2,1,2, "cm"))
 ```
 
+
+# TPX-validated lncRNAs ROC curves [Best Single Parameters]
+
+```{r tpx_roc, message=FALSE, warning=FALSE}
+tpx_lncRNA <- read.delim("best_single_params.triplex_ssRNA_scores.header_added.gz", header=T)
+filter_table<-read.delim("best_single_params.triplex_ssRNA.tsv", header=F)
+tpx_lncRNA<-split(tpx_lncRNA,tpx_lncRNA$ssRNA)
+
+# Select the best predictor for each ssRNA through filter file
+tpx_lncRNA<-lapply(tpx_lncRNA,function(x){
+  ssRNA_name<-levels(as.factor(x$ssRNA))
+  predictor_name<-filter_table[which(filter_table[,2]==ssRNA_name), 11]
+  tpx.lncRNA<-x[,c("ssRNA","neg_pos",predictor_name)]
+})
+
+# Create roc objects with defined direction
+roc_matrix<-lapply(tpx_lncRNA, function(x){
+  ssRNA_name<-levels(as.factor(x$ssRNA))
+  predictor_name<-filter_table[which(filter_table[,2]==ssRNA_name), 11]
+  rocobj <- suppressMessages(roc(as.formula(paste(collapse = "~", c("neg_pos", predictor_name))), data= x, direction="<"))
+})
+
+labels <- levels(as.factor(filter_table$V2))
+
+for(i in seq_along(labels)){
+  l<-labels[[i]]
+  auc<-round(roc_matrix[[l]]$auc,3)
+  labels[[i]]<-paste0(c(l,auc),collapse=" - ")
+}
+
+# ROC plot
+ggroc(roc_matrix) +
+  theme_classic(base_size = 10) +
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="darkgray", linetype="dashed",size=0.3) +
+  theme(plot.margin = margin(1,2,1,2, "cm")
+        , plot.title = element_text(hjust = 0.5)
+        , legend.title = element_blank()
+        , legend.position = c(0.85, 0.3)
+        , legend.key.size = unit(0.4, "cm"))+
+  coord_fixed() +
+  scale_color_nejm(labels = labels)
+```
+
+
+# All lncRNAs best AUC
+
+```{r all.lncRNA.auc, message=FALSE, warning=FALSE}
+single_auc_all <- read.delim("best_single_params.ALL_ssRNA.tsv", header = T)
+spec_df <- read.delim("../local/share/data/all_reproducibility.all_bed.regionPeak.counts_matrix", header = T)
+
+# data manipulation
+single_auc_all <- merge(single_auc_all, spec_df[,2:3], by.x = "ssRNA", by.y = "lncRNA")
+single_auc_all$ssRNA <- reorder(single_auc_all$ssRNA, -single_auc_all$AUC)
+
+# pal
+pal <- pal_nejm("default")(8)
+
+# barplot of AUC
+p <- ggplot(single_auc_all, aes(x = ssRNA, y = AUC, fill = species, alpha = as.numeric(triplex_ssRNA))) +
+  geom_bar(stat = "identity", width = .8, color = "black", size = .3) +
+  facet_grid(~species, scales = "free_x") +
+  theme_pubclean(base_size = 8) +
+  coord_cartesian(ylim = c(.5, 1)) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.95, hjust=1)) +
+  xlab("") +
+  scale_fill_manual(values = pal[c(3,5)]) +
+  guides(fill = "none", alpha = "none")
+
+print(p)
+
+# save
+pdf(p,"barplot_ALL_ssRNA_AUC.pdf", paper = "a4", width = 5, height = 5)
+print(p)
+dev.off()
+```
 
 
