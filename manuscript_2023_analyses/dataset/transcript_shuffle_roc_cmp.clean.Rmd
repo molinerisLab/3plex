@@ -16,7 +16,7 @@ library(dplyr)
 library(ggpubr)
 
 # working directory
-setwd("/home/epigen/TPXcCRE/dataset")
+setwd(".")
 ```
 
 Custom function: _roc.list()_
@@ -80,6 +80,7 @@ auc.df <- function(roc.list, smoothing=NULL){
 # Transcript shuffling framework [K=1]
 
 ```{r transcr.shuffle, message=FALSE, warning=FALSE}
+# https://olilab.unito.it/epigen/TPXcCRE/dataset/matrix.human_mouse.tpx_method.gz
 transcr.shuffle.hm <- read.delim("v8.summary_transcript_shuffle/matrix.human_mouse.tpx_method.gz", header=T)
 transcr.shuffle.hm <- split(transcr.shuffle.hm, transcr.shuffle.hm$tpx_method)
 
@@ -99,6 +100,7 @@ dev.off()
 # Genomic peaks shuffling framework
 
 ```{r peaks_shuffle, message=FALSE, warning=FALSE}
+# https://olilab.unito.it/epigen/TPXcCRE/dataset/matrix.human_mouse.tpx_method.gz
 peaks.shuffle.hm <- read.delim("v8.summary_peaks_shuffle/matrix.human_mouse.tpx_method.gz", header=T)
 peaks.shuffle.hm <- split(peaks.shuffle.hm, peaks.shuffle.hm$tpx_method)
 
@@ -118,6 +120,7 @@ dev.off()
 # Min len 6 version - Genomic Peaks shuffling 
 
 ```{r minlen6, message=FALSE, warning=FALSE}
+# https://olilab.unito.it/epigen/TPXcCRE/dataset/3plex.summary.add_zeros.ALL.l6.gz
 peaks.shuffle.hm.l6 <- read.delim("3plex.summary.add_zeros.ALL.l6.gz", header=T)
 peaks.shuffle.hm.l6 <- filter(peaks.shuffle.hm.l6,min_len<=12)
 
@@ -139,6 +142,7 @@ dev.off()
 # Average TF ROC Curves
 
 ```{r avgTF, message=FALSE, warning=FALSE}
+# https://olilab.unito.it/epigen/TPXcCRE/dataset/avg_roc_pre.tsv
 tf.avg.roc <- read.delim("avg_roc_pre.tsv", header=T)
 
 tf.avg.roc <- tf.avg.roc %>% 
@@ -176,7 +180,9 @@ ggplot(tf.avg.roc) +
 # TPX-validated lncRNAs ROC curves [Best Single Parameters]
 
 ```{r tpx_roc, message=FALSE, warning=FALSE}
+# https://olilab.unito.it/epigen/TPXcCRE/dataset/best_single_params.triplex_ssRNA_scores.header_added.gz
 tpx_lncRNA <- read.delim("best_single_params.triplex_ssRNA_scores.header_added.gz", header=T)
+# https://olilab.unito.it/epigen/TPXcCRE/dataset/best_single_params.triplex_ssRNA.tsv
 filter_table<-read.delim("best_single_params.triplex_ssRNA.tsv", header=F)
 tpx_lncRNA<-split(tpx_lncRNA,tpx_lncRNA$ssRNA)
 
@@ -219,7 +225,9 @@ ggroc(roc_matrix) +
 # All lncRNAs best AUC
 
 ```{r all.lncRNA.auc, message=FALSE, warning=FALSE}
+# https://olilab.unito.it/epigen/TPXcCRE/dataset/best_single_params.ALL_ssRNA.tsv
 single_auc_all <- read.delim("best_single_params.ALL_ssRNA.tsv", header = T)
+# https://olilab.unito.it/epigen/TPXcCRE/dataset/all_reproducibility.all_bed.regionPeak.counts_matrix
 spec_df <- read.delim("../local/share/data/all_reproducibility.all_bed.regionPeak.counts_matrix", header = T)
 
 # data manipulation
