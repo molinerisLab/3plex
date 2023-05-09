@@ -22,20 +22,22 @@ Extensive description of the tool can be foud in out paper:
 
 # Quick start with Docker
 
-Clone the repository.
+Just to have some testing sequences, clone the repository:
 ```
 mkdir 3plex
 wget -O v0.1.2-beta.zip https://github.com/molinerisLab/3plex/archive/refs/tags/v0.1.2-beta.zip
 unzip v0.1.2-beta.zip
 cd v0.1.2-beta
 ```
-This is just to have some testing sequences:
+
+You can test the tool using:
 
  * `test/ssRNA.fa`
  * `test/dsDNA.fa`
 
 You do not need to use directly the code in the repository or install dependencies. You can run a test using the image pulled from docker hub.
 ```
+cd 3plex;
 docker run -u `id -u`:`id -g` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
 ```
 
@@ -53,6 +55,7 @@ To run 3plex on your data just change the test fasta files with the ones you are
 
 > :warning: If you get a *MissingInputException* error make sure your input files are accessible by the user or the group specified in Docker.
 
+> :warning: If you get no output and docker exit with the 139 status the host linux-kernel version is >= 4.8 and you need to enable vsyscall at startup, see https://helpcenter.onlyoffice.com/installation/mail-enabling-vsyscall.aspx.
 ---
 
 # 3plex usage
