@@ -50,7 +50,8 @@ parser.add_argument("--dark_gray_stability", metavar="G", dest="TTS_bed_ucsc_dar
 parser.add_argument("--RNAplfold_window_size", metavar="S", dest="RNAplfold_window_size", type=int, default=200, help="RNAplfold: average pair probabilities over windows of specified size.")
 parser.add_argument("--RNAplfold_span_size", metavar="S", dest="RNAplfold_span_size", type=int, default=150, help="RNAplfold: maximum separation of a base pair permitted.")
 parser.add_argument("--RNAplfold_unpaired_window", metavar="S", dest="RNAplfold_unpaired_window", type=int, default=8, help="RNAplfold: mean probability that regions of specified length are unpaired.")
-parser.add_argument("--snakefile", metavar="file", dest="snakefile", type=str, default="/opt/3plex/Snakefile", help=" ")
+parser.add_argument("--RNA2D_out", metavar="PATH", dest="RNA2D_out", type=str, default=None, help="Ouput the RNAplfold modified zsconre in this PATH.")
+parser.add_argument("--snakefile", metavar="file", dest="snakefile", type=str, default="/opt/3plex/Snakefile", help="override the default Snakefile using this one")
 parser.add_argument("--no_env", dest="no_env", type=bool, default=False, help="Do not load the conda environment, useful when running the script outside of the docker image.")
 args = parser.parse_args()
 
@@ -110,12 +111,14 @@ if args.no_env:
 
 bashCommand+="""
 snakemake --snakefile {snakefile} -j {jobs} {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz && \
-mv {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz ../
+mv {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz ../;
 """.format(
 	jobs=args.jobs, 
 	snakefile=os.path.basename(args.snakefile),
 	ssRNA=ssRNA_name,
 	dsDNA=os.path.splitext(os.path.basename(args.dsDNA))[0]
 )
+if args.RNA2D_out is not None:
+    bashCommand+="mv RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore ../{dest};".format{ssRNA=ssRNA_name, dest=args.RNA2D_out}
 execute(bashCommand, tmpdir)
 
