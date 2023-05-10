@@ -1,1 +1,0 @@
-../../local/share/rules/rules_v15_RADICLseq.mk

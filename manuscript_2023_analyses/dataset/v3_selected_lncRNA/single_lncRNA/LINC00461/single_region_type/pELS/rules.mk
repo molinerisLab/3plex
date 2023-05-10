@@ -1,1 +1,0 @@
-../../../../../../local/share/rules/rules_single_lncRNA_region_type.mk

@@ -1,1 +1,0 @@
-../../local/share/rules/prj_rules_ENCODE_NCP_H9.mk

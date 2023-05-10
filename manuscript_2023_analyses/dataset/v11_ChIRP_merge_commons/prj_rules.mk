@@ -1,1 +1,0 @@
-../../local/share/rules/prj_rules_merge.mk

@@ -1,1 +1,0 @@
-../../local/share/rules/prj_rules-v3_selected_lncRNA.mk

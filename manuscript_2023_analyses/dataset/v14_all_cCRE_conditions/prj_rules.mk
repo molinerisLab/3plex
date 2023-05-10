@@ -1,1 +1,0 @@
-../../local/share/rules/prj_rules_v14_all_cCRE_conditions.mk
