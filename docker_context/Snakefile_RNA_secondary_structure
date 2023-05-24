@@ -1,0 +1,83 @@
+######################
+# ssRNA 2D structure #
+######################
+
+rule check_input:
+	input:
+		"{ssRNA}.fa"
+	output:
+		".3plex/{ssRNA}.fa.checked"
+	group: "3plex"
+	shell:"""
+		mkdir -p .3plex
+		perl -lne 'if($.==1 and $_ ne ">{wildcards.ssRNA}"){{m/>(.+)$/; print STDERR "Malformed input fasta file for RNA.\\nPlease put in the header only the sequence name (>{wildcards.ssRNA}) and/or name the file accordingly ($1.fa).\\nAvoid empty rows at the begining of the file.\\nOnly one sequence per file allowed."; exit(1) }}' {input}
+		touch {output}
+	"""
+
+# Run RNAplfold
+rule RNAplfold_lunp:
+	input:
+		fasta="{ssRNA}.fa",
+		check_input=".3plex/{ssRNA}.fa.checked"
+	output:
+		lunp="RNAplfold/{ssRNA}_lunp",
+		basepairs="RNAplfold/{ssRNA}_basepairs"
+	shadow: "minimal"
+	group: "3plex"
+	shell: """
+		mkdir -p RNAplfold; 
+		RNAplfold -W {config[RNAplfold][window_size]} -L {config[RNAplfold][span_size]} -u {config[RNAplfold][unpaired_window]} -o < {input}; 
+		#mv {wildcards.ssRNA}_lunp {output.lunp}; mv {wildcards.ssRNA}_basepairs {output.basepairs} # this do not work if the filename and the name of the sequence in the header are different
+		mv *_lunp {output.lunp}; mv *_basepairs {output.basepairs}
+	"""
+
+
+# Compute modified z-score for WINDOW_SIZE base windows
+rule RNAplfold_lunp_unpairedWindow_modif_zscore:
+	input:
+		"RNAplfold/{ssRNA}_lunp"
+	output:
+		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
+	group: "3plex"
+	shell:"""
+		grep -v '#' {input} | awk '{{print $(NF)}}' | distMedian.py > {output}
+	"""
+
+RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2
+if(config["RNAplfold"]["unpaired_window"] % 2 != 0):
+        RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2 + 0.5
+
+ruleorder: mask_fasta_unpairedWindow_shortcut > mask_fasta_unpairedWindow
+
+rule mask_fasta_unpairedWindow_shortcut:
+        input:
+                fasta="{ssRNA}.fa",
+		check_input=".3plex/{ssRNA}.fa.checked"
+        output:
+                "{ssRNA}_ss0_unpairedWindow.fasta"
+	group: "3plex"
+        shell: """
+                ln -sf {input.fasta} {output}
+        """
+
+rule mask_fasta_unpairedWindow:
+        input:
+                RNAplfold_prob="RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore",
+                fasta="{ssRNA}.fa"
+        output:
+                "{ssRNA}_ss{percentile}.fa"
+	group: "3plex"
+        shell:"""
+                PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.percentile}/100 - 0.5)]}}'); \
+		bedtools maskfasta -fi {input.fasta} -fo {output} -bed <(awk -v perc=$PERC 'BEGIN{{OFS="\\t"}} $1<perc {{print "{wildcards.ssRNA}",NR - 1 + {RNAplfold_WINDOW_CENTER}, NR + {RNAplfold_WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge)
+        """
+
+rule mask_fasta_unpairedWindow_rename:
+        input:
+                "{ssRNA}_ss{config[RNAplfold][single_strandedness_cutoff]}.fa"
+        output:
+                "{ssRNA}_ssmasked.fa"
+	group: "3plex"
+        shell:"""
+		ln -s {input} {output}
+        """
