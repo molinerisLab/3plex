@@ -110,8 +110,8 @@ if args.no_env:
 	bashCommand=""
 
 bashCommand+="""
-snakemake --snakefile {snakefile} -j {jobs} {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz && \
-mv {ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz ../;
+snakemake --snakefile {snakefile} -j {jobs} {ssRNA}_ssmasked-{dsDNA}.tpx.summary.add_zeros.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz && \
+mv {ssRNA}_ssmasked-{dsDNA}.tpx.summary.add_zeros.gz {ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz ../;
 """.format(
 	jobs=args.jobs, 
 	snakefile=os.path.basename(args.snakefile),
