@@ -1,0 +1,20 @@
+triplexator:
+        min_length: 10
+        max_length: -1
+        error_rate: 20
+        guanine_rate: 10
+        filter_repeat: "off"
+        consecutive_errors: 3
+        other_parameters: ""
+
+pato_simultaneus_sequences: 256
+        
+RNAplfold:
+        window_size: 200
+        span_size: 150
+        unpaired_window: 8
+        single_strandedness_cutoff: 0
+
+TTS_bed:
+        ucsc_dark_gray: 843
+        dark_gray_stability: 43

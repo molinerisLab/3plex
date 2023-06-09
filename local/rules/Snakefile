@@ -1,0 +1,255 @@
+#All paths in the snakefile are interpreted relative to the directory snakemake is executed in. This behaviour can be overridden
+configfile: "config.yaml"
+
+#import os
+#if os.path.exists("/opt/3plex/Snakefile_RNA_secondary_structure"):#working inside 3plex docker image
+#	include: "/opt/3plex/Snakefile_RNA_secondary_structure"
+#else:
+#	include: "Snakefile_RNA_secondary_structure"
+
+rule pato:
+	input:
+		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}.fa",
+		dsDNA_file="{dsDNA}.fa"
+	#params:
+	#        prefix="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}"
+	output:
+		tpx = temp("{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.stability.gz"),
+		summary = temp("{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary")
+	log:
+		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.log"
+	threads: 64
+	#retries: 3
+#	group: "3plex"
+	shell: """
+		OMP_NUM_THREADS={threads}\
+		pato \
+				-l  {config[triplexator][min_length]} \
+				-L  {config[triplexator][max_length]} \
+				-e  {config[triplexator][error_rate]} \
+				-g  {config[triplexator][guanine_rate]} \
+				-fr {config[triplexator][filter_repeat]} \
+				-c  {config[triplexator][consecutive_errors]} \
+				{config[triplexator][other_parameters]} \
+				-of 1 \
+				--chunk-size {config[pato_simultaneus_sequences]} \
+				-ss {input.ssRNA_file} -ds {input.dsDNA_file} -o {output.tpx} > {log}
+		mv {output.tpx}.out {output.tpx}
+		#Linearize align informations, at the begin {output.tpx} is not really gzipped
+		unhead {output.tpx} \
+		| perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; s/>/\\n/; print "$_\\t"' | unhead > {output.tpx}.tmp;
+		#Add stability
+		cat {output.tpx}.tmp | tpx_thermal_stability.py | gzip > {output.tpx}
+		rm {output.tpx}.tmp
+		mv {output.tpx}.summary {output.summary}
+	"""
+
+rule stability_ssRNA_profile:
+	input:
+		"{file_path}.tpx.stability.gz""
+	output:
+		"{file_path}.tpx.stability.profile.msgpack"
+	shell: """
+		zcat {input} | cut -f 2,3,14 | stability_profile.py 22743 > {output}
+	"""
+	#TODO determinare lungehzza ssRNA
+
+rule gzip_tpx_summary:
+	input:
+		"{file_path}.tpx.summary"
+	output:
+		temp("{file_path}.tpx.summary.clean")
+#	group: "3plex"
+	shell:"""
+		perl -pe 'if($.==1){{s/^#\s+//; s/ //g; s/-/_/g}}' {input} > {output}
+	"""
+
+rule duplex_length:
+	input:
+		"{file_path}.fa"
+	output:
+		"{file_path}.fa.length"
+	shell:"""
+		fasta2oneline < {input} | perl -lane 'BEGIN{{$,="\\t"}} print $F[0],length($F[1])' > {output}
+	"""
+
+rule stability_best:
+	input:
+		"{file_path}.tpx.stability.gz"
+	output:
+		"{file_path}.best.tpx.stability.gz"
+	shell: """
+		zcat {input} | find_best -H 4 14 | gzip > {output}
+	"""
+
+rule score_best:
+	input:
+		"{file_path}.tpx.stability.gz"
+	output:
+		temp("{file_path}.tpx.score_best")
+	shell: """
+		bawk 'BEGIN{{print "Duplex_ID","Score_best"}} NR>1 {{print $Duplex_ID,$Score}}' {input} | find_best -H 1 2 > {output}
+	"""
+
+rule stability_tot_undercount:
+	input:
+		"{file_path}.tpx.stability.gz"
+	output:
+		temp("{file_path}.tpx.stability.tot_undercount")
+	shell: """
+		bawk 'NR>1 {{print $Duplex_ID,$TTS_start,$TTS_end,$Stability}}' {input} \
+		| bedtools sort | bedtools merge -c 4 -o max | cut -f 1,4 \
+		| bsort \
+		| bawk 'BEGIN{{t=0; l=""; print "Duplex_ID","Stability_tot"}}\
+			{{
+				if($1!=l){{\
+					if(l!=""){{print l,t}}\
+					t=$2; l=$1\
+				}}else{{\
+					t+=$2\
+				}}\
+			}}
+			END{{ print l,t}}' > {output}
+	"""
+
+rule summary:
+	input:
+		summary="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.clean",
+		stability_best="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.best.tpx.stability.gz",
+		score_best="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.score_best",
+		stability_tot_undercount = "{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.stability.tot_undercount",
+		duplex_length = "{dsDNA}.fa.length"
+	output:
+		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.gz"
+	shell: """
+		cat {input.summary} \
+		| translate -a -r -v -e 0 <(bawk 'BEGIN{{print "Duplex_ID","Duplex_length"}} {{print}}' {input.duplex_length}) 1 \
+		| translate -a -r -v -e 0 <(bawk 'BEGIN{{print "Duplex_ID","Stability_best"}} NR>1 {{print $Duplex_ID,$Stability}}' {input.stability_best}) 1 \
+		| translate -a -r -v -e 0 {input.stability_tot_undercount} 1 \
+		| translate -a -r -v -e 0 {input.score_best} 1 > {output}.tmp
+		bawk 'NR==1 {{print $0,"Stability_norm"}} NR>1 {{print $0,$Stability_tot/$Duplex_length}}' {output}.tmp | gzip > {output}
+		rm {output}.tmp
+	"""
+
+rule tts_genome_coords:
+       input:
+               tpx="{file_path_prefix}-{dsDNA}.tpx.stability.gz",
+               bed="{dsDNA}.bed"
+       output:
+               temp("{file_path_prefix}-{dsDNA}.tpx.stability.tts_genome_coords.gz")
+       shell:"""
+               zcat {input.tpx} | translate -r -a -f 4 <(bawk 'BEGIN{{ print "TTS_chr", "Duplex_start","Duplex_end","Duplex_ID" }} {{print}}' {input.bed}) 4 > {output}.tmp
+               bawk '	NR==1 {{print $0,"TTS_start_genome","TTS_end_genome"}}\
+			NR>1  {{TTS_start_genome=$TTS_start+$Duplex_start; TTS_end_genome=$TTS_end+$Duplex_start; print $0,TTS_start_genome,TTS_end_genome}}' {output}.tmp | gzip > {output}
+       """
+
+rule tts_genome_coords_bed:
+       input:
+               "{file}.tts_genome_coords.gz"
+       output:
+               "{file}.tts_genome_coords.bed"
+       shell:"""
+		bawk 'NR>1 {{\
+			score = int($Stability*10*({config[TTS_bed][ucsc_dark_gray]}/({config[TTS_bed][dark_gray_stability]}*10))); if(a>1000){{a = 1000}}; \
+			print $TTS_chr,$TTS_start_genome,$TTS_end_genome,$Duplex_ID,score\\
+		}}' {input} | \
+		bedtools sort | bedtools merge -i - -c 4,5 -o distinct,max | id2count -a 4 > {output}
+       """
+
+rule add_zeros:
+	input:
+		dsDNA="{dsDNA}.fa",
+		summary="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.gz"
+	output:
+		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.gz"
+	shell:"""
+		 awk 'BEGIN{{print "Duplex_ID"}} match($1,/>/){{split($1,a,">"); print a[2]}}' {input.dsDNA} \
+		 | translate -a -v -e 0 <(zcat {input.summary}) 1 \
+		 | bawk 'NR==1{{print}} NR>1{{$2={wildcards.ssRNA}; print}}' \
+		 | gzip > {output} 
+	"""
+
+
+######################
+# ssRNA 2D structure #
+######################
+
+rule check_input:
+	input:
+		"{ssRNA}.fa"
+	output:
+		".3plex/{ssRNA}.fa.checked"
+#	group: "3plex"
+	shell:"""
+		mkdir -p .3plex
+		perl -lne 'if($.==1 and $_ ne ">{wildcards.ssRNA}"){{m/>(.+)$/; print STDERR "Malformed input fasta file for RNA.\\nPlease put in the header only the sequence name (>{wildcards.ssRNA}) and/or name the file accordingly ($1.fa).\\nAvoid empty rows at the begining of the file.\\nOnly one sequence per file allowed."; exit(1) }}' {input}
+		touch {output}
+	"""
+
+# Run RNAplfold
+rule RNAplfold_lunp:
+	input:
+		fasta="{ssRNA}.fa",
+		check_input=".3plex/{ssRNA}.fa.checked"
+	output:
+		lunp="RNAplfold/{ssRNA}_lunp",
+		basepairs="RNAplfold/{ssRNA}_basepairs"
+#	shadow: "minimal"
+#	group: "3plex"
+	shell: """
+		mkdir -p RNAplfold; 
+		RNAplfold -W {config[RNAplfold][window_size]} -L {config[RNAplfold][span_size]} -u {config[RNAplfold][unpaired_window]} -o < {input}; 
+		#mv {wildcards.ssRNA}_lunp {output.lunp}; mv {wildcards.ssRNA}_basepairs {output.basepairs} # this do not work if the filename and the name of the sequence in the header are different
+		mv *_lunp {output.lunp}; mv *_basepairs {output.basepairs}
+	"""
+
+
+# Compute modified z-score for WINDOW_SIZE base windows
+rule RNAplfold_lunp_unpairedWindow_modif_zscore:
+	input:
+		"RNAplfold/{ssRNA}_lunp"
+	output:
+		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
+#	group: "3plex"
+	shell:"""
+		grep -v '#' {input} | awk '{{print $(NF)}}' | distMedian.py > {output}
+	"""
+
+RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2
+if(config["RNAplfold"]["unpaired_window"] % 2 != 0):
+        RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2 + 0.5
+
+ruleorder: mask_fasta_unpairedWindow_shortcut > mask_fasta_unpairedWindow
+
+rule mask_fasta_unpairedWindow_shortcut:
+	input:
+		fasta="{ssRNA}.fa",
+		check_input=".3plex/{ssRNA}.fa.checked"
+	output:
+			"{ssRNA}_ss0.fa"
+#	group: "3plex"
+	shell: """
+			ln -sf {input.fasta} {output}
+	"""
+
+rule mask_fasta_unpairedWindow:
+	input:
+		RNAplfold_prob="RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore",
+		fasta="{ssRNA}.fa"
+	output:
+		"{ssRNA}_{single_strandedness_cutoff}.fa"
+	shell:"""
+			PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.single_strandedness_cutoff}/100 - 0.5)]}}'); \
+			bedtools maskfasta -fi {input.fasta} -fo {output} -bed <(awk -v perc=$PERC 'BEGIN{{OFS="\\t"}} $1<perc {{print "{wildcards.ssRNA}",NR - 1 + {RNAplfold_WINDOW_CENTER}, NR + {RNAplfold_WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge)
+	"""
+
+SS=config['RNAplfold']['single_strandedness_cutoff']
+
+rule mask_fasta_unpairedWindow_rename:
+        input:
+                "{ssRNA}_ss{SS}.fa"
+        output:
+                "{ssRNA}_ssmasked.fa"
+        shell: """
+			ln -s {input} {output}
+        """
