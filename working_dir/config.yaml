@@ -6,6 +6,8 @@ triplexator:
         filter_repeat: "off"
         consecutive_errors: 3
         other_parameters: ""
+
+pato_simultaneus_sequences: 256
         
 RNAplfold:
         window_size: 200
