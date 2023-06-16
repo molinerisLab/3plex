@@ -216,6 +216,7 @@ rule RNAplfold_lunp_unpairedWindow_modif_zscore:
 	"""
 
 RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2
+
 if(config["RNAplfold"]["unpaired_window"] % 2 != 0):
         RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2 + 0.5
 
@@ -247,9 +248,9 @@ SS=config['RNAplfold']['single_strandedness_cutoff']
 
 rule mask_fasta_unpairedWindow_rename:
         input:
-                "{ssRNA}_ss{SS}.fa"
+                "{ssRNA}.fa"
         output:
                 "{ssRNA}_ssmasked.fa"
         shell: """
 			ln -s {input} {output}
-        """
+        """""
