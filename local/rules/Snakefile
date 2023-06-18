@@ -14,7 +14,7 @@ rule pato:
 	#params:
 	#        prefix="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}"
 	output:
-		tpx = temp("{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.stability.gz"),
+		tpx = temp("{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx"),
 		summary = temp("{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary")
 	log:
 		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.log"
@@ -35,13 +35,18 @@ rule pato:
 				--chunk-size {config[pato_simultaneus_sequences]} \
 				-ss {input.ssRNA_file} -ds {input.dsDNA_file} -o {output.tpx} > {log}
 		mv {output.tpx}.out {output.tpx}
-		#Linearize align informations, at the begin {output.tpx} is not really gzipped
-		unhead {output.tpx} \
-		| perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; s/>/\\n/; print "$_\\t"' | unhead > {output.tpx}.tmp;
-		#Add stability
-		cat {output.tpx}.tmp | tpx_thermal_stability.py | gzip > {output.tpx}
-		rm {output.tpx}.tmp
-		mv {output.tpx}.summary {output.summary}
+	"""
+
+rule tpx_stability:
+	input:
+		"{path}.tpx"
+	output:
+		"{path}.tpx.stability.gz"
+	shell: """
+		#Linearize align informations, at the begin {output}
+		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output}.tmp
+		#Add stabilityf
+		cat {output}.tmp | tpx_thermal_stability.py | gzip > {output}
 	"""
 
 rule stability_ssRNA_profile:
@@ -79,7 +84,7 @@ rule stability_best:
 	output:
 		"{file_path}.best.tpx.stability.gz"
 	shell: """
-		zcat {input} | find_best -H 4 14 | gzip > {output}
+		zcat {input} | find_best 4 14 | gzip > {output}
 	"""
 
 rule score_best:
@@ -215,6 +220,15 @@ rule RNAplfold_lunp_unpairedWindow_modif_zscore:
 		grep -v '#' {input} | awk '{{print $(NF)}}' | distMedian.py > {output}
 	"""
 
+rule RNAplfold_lunp_unpairedWindow_modif_zscore_packed:
+	input:
+		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
+	output:
+		"RNAplfold/{ssRNA}_secondary_structure.msgpack"
+	shell:"""
+		secondary_structure_to_msgpack.py RNAplfold/{wildcards.ssRNA}_secondary_structure.msgpack < {input}
+	"""
+
 RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2
 
 if(config["RNAplfold"]["unpaired_window"] % 2 != 0):
@@ -238,7 +252,7 @@ rule mask_fasta_unpairedWindow:
 		RNAplfold_prob="RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore",
 		fasta="{ssRNA}.fa"
 	output:
-		"{ssRNA}_{single_strandedness_cutoff}.fa"
+		"{ssRNA}_{single_strandedness_cutoff,\d+}.fa"
 	shell:"""
 			PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.single_strandedness_cutoff}/100 - 0.5)]}}'); \
 			bedtools maskfasta -fi {input.fasta} -fo {output} -bed <(awk -v perc=$PERC 'BEGIN{{OFS="\\t"}} $1<perc {{print "{wildcards.ssRNA}",NR - 1 + {RNAplfold_WINDOW_CENTER}, NR + {RNAplfold_WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge)
@@ -254,3 +268,146 @@ rule mask_fasta_unpairedWindow_rename:
         shell: """
 			ln -s {input} {output}
         """""
+
+"""
+
+.META: *.tpx.gz
+	1       ssRNA
+	2       TFO_start
+	3       TFO_end
+	4       Duplex_ID
+	5       TTS_start
+	6       TTS_end
+	7       Score
+	8       Error_rate
+	9       Errors
+	10      Motif
+	11      Strand
+	12      Orientation
+	13      Guanine_rate
+
+.META: *.tpx.stability.gz *.tpx.stability
+	1	ssRNA
+	2	TFO_start
+	3	TFO_end
+	4	Duplex_ID
+	5	TTS_start
+	6	TTS_end
+	7	Score
+	8	Error_rate
+	9	Errors
+	10	Motif
+	11	Strand
+	12	Orientation
+	13	Guanine_rate
+	14	Stability
+
+.META: raw.tpx.stability.best.gz
+	1	Duplex_ID
+	2	Stability_best
+
+.META: *.tpx.tts_genom_coords.assoc_genes
+	1	ssRNA
+	2	cCRE
+	2	genehancer_region
+	3	gene
+	4	EntrezGene
+	4	tpx_score	
+
+.META: *raw.tpx.stability.tts_genome_coords.pre
+	1	sequence_id
+	2	TFO_start
+	3	TFO_end
+	4	Duplex_ID
+	5	TTS_start
+	6	TTS_end
+	7	Score
+	8	Error_rate
+	9	Errors
+	10	Motif
+	11	Strand
+	12	Orientation
+	13	Guanine_rate
+	14	Stability
+	15	tpx_seq_A
+	16	tpx_seq_B
+	17	tpx_seq_C
+	18	tpx_seq_D
+	19	region_chr
+	20	region_b
+	21	region_e
+
+.META: *raw.tpx.stability.tts_genome_coords.gz
+	1	sequence_id
+	2	TFO_start
+	3	TFO_end
+	4	Duplex_ID
+	5	TTS_start
+	6	TTS_end
+	7	Score
+	8	Error_rate
+	9	Errors
+	10	Motif
+	11	Strand
+	12	Orientation
+	13	Guanine_rate
+	14	Stability
+	15	tpx_seq_A
+	16	tpx_seq_B
+	17	tpx_seq_C
+	18	tpx_seq_D
+	19	region_chr
+	20	region_b
+	21	region_e
+	22	TTS_start_genome
+	23	TTS_end_genome
+
+.META: *raw.tpx.stability.tts_genome_coords.bed
+	1	region_chr
+	2	TTS_start_genome
+	3	TTS_end_genome
+	4	region_name
+	5	sequence_id
+	6	TFO_start
+	7	TFO_end
+	8	Duplex_ID
+	9	TTS_start
+	10	TTS_end
+	11	Score
+	12	Error_rate
+	13	Errors
+	14	Motif
+	15	Strand
+	16	Orientation
+	17	Guanine_rate
+	18	Stability
+	19	tpx_seq_A
+	20	tpx_seq_B
+	21	tpx_seq_C
+	22	tpx_seq_D
+
+.META: *.fisher_select_cutoff
+	1	ssRNA
+	2	greater_and_positive
+	3	lower_and_positive
+	4	greater_and_negative
+	5	lower_and_negative
+	6	oddsratio
+	7	pvalue
+
+.META: cCRE.tpx.best.complete.*-neg_pos.gz
+	1	ssRNA	HOTTIP
+	2	region	merged_ChIRP_1
+	3	score	0
+	4	condition	HOTTIP
+	5	neg_pos	pos
+
+.META: cCRE.tpx.best.complete.*-neg_pos_rand.gz
+	1	ssRNA	HOTTIP
+	2	region	merged_ChIRP_1
+	3	score	0
+	4	condition	HOTTIP
+	5	neg_pos	pos
+
+
+"""
