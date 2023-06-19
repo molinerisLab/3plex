@@ -64,7 +64,6 @@ def profile2ranges(profiles):
     
     for stability in profiles.keys():
         profile = profiles[stability]
-        print(">%s" % stability)
         profile_range = Ranges()
         profile_range.reset_container()
         
@@ -121,9 +120,10 @@ def best_stability_to_range(best_stability):
     return profile_range.container
 
 def main():
-    get_TFO_profile_allSparse()
+    data = get_TFO_profile_allSparse()
 
     path = sys.argv[1]
+    path = os.path.dirname(path)
     #data = json.load(sys.stdin)
     profiles = profile2ranges(data["profiles"])
     best_stability = best_stability_to_range(data["best_stability"])
