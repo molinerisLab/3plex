@@ -224,9 +224,9 @@ rule RNAplfold_lunp_unpairedWindow_modif_zscore_packed:
 	input:
 		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
 	output:
-		"RNAplfold/{ssRNA}_secondary_structure.msgpack"
+		"{ssRNA}_secondary_structure.msgpack"
 	shell:"""
-		secondary_structure_to_msgpack.py RNAplfold/{wildcards.ssRNA}_secondary_structure.msgpack < {input}
+		secondary_structure_to_msgpack.py {wildcards.ssRNA}_secondary_structure.msgpack < {input}
 	"""
 
 RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2
@@ -267,6 +267,17 @@ rule mask_fasta_unpairedWindow_rename:
                 "{ssRNA}_ssmasked.fa"
         shell: """
 			ln -s {input} {output}
+        """""
+
+rule get_profile_range_packed:
+        input:
+                "{ssRNA}_ssmasked-dsDNA.tpx.stability.gz"
+        output:
+                "{ssRNA}profile_range.msgpack"
+        shell: """
+			zcat {input} | cut -f 2,3,14 | unhead | bsort -k3,3nr -k1,1n  -S5% > cutSort
+			tfo_profile.py {output} < cutSort
+			echo "." > {output}
         """""
 
 """

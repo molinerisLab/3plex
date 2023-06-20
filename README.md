@@ -13,9 +13,10 @@ The identified putative TPX are scored according to their thermal stability deri
 Extensive description of the tool can be foud in out paper:
 
 
-> __RNABSdb and 3plex enable deep computational investigation of triplex forming lncRNAs__</br>
-> Chiara Cicconetti, Andrea Lauria, Valentina Proserpio, Annalaura Tamburrini, Mara Maldotti, Salvatore Oliviero, Ivan Molineris</br>
-> bioRxiv 2022.07.06.496678; doi: https://doi.org/10.1101/2022.07.06.496678
+>__3plex enables deep computational investigation of triplex forming lncRNAs.__<br>
+> Cicconetti C, Lauria A, Proserpio V, Masera M, Tamburrini A, Maldotti M, Oliviero S, Molineris I.<br>
+> Comput Struct Biotechnol J. 2023 May 17;21:3091-3102. doi: [10.1016/j.csbj.2023.05.016](https://www.sciencedirect.com/science/article/pii/S2001037023001988). PMID: [37273849](https://pubmed.ncbi.nlm.nih.gov/37273849/); PMCID: PMC10236371.
+
 
 
 ---
