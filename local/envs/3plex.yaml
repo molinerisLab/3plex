@@ -1,0 +1,11 @@
+name: 3plex_test
+channels:
+  - bioconda
+  - molinerislab
+  - defaults
+dependencies:
+  - snakemake=3.13.3
+  - bedtools=2.30.0
+  - viennarna=2.4.14
+  - msgpack-python=1.0.2
+  - bawk=1.1
