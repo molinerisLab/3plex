@@ -7,6 +7,7 @@ configfile: "config.yaml"
 #else:
 #	include: "Snakefile_RNA_secondary_structure"
 
+
 rule pato:
 	input:
 		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}.fa",
@@ -22,6 +23,8 @@ rule pato:
 	#retries: 3
 #	group: "3plex"
 	shell: """
+		echo "Min length"
+		echo {config[triplexator][min_length]}
 		OMP_NUM_THREADS={threads}\
 		pato \
 				-l  {config[triplexator][min_length]} \
@@ -279,6 +282,16 @@ rule get_profile_range_packed:
 			tfo_profile.py {output} < cutSort
 			echo "." > {output}
         """""
+
+rule dsdna_fasta_from_bed:
+	input:
+		dsDNA_file="{dsDNA}.bed"
+	output:
+		"{dsDNA}.fa"
+	shell: """
+		bedtools getfasta -fi {config[species_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
+	"""
+
 
 """
 
