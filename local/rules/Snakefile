@@ -23,20 +23,18 @@ rule pato:
 	#retries: 3
 #	group: "3plex"
 	shell: """
-		echo "Min length"
-		echo {config[triplexator][min_length]}
 		OMP_NUM_THREADS={threads}\
-		pato \
+		/opt/bin/pato \
 				-l  {config[triplexator][min_length]} \
 				-L  {config[triplexator][max_length]} \
 				-e  {config[triplexator][error_rate]} \
 				-g  {config[triplexator][guanine_rate]} \
 				-fr {config[triplexator][filter_repeat]} \
 				-c  {config[triplexator][consecutive_errors]} \
-				{config[triplexator][other_parameters]} \
+				{config[triplexator_other][other_parameters]} \
 				-of 1 \
 				--chunk-size {config[pato_simultaneus_sequences]} \
-				-ss {input.ssRNA_file} -ds {input.dsDNA_file} -o {output.tpx} > {log}
+				-ss {input.ssRNA_file} -ds {input.dsDNA_file} -o {output.tpx} > {log} 2> pato_e.txt
 		mv {output.tpx}.out {output.tpx}
 	"""
 

@@ -95,53 +95,46 @@ def profile2ranges(profiles):
 
     return(profiles_range)            
 
-def best_stability_to_range(best_stability):
-    profile_range = Ranges()
-    profile_range.reset_container()
-        
-    range_b=None
-    range_value=None
-    i_pre = None
-    keys = list(best_stability.keys())
-    keys.sort(key=int)
-    for i in keys:
-        value = best_stability[i]
-        i = int(i);
-        if range_b is None:
-            range_b = i
-            i_pre = i
-            range_value = value
+def ranges_back_to_dict(ranges):
+    #profiles: dict pos - n
+    #ranges: [ n, pos ] or [n, pos_middle, len]
+    #profiles: for stability in profiles.keys(): profile = profiles[stability]
+    #ranges: same thing
+    prof = dict()
+    for stability in ranges.keys():
+        prof[stability] = defaultdict(lambda: 0)
+        profiles = ranges[stability]
+        for profile in profiles:
+            if (len(profile)==2):
+                prof[stability][profile[1]] = profile[0]
+            elif(len(profile)==3):
+                min_ = profile[1] - ((profile[2]-1)/2); max_ = profile[1] + ((profile[2]-1)/2);
+                min_ = int(min_); max_ = int(max_)
+                #print(profile)
+                for i in range(min_, max_+1):
+                    prof[stability][i] = profile[0]
+                    #print(f"{i} - ")
+                #exit()
+            else:
+                print(profile); exit()
+    return prof
 
-        if value != range_value or i > i_pre + 1:
-            profile_range.add_range(range_b, i_pre, range_value)
-            range_b = i
-            range_value = value
-        i_pre = i
-        
-        profile_range.add_range(range_b,i_pre,range_value)
-    return profile_range.container
-
-def best_stability_to_array(best_stability, length):
-    array = np.zeros(length)
-    for key in best_stability.keys():
-        #key to integer
-        index = int(key)
-        array[index] = best_stability[key]
-    return list(array)
 
 def main():
     data, length = get_TFO_profile_allSparse()
-
-    path = sys.argv[1]
-    path = os.path.dirname(path)
-    #data = json.load(sys.stdin)
-    profiles = profile2ranges(data["profiles"])
-    best_stability = best_stability_to_array(data["best_stability"], length)
-    to_export = {"profiles": profiles, "best_stability": best_stability}
-    output_dir = os.path.join(path, "profile_range.msgpack")
-    packed_matrix = msgpack.packb(to_export, use_bin_type=True)
-    with open(output_dir, 'wb') as file:
-        file.write(packed_matrix)
+    profile_ranges = profile2ranges(data["profiles"])
+    data = data["profiles"]
+    data_r = ranges_back_to_dict(profile_ranges)
+    #print(data_r); exit()
+    n_v = 0; n_err = 0;
+    for stability in data.keys():
+        profile = data[stability]
+        for value in profile.keys():
+            n_v += 1
+            if (profile[value] != data_r[stability][value]):
+                n_err += 1
+                print(f"{value}: - {profile[value]} != {data_r[stability][value]}")
+    print(n_v); print(n_err)
 
 if __name__=="__main__":
     main()

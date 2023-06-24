@@ -1,14 +1,7 @@
-triplexator:
-        min_length: 10
-        max_length: -1
-        error_rate: 20
-        guanine_rate: 10
-        filter_repeat: "off"
-        consecutive_errors: 3
-        
+
 triplexator_other:
         other_parameters: ""
-        
+
 RNAplfold:
         window_size: 200
         span_size: 150
