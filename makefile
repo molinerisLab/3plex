@@ -1,6 +1,10 @@
 VERSION?=v0.1.2-beta
 all: docker_build
 
+
+create_env:
+	mamba env create --prefix local/envs/3plex -f local/envs/3plex.yaml
+
 #triplexator_docker_context/min_len_from_10_to_6.patch:
 #	cd triplexator; \
 #	git diff 4505bba7b3dc8cf4922d71446c755e91c448673c 9abaef685bd6a4183ebfe689971b87681f803df5 > ../min_len_from_10_to_6.patch
