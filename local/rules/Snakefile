@@ -1,4 +1,5 @@
 #All paths in the snakefile are interpreted relative to the directory snakemake is executed in. This behaviour can be overridden
+configfile: "config_general.yaml"
 configfile: "config.yaml"
 
 #import os
