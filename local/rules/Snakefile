@@ -1,13 +1,13 @@
 #All paths in the snakefile are interpreted relative to the directory snakemake is executed in. This behaviour can be overridden
 configfile: "config_general.yaml"
 configfile: "config.yaml"
+include: "config.sk"
 
 #import os
 #if os.path.exists("/opt/3plex/Snakefile_RNA_secondary_structure"):#working inside 3plex docker image
 #	include: "/opt/3plex/Snakefile_RNA_secondary_structure"
 #else:
 #	include: "Snakefile_RNA_secondary_structure"
-
 
 rule pato:
 	input:
@@ -291,6 +291,16 @@ rule dsdna_fasta_from_bed:
 		bedtools getfasta -fi {config[species_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
 	"""
 
+rule shuffle_bed:
+	input: 
+		bed = "{file}.bed",
+		exclude = config["shuffle_blacklist"],
+		chrom_info = config["chrom_info"]
+	output: "{file}.shuf.bed"
+	shell:"""
+		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed $(SEED) > {output}
+		#| bawk '{{$4="rand_"$4; $5="neg"; print}' 
+"""
 
 """
 
