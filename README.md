@@ -2,7 +2,7 @@
 
 # Introduction
 
-3plex is a software that predict the interaction between a single strand RNA (ssRNA) with a double strand DNA region (dsDNA) through triple helix formation (ssRNA:dsDNA TPX). 
+3plex is a software that predicts the interaction between a single-strand RNA (ssRNA) with a double-strand DNA region (dsDNA) through triple helix formation (ssRNA:dsDNA TPX). 
 
 `Triplexator` algorithm (Buske et al., 2011)  is used to scan a couple of input nucleotide sequences and to return all the TPX that satisfy a set of user-defined constraints. We lowered the minimum length required for the definition of a TPX from 10 to 5 ([see our paper results](https://doi.org/10.1101/2022.07.06.496678)).
 
@@ -10,10 +10,10 @@ The identified putative TPX are scored according to their thermal stability deri
 
 3plex integrates `RNAplfold` from the ViennaRNA package (Lorentz et al., 2011) to consider the RNA secondary structure information in the definition of a TPX.
 
-Extensive description of the tool can be foud in out paper:
+An extensive description of the tool can be found in our paper:
 
 
->__3plex enables deep computational investigation of triplex forming lncRNAs.__<br>
+>__3plex enables deep computational investigation of triplex-forming lncRNAs.__<br>
 > Cicconetti C, Lauria A, Proserpio V, Masera M, Tamburrini A, Maldotti M, Oliviero S, Molineris I.<br>
 > Comput Struct Biotechnol J. 2023 May 17;21:3091-3102. doi: [10.1016/j.csbj.2023.05.016](https://www.sciencedirect.com/science/article/pii/S2001037023001988). PMID: [37273849](https://pubmed.ncbi.nlm.nih.gov/37273849/); PMCID: PMC10236371.
 
@@ -44,7 +44,7 @@ You can test the tool using:
  * `test/ssRNA.fa`
  * `test/dsDNA.fa`
 
-You do not need to use directly the code in the repository or install dependencies. You can run a test using the image pulled from docker hub.
+You do not need to use directly the code in the repository or install dependencies. You can run a test using the image pulled from the docker hub.
 ```
 cd 3plex;
 docker run -u `id -u`:`id -g` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta $PWD/test/ssRNA.fa $PWD/test/dsDNA.fa $PWD/test_out/
@@ -60,11 +60,11 @@ To see the option list:
 docker run -u `id -u`:`id -g` -it --rm -v $PWD:$PWD imolineris/3plex:v0.1.2-beta -h
 ```
 
-To run 3plex on your data just change the test fasta files with the ones you are interested in.
+To run 3plex on your data change the test fasta files with the ones you are interested in.
 
 > :warning: If you get a *MissingInputException* error make sure your input files are accessible by the user or the group specified in Docker.
 
-> :warning: If you get no output and docker exit with the 139 status the host linux-kernel version is >= 4.8 and you need to enable vsyscall at startup, see https://helpcenter.onlyoffice.com/installation/mail-enabling-vsyscall.aspx.
+> :warning: If you get no output and docker exit with the 139 status the host Linux-kernel version is >= 4.8 and you need to enable vsyscall at startup, see https://helpcenter.onlyoffice.com/installation/mail-enabling-vsyscall.aspx.
 ---
 
 # 3plex usage
@@ -126,7 +126,7 @@ To run 3plex on your data just change the test fasta files with the ones you are
  
 ```
   -h, --help            show this help message and exit
-  --bed dsDNA.bed       Genomic coordiantes of the DNA sequences in bed
+  --bed dsDNA.bed       Genomic coordinates of the DNA sequences in bed
                         format, the 4th column must contain the same
                         identifiers of sequences in dsDNA.fa (default: None)
   -j CPUS, --jobs CPUS  Number of parallel threads. (default: 1)
@@ -149,12 +149,12 @@ To run 3plex on your data just change the test fasta files with the ones you are
   -L M, --max_length M  Maximum triplex length permitted, M=-1 imply no
                         limits. (default: -1)
   -t T, --triplexator_other_parameters T
-                        Additional triplexator parameters passed as a sting
+                        Additional triplexator parameters passed as a string
                         (e.g. -t '-mamg 90 -E 4'). Triplexator output format
                         will not change. (default: )
   --ucsc_dark_gray G    TTS bed UCSC dark gray (default: 843)
   --dark_gray_stability G
-                        10% of TTS in paper. (default: 43)
+                        10% of TTS in the paper. (default: 43)
   --RNAplfold_window_size S
                         RNAplfold: average pair probabilities over windows of
                         specified size. (default: 200)
@@ -162,7 +162,7 @@ To run 3plex on your data just change the test fasta files with the ones you are
                         RNAplfold: maximum separation of a base pair
                         permitted. (default: 150)
   --RNAplfold_unpaired_window S
-                        RNAplfold: mean probability that regions of specified
+                        RNAplfold: the mean probability that regions of specified
                         length are unpaired. (default: 8)
   --snakefile file      (default: /opt/3plex/Snakefile)
   --no_env NO_ENV       Do not load the conda environment, useful when running
@@ -200,7 +200,7 @@ export PATH:$PATH:$PWD/docker_context
 
 # Running 3plex without docker
 
-The logic of __3plex__ is described in the `docker_context/Snakefile` ad is wrapped by the `3plex.py` script.
+The logic of __3plex__ is described in the `docker_context/Snakefile` and is wrapped by the `3plex.py` script.
 
 In an environment with all the dependencies and scripts available, launch __3plex__ with
 
