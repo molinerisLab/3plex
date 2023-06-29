@@ -1,7 +1,7 @@
 #All paths in the snakefile are interpreted relative to the directory snakemake is executed in. This behaviour can be overridden
 configfile: "config_general.yaml"
 configfile: "config.yaml"
-include: "config.sk"
+include: "config.smk"
 
 #import os
 #if os.path.exists("/opt/3plex/Snakefile_RNA_secondary_structure"):#working inside 3plex docker image
