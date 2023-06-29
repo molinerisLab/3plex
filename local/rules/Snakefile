@@ -9,6 +9,17 @@ include: "config.smk"
 #else:
 #	include: "Snakefile_RNA_secondary_structure"
 
+#this rules is not invoked if in setup phase a dsDNA.fa file is put in the working directory
+rule ln_dsDNA_predefined:
+	input:
+		config['dsDNA_predefined_fa']
+	output:
+		"dsDNA.fa"
+	group: "3plex"
+	shell: """
+		ln -s {input} {output}
+	"""
+
 rule pato:
 	input:
 		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}.fa",
@@ -22,7 +33,7 @@ rule pato:
 		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.log"
 	threads: 64
 	#retries: 3
-#	group: "3plex"
+	group: "3plex"
 	shell: """
 		OMP_NUM_THREADS={threads}\
 		/opt/bin/pato \
@@ -44,6 +55,7 @@ rule tpx_stability:
 		"{path}.tpx"
 	output:
 		"{path}.tpx.stability.gz"
+	group: "3plex"
 	shell: """
 		#Linearize align informations, at the begin {output}
 		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output}.tmp
@@ -56,6 +68,7 @@ rule stability_ssRNA_profile:
 		"{file_path}.tpx.stability.gz"
 	output:
 		"{file_path}.tpx.stability.profile.msgpack"
+	group: "3plex"
 	shell: """
 		zcat {input} | cut -f 2,3,14 | stability_profile.py 22743 > {output}
 	"""
@@ -66,7 +79,7 @@ rule gzip_tpx_summary:
 		"{file_path}.tpx.summary"
 	output:
 		temp("{file_path}.tpx.summary.clean")
-#	group: "3plex"
+	group: "3plex"
 	shell:"""
 		perl -pe 'if($.==1){{s/^#\s+//; s/ //g; s/-/_/g}}' {input} > {output}
 	"""
@@ -76,6 +89,7 @@ rule duplex_length:
 		"{file_path}.fa"
 	output:
 		"{file_path}.fa.length"
+	group: "3plex"
 	shell:"""
 		fasta2oneline < {input} | perl -lane 'BEGIN{{$,="\\t"}} print $F[0],length($F[1])' > {output}
 	"""
@@ -103,6 +117,7 @@ rule stability_tot_undercount:
 		"{file_path}.tpx.stability.gz"
 	output:
 		temp("{file_path}.tpx.stability.tot_undercount")
+	group: "3plex"
 	shell: """
 		bawk 'NR>1 {{print $Duplex_ID,$TTS_start,$TTS_end,$Stability}}' {input} \
 		| bedtools sort | bedtools merge -c 4 -o max | cut -f 1,4 \
@@ -128,6 +143,7 @@ rule summary:
 		duplex_length = "{dsDNA}.fa.length"
 	output:
 		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.gz"
+	group: "3plex"
 	shell: """
 		cat {input.summary} \
 		| translate -a -r -v -e 0 <(bawk 'BEGIN{{print "Duplex_ID","Duplex_length"}} {{print}}' {input.duplex_length}) 1 \
@@ -151,17 +167,18 @@ rule tts_genome_coords:
        """
 
 rule tts_genome_coords_bed:
-       input:
-               "{file}.tts_genome_coords.gz"
-       output:
-               "{file}.tts_genome_coords.bed"
-       shell:"""
+	input:
+		"{file}.tts_genome_coords.gz"
+	output:
+		"{file}.tts_genome_coords.bed"
+	group: "3plex"
+	shell:"""
 		bawk 'NR>1 {{\
 			score = int($Stability*10*({config[TTS_bed][ucsc_dark_gray]}/({config[TTS_bed][dark_gray_stability]}*10))); if(a>1000){{a = 1000}}; \
 			print $TTS_chr,$TTS_start_genome,$TTS_end_genome,$Duplex_ID,score\\
 		}}' {input} | \
 		bedtools sort | bedtools merge -i - -c 4,5 -o distinct,max | id2count -a 4 > {output}
-       """
+	"""
 
 rule add_zeros:
 	input:
@@ -169,6 +186,7 @@ rule add_zeros:
 		summary="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.gz"
 	output:
 		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.gz"
+	group: "3plex"
 	shell:"""
 		 awk 'BEGIN{{print "Duplex_ID"}} match($1,/>/){{split($1,a,">"); print a[2]}}' {input.dsDNA} \
 		 | translate -a -v -e 0 <(zcat {input.summary}) 1 \
@@ -186,7 +204,7 @@ rule check_input:
 		"{ssRNA}.fa"
 	output:
 		".3plex/{ssRNA}.fa.checked"
-#	group: "3plex"
+	group: "3plex"
 	shell:"""
 		mkdir -p .3plex
 		perl -lne 'if($.==1 and $_ ne ">{wildcards.ssRNA}"){{m/>(.+)$/; print STDERR "Malformed input fasta file for RNA.\\nPlease put in the header only the sequence name (>{wildcards.ssRNA}) and/or name the file accordingly ($1.fa).\\nAvoid empty rows at the begining of the file.\\nOnly one sequence per file allowed."; exit(1) }}' {input}
@@ -197,12 +215,12 @@ rule check_input:
 rule RNAplfold_lunp:
 	input:
 		fasta="{ssRNA}.fa",
-		check_input=".3plex/{ssRNA}.fa.checked"
+		#check_input=".3plex/{ssRNA}.fa.checked"
 	output:
 		lunp="RNAplfold/{ssRNA}_lunp",
 		basepairs="RNAplfold/{ssRNA}_basepairs"
 #	shadow: "minimal"
-#	group: "3plex"
+	group: "3plex"
 	shell: """
 		mkdir -p RNAplfold; 
 		RNAplfold -W {config[RNAplfold][window_size]} -L {config[RNAplfold][span_size]} -u {config[RNAplfold][unpaired_window]} -o < {input}; 
@@ -241,7 +259,7 @@ ruleorder: mask_fasta_unpairedWindow_shortcut > mask_fasta_unpairedWindow
 rule mask_fasta_unpairedWindow_shortcut:
 	input:
 		fasta="{ssRNA}.fa",
-		check_input=".3plex/{ssRNA}.fa.checked"
+		#check_input=".3plex/{ssRNA}.fa.checked"
 	output:
 			"{ssRNA}_ss0.fa"
 #	group: "3plex"
@@ -288,7 +306,7 @@ rule dsdna_fasta_from_bed:
 	output:
 		"{dsDNA}.fa"
 	shell: """
-		bedtools getfasta -fi {config[species_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
+		bedtools getfasta -fi {config[genome_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
 	"""
 
 rule shuffle_bed:

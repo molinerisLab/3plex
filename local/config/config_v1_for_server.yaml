@@ -1,4 +1,4 @@
-gencode_dir_prefix: /home/reference_data/bioinfotree/task/gencode/dataset/
+gencode_dir_prefix: /home/reference_data/bioinfotree/task/gencode/dataset
 
 triplexator_other:
         other_parameters: ""
@@ -16,8 +16,8 @@ TTS_bed:
 pato_simultaneus_sequences: 256
 
 species_gencode_version_map:
-        hsapiens: hsapiens/42
-        mmusculus: mmusculus/m32
+        hsapiens: 42
+        mmusculus: m32
 
 species_genome_version_map:
         hsapiens: GRCh38
