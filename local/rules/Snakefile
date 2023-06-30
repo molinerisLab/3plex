@@ -301,16 +301,14 @@ rule mask_fasta_unpairedWindow_rename:
 		ln -s {input} {output}
 	"""
 
-rule get_profile_range_packed:
+rule get_tfo_profile_range_packed:
         input:
                 "{ssRNA}_ssmasked-dsDNA.tpx.stability.gz"
         output:
-                "{ssRNA}profile_range.msgpack"
+                "{ssRNA}.profile_range.msgpack"
         shell: """
-			zcat {input} | cut -f 2,3,14 | unhead | bsort -k3,3nr -k1,1n  -S5% > cutSort
-			tfo_profile.py {output} < cutSort
-			echo "." > {output}
-        """""
+			zcat {input} | cut -f 2,3,14 | unhead | bsort -k3,3nr -k1,1n  -S5% | tfo_profile.py > {output}
+        """
 
 rule dsdna_fasta_from_bed:
 	input:
@@ -326,11 +324,14 @@ rule shuffle_bed:
 		bed = "{file}.bed",
 		exclude = config["shuffle_blacklist"],
 		chrom_info = config["chrom_info"]
-	output: "{file}.shuf.bed"
+	output: "{file}_shuf_{run,\d+}.bed"
 	shell:"""
 		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed {config[seed]} > {output}
 		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
-"""
+	"""
+
+
+
 
 """
 
