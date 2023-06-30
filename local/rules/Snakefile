@@ -330,7 +330,13 @@ rule shuffle_bed:
 		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
 	"""
 
-
+rule aggregated_random_tpx:
+	input:
+		expand("ssRNA_ssmasked-dsDNA_shuf_{run}.tpx.stability.gz", run=range(1, config["randomization_num"]+1))
+	output: "ssRNA_ssmasked-dsDNA_shuf.tpx.stability.gz"
+	shell: """
+		matrix_reduce 'ssRNA_ssmasked-dsDNA_shuf_*.tpx' -l '{input}'
+	"""
 
 
 """
