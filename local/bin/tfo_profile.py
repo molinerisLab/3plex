@@ -183,13 +183,21 @@ def profiles_multiple_stats(profiles_multiple):
     #key = (stability_cutoff, coordinate)
     for key, heights in profile_matrix.items():
         profile_statistics[key] = compute_statistics(heights)
-    return profile_statistics
+    
+    profile_statistics_reformat={}
+    for key, statistics in profile_statistics.items():
+        (stability_cutoff, coordinate) = key
+        profile_statistics_reformat.setdefault(stability_cutoff, {})
+        profile_statistics_reformat[stability_cutoff][coordinate]=statistics
+    
+    return profile_statistics_reformat
 
 
 def main():
     parser = argparse.ArgumentParser(description="read tpx stability file and compute tfo profiles")
     parser.add_argument('tpx_files', nargs='*', metavar='file', help='Input file(s)')
     parser.add_argument('-m', '--multiple_input', action='store_true', help='Multiple intput files, as in randomizations')
+    parser.add_argument('-j', '--json', action='store_true', help='output json and not msgpack')
     args = parser.parse_args()
 
     # Check if stdin flag is provided or no files are provided
@@ -210,8 +218,11 @@ def main():
         to_export = profiles_multiple_stats(profiles_multiple)
 
     sys.stdout.write(str(to_export))
-    #packed_matrix = msgpack.packb(to_export, use_bin_type=True)
-    #sys.stdout.buffer.write(packed_matrix)        
+    if args.json:
+        sys.stdout.write(json.dumps(to_export))
+    else:
+        packed_matrix = msgpack.packb(to_export, use_bin_type=True)
+        sys.stdout.buffer.write(packed_matrix)        
 
 if __name__=="__main__":
     main()
