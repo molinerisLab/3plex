@@ -1,5 +1,7 @@
 gencode_dir_prefix: /home/reference_data/bioinfotree/task/gencode/dataset
 
+seed: 42
+
 triplexator_other:
         other_parameters: ""
 

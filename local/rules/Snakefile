@@ -10,12 +10,21 @@ include: "config.smk"
 #	include: "Snakefile_RNA_secondary_structure"
 
 #this rules is not invoked if in setup phase a dsDNA.fa file is put in the working directory
-rule ln_dsDNA_predefined:
+rule ln_dsDNA_predefined_fa:
 	input:
 		config['dsDNA_predefined_fa']
 	output:
 		"dsDNA.fa"
-	group: "3plex"
+#	group: "3plex"
+	shell: """
+		ln -s {input} {output}
+	"""
+rule ln_dsDNA_predefined_bed:
+	input:
+		config['dsDNA_predefined_bed']
+	output:
+		"dsDNA.bed"
+#	group: "3plex"
 	shell: """
 		ln -s {input} {output}
 	"""
@@ -319,8 +328,8 @@ rule shuffle_bed:
 		chrom_info = config["chrom_info"]
 	output: "{file}.shuf.bed"
 	shell:"""
-		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed $(SEED) > {output}
-		#| bawk '{{$4="rand_"$4; $5="neg"; print}' 
+		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed {config[seed]} > {output}
+		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
 """
 
 """
