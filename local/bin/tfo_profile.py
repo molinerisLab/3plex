@@ -2,6 +2,7 @@
 #import pandas as pd
 #import numpy as np
 #from scipy.sparse import dok_matrix
+import argparse
 from collections import defaultdict
 import json
 import sys
@@ -10,15 +11,21 @@ import sys
 import os 
 import numpy as np
 
-def get_TFO_profile_allSparse():
-    # stdin has 3 columns:
-    #
-    #  1       TFO_start
-    #  2       TFO_end
-    #  3       Stability
-    #
-    # without header
-    #
+
+# stdin has 3 columns:
+#
+#  1       TFO_start
+#  2       TFO_end
+#  3       Stability
+#
+# without header
+#
+# assume data sorted on desending Stability
+#
+# output is a dictionary, keys are stability levels, values are the profiles of tfo counts
+
+
+def get_TFO_profile_allSparse(tpx_file):
     # assume data sorted on desending Stability
 
     #profiles=dok_matrix((stability_max, ssRNA_len),dtype=np.uintc)
@@ -28,7 +35,7 @@ def get_TFO_profile_allSparse():
     best_stability = {}
     max_len = 0
     
-    for line in sys.stdin:
+    for line in tpx_file:
         b, e, stability = line.rstrip().split("\t")
         b=int(b)
         e=int(e)
@@ -129,17 +136,53 @@ def best_stability_to_array(best_stability, length):
         array[index] = best_stability[key]
     return list(array)
 
-def main():
-    data, length = get_TFO_profile_allSparse()
+def profiles_multiple_mean(profiles_multiple):
+    # Create an empty dictionary to store the cumulative sum of profile heights
+    profile_matrix = {}
 
-    path = sys.argv[1]
-    path = os.path.dirname(path)
-    #data = json.load(sys.stdin)
-    profiles = profile2ranges(data["profiles"])
-    best_stability = best_stability_to_array(data["best_stability"], length)
-    to_export = {"profiles": profiles, "best_stability": best_stability}
-    packed_matrix = msgpack.packb(to_export, use_bin_type=True)
-    sys.stdout.buffer.write(packed_matrix)
+    # Iterate over each profile in profiles_multiple
+    for profile in profiles_multiple:
+        for stability_cutoff, heights in profile.items():
+            # Iterate over each genomic coordinate and height in the profile
+            for coordinate, height in heights.items():
+                profile_matrix.setdefault((stability_cutoff, coordinate), [])
+                profile_matrix[(stability_cutoff, coordinate)].append(height)
+
+        # Compute the mean, upper quartile, and lower quartile profiles
+    mean_profile = {}
+    upper_quartile_profile = {}
+    lower_quartile_profile = {}
+
+    #key = (stability_cutofvf, coordinate)
+    for key, heights in profile_matrix.items():
+        mean_profile[key] = np.mean(heights)
+        upper_quartile_profile[key] = np.percentile(heights, 75)
+        lower_quartile_profile[key] = np.percentile(heights, 25)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="read tpx stability file and compute tfo profiles")
+    parser.add_argument('tpx_files', nargs='*', metavar='file', help='Input file(s)')
+    parser.add_argument('-m', '--multiple_input', action='store_true', help='Multiple intput files, as in randomizations')
+    args = parser.parse_args()
+
+    # Check if stdin flag is provided or no files are provided
+    if !args.multiple_intput
+        data, length = get_TFO_profile_allSparse(sys.stdin)
+
+        #data = json.load(sys.stdin)
+        profiles = profile2ranges(data["profiles"])
+        best_stability = best_stability_to_array(data["best_stability"], length)
+        to_export = {"profiles": profiles, "best_stability": best_stability}
+        packed_matrix = msgpack.packb(to_export, use_bin_type=True)
+        sys.stdout.buffer.write(packed_matrix)
+    else:
+        profiles_multiple=[]
+        for file_name in args.files:
+            with open(file_name) as my_file:
+                data, length = get_TFO_profile_allSparse(my_file)
+            profiles_multiple.append(dict(data))
+        
 
 if __name__=="__main__":
     main()
