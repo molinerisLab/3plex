@@ -140,8 +140,9 @@ def main():
     to_export = {"profiles": profiles, "best_stability": best_stability}
     output_dir = os.path.join(path, "profile_range.msgpack")
     packed_matrix = msgpack.packb(to_export, use_bin_type=True)
-    with open(output_dir, 'wb') as file:
-        file.write(packed_matrix)
+    sys.stdout.buffer.write(packed_matrix)
+    """with open(output_dir, 'wb') as file:
+        file.write(packed_matrix)"""
 
 if __name__=="__main__":
     main()

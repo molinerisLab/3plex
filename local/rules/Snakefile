@@ -8,6 +8,11 @@ configfile: "config.yaml"
 #else:
 #	include: "Snakefile_RNA_secondary_structure"
 
+#rule link_dsDNA_from_config:
+#	output: "{dsDNA}.fa"
+#	shell: """
+#	ln -s {config[dsDNA_predefined_fa]} .
+#	"""
 
 rule pato:
 	input:
@@ -275,11 +280,10 @@ rule get_profile_range_packed:
         input:
                 "{ssRNA}_ssmasked-dsDNA.tpx.stability.gz"
         output:
-                "{ssRNA}profile_range.msgpack"
+                "{ssRNA}.profile_range.msgpack"
         shell: """
 			zcat {input} | cut -f 2,3,14 | unhead | bsort -k3,3nr -k1,1n  -S5% > cutSort
-			tfo_profile.py {output} < cutSort
-			echo "." > {output}
+			tfo_profile.py {output} < cutSort  > {output}
         """""
 
 rule dsdna_fasta_from_bed:
