@@ -1,6 +1,7 @@
 #All paths in the snakefile are interpreted relative to the directory snakemake is executed in. This behaviour can be overridden
 configfile: "config_general.yaml"
 configfile: "config.yaml"
+include: "config.smk"
 
 #import os
 #if os.path.exists("/opt/3plex/Snakefile_RNA_secondary_structure"):#working inside 3plex docker image
@@ -8,11 +9,25 @@ configfile: "config.yaml"
 #else:
 #	include: "Snakefile_RNA_secondary_structure"
 
-#rule link_dsDNA_from_config:
-#	output: "{dsDNA}.fa"
-#	shell: """
-#	ln -s {config[dsDNA_predefined_fa]} .
-#	"""
+#this rules is not invoked if in setup phase a dsDNA.fa file is put in the working directory
+rule ln_dsDNA_predefined_fa:
+	input:
+		config['dsDNA_predefined_fa']
+	output:
+		"dsDNA.fa"
+#	group: "3plex"
+	shell: """
+		ln -s {input} {output}
+	"""
+rule ln_dsDNA_predefined_bed:
+	input:
+		config['dsDNA_predefined_bed']
+	output:
+		"dsDNA.bed"
+#	group: "3plex"
+	shell: """
+		ln -s {input} {output}
+	"""
 
 rule pato:
 	input:
@@ -49,6 +64,7 @@ rule tpx_stability:
 		"{path}.tpx"
 	output:
 		"{path}.tpx.stability.gz"
+#	group: "3plex"
 	shell: """
 		#Linearize align informations, at the begin {output}
 		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output}.tmp
@@ -61,6 +77,7 @@ rule stability_ssRNA_profile:
 		"{file_path}.tpx.stability.gz"
 	output:
 		"{file_path}.tpx.stability.profile.msgpack"
+#	group: "3plex"
 	shell: """
 		zcat {input} | cut -f 2,3,14 | stability_profile.py 22743 > {output}
 	"""
@@ -81,6 +98,7 @@ rule duplex_length:
 		"{file_path}.fa"
 	output:
 		"{file_path}.fa.length"
+#	group: "3plex"
 	shell:"""
 		fasta2oneline < {input} | perl -lane 'BEGIN{{$,="\\t"}} print $F[0],length($F[1])' > {output}
 	"""
@@ -108,6 +126,7 @@ rule stability_tot_undercount:
 		"{file_path}.tpx.stability.gz"
 	output:
 		temp("{file_path}.tpx.stability.tot_undercount")
+#	group: "3plex"
 	shell: """
 		bawk 'NR>1 {{print $Duplex_ID,$TTS_start,$TTS_end,$Stability}}' {input} \
 		| bedtools sort | bedtools merge -c 4 -o max | cut -f 1,4 \
@@ -133,6 +152,7 @@ rule summary:
 		duplex_length = "{dsDNA}.fa.length"
 	output:
 		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.gz"
+#	group: "3plex"
 	shell: """
 		cat {input.summary} \
 		| translate -a -r -v -e 0 <(bawk 'BEGIN{{print "Duplex_ID","Duplex_length"}} {{print}}' {input.duplex_length}) 1 \
@@ -156,17 +176,18 @@ rule tts_genome_coords:
        """
 
 rule tts_genome_coords_bed:
-       input:
-               "{file}.tts_genome_coords.gz"
-       output:
-               "{file}.tts_genome_coords.bed"
-       shell:"""
+	input:
+		"{file}.tts_genome_coords.gz"
+	output:
+		"{file}.tts_genome_coords.bed"
+#	group: "3plex"
+	shell:"""
 		bawk 'NR>1 {{\
 			score = int($Stability*10*({config[TTS_bed][ucsc_dark_gray]}/({config[TTS_bed][dark_gray_stability]}*10))); if(a>1000){{a = 1000}}; \
 			print $TTS_chr,$TTS_start_genome,$TTS_end_genome,$Duplex_ID,score\\
 		}}' {input} | \
 		bedtools sort | bedtools merge -i - -c 4,5 -o distinct,max | id2count -a 4 > {output}
-       """
+	"""
 
 rule add_zeros:
 	input:
@@ -174,6 +195,7 @@ rule add_zeros:
 		summary="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.gz"
 	output:
 		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.gz"
+#	group: "3plex"
 	shell:"""
 		 awk 'BEGIN{{print "Duplex_ID"}} match($1,/>/){{split($1,a,">"); print a[2]}}' {input.dsDNA} \
 		 | translate -a -v -e 0 <(zcat {input.summary}) 1 \
@@ -202,7 +224,7 @@ rule check_input:
 rule RNAplfold_lunp:
 	input:
 		fasta="{ssRNA}.fa",
-		check_input=".3plex/{ssRNA}.fa.checked"
+		#check_input=".3plex/{ssRNA}.fa.checked"
 	output:
 		lunp="RNAplfold/{ssRNA}_lunp",
 		basepairs="RNAplfold/{ssRNA}_basepairs"
@@ -232,6 +254,7 @@ rule RNAplfold_lunp_unpairedWindow_modif_zscore_packed:
 		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
 	output:
 		"{ssRNA}_secondary_structure.msgpack"
+#	group: "3plex"	
 	shell:"""
 		secondary_structure_to_msgpack.py {wildcards.ssRNA}_secondary_structure.msgpack < {input}
 	"""
@@ -246,7 +269,7 @@ ruleorder: mask_fasta_unpairedWindow_shortcut > mask_fasta_unpairedWindow
 rule mask_fasta_unpairedWindow_shortcut:
 	input:
 		fasta="{ssRNA}.fa",
-		check_input=".3plex/{ssRNA}.fa.checked"
+		#check_input=".3plex/{ssRNA}.fa.checked"
 	output:
 			"{ssRNA}_ss0.fa"
 #	group: "3plex"
@@ -259,7 +282,8 @@ rule mask_fasta_unpairedWindow:
 		RNAplfold_prob="RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore",
 		fasta="{ssRNA}.fa"
 	output:
-		"{ssRNA}_{single_strandedness_cutoff,\d+}.fa"
+		"{ssRNA,\w+}_{single_strandedness_cutoff,\d+}.fa"
+#	group: "3plex"
 	shell:"""
 			PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.single_strandedness_cutoff}/100 - 0.5)]}}'); \
 			bedtools maskfasta -fi {input.fasta} -fo {output} -bed <(awk -v perc=$PERC 'BEGIN{{OFS="\\t"}} $1<perc {{print "{wildcards.ssRNA}",NR - 1 + {RNAplfold_WINDOW_CENTER}, NR + {RNAplfold_WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge)
@@ -268,23 +292,36 @@ rule mask_fasta_unpairedWindow:
 SS=config['RNAplfold']['single_strandedness_cutoff']
 
 rule mask_fasta_unpairedWindow_rename:
-        input:
-                "{ssRNA}.fa"
-        output:
-                "{ssRNA}_ssmasked.fa"
-        shell: """
-			ln -s {input} {output}
-        """""
+	input:
+		"{ssRNA}.fa"
+	output:
+		"{ssRNA}_ssmasked.fa"
+#	group: "3plex"
+	shell: """
+		ln -s {input} {output}
+	"""
 
-rule get_profile_range_packed:
+rule prepare_tfo_profile:
+	input: "{file}.tpx.stability.gz"
+	output: temp("{file}.tpx.stability.tfo_profile.pre")
+	shell:"""
+		zcat {input} | cut -f 2,3,14 | tail -n +2 | bsort -k3,3nr -k1,1n  -S2% > {output}
+	"""
+
+rule get_tfo_profile_range_packed:
         input:
-                "{ssRNA}_ssmasked-dsDNA.tpx.stability.gz"
+                "{ssRNA}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre"
         output:
                 "{ssRNA}.profile_range.msgpack"
         shell: """
+<<<<<<< HEAD
 			zcat {input} | cut -f 2,3,14 | unhead | bsort -k3,3nr -k1,1n  -S5% > cutSort
 			tfo_profile.py {output} < cutSort  > {output}
         """""
+=======
+			tfo_profile.py < {input} > {output}
+        """
+>>>>>>> feature/randomization
 
 rule dsdna_fasta_from_bed:
 	input:
@@ -292,7 +329,26 @@ rule dsdna_fasta_from_bed:
 	output:
 		"{dsDNA}.fa"
 	shell: """
-		bedtools getfasta -fi {config[species_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
+		bedtools getfasta -fi {config[genome_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
+	"""
+
+rule shuffle_bed:
+	input: 
+		bed = "{file}.bed",
+		exclude = config["shuffle_blacklist"],
+		chrom_info = config["chrom_info"]
+	output: "{file}_shuf_{run,\d+}.bed"
+	shell:"""
+		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed {config[seed]} > {output}
+		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
+	"""
+
+rule aggregated_random_tpx:
+	input:
+		expand("ssRNA_ssmasked-dsDNA_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+	output: "ssRNA.profile_range.random.msgpack"
+	shell: """
+		tfo_profile.py -m {input} > {output}
 	"""
 
 

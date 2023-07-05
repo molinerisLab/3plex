@@ -10,3 +10,4 @@ dependencies:
   - viennarna=2.4.14
   - msgpack-python=1.0.2
   - bawk=1.1
+  - matrix_reduce=1.1
