@@ -136,7 +136,37 @@ def best_stability_to_array(best_stability, length):
         array[index] = best_stability[key]
     return list(array)
 
-def profiles_multiple_mean(profiles_multiple):
+def compute_statistics(data):
+    sorted_data = sorted(data)
+    n = len(sorted_data)
+    
+    # Compute median
+    if n % 2 == 0:
+        median = (sorted_data[n // 2 - 1] + sorted_data[n // 2]) / 2
+    else:
+        median = sorted_data[n // 2]
+    
+    # Compute lower quartile
+    if n % 4 == 0:
+        lower_quartile = (sorted_data[n // 4 - 1] + sorted_data[n // 4]) / 2
+    else:
+        lower_quartile = sorted_data[n // 4]
+    
+    # Compute upper quartile
+    if n % 4 == 0:
+        upper_quartile = (sorted_data[3 * n // 4 - 1] + sorted_data[3 * n // 4]) / 2
+    else:
+        upper_quartile = sorted_data[3 * n // 4]
+
+    index = int(n * 0.95)
+    percentile_95 = sorted_data[index]
+    
+    max=sorted_data[-1]
+
+    return {"median": median, "lower_quartile": lower_quartile, "upper_quartile": upper_quartile, "percentile_95": percentile_95, "max": max}
+
+
+def profiles_multiple_stats(profiles_multiple):
     # Create an empty dictionary to store the cumulative sum of profile heights
     profile_matrix = {}
 
@@ -148,41 +178,51 @@ def profiles_multiple_mean(profiles_multiple):
                 profile_matrix.setdefault((stability_cutoff, coordinate), [])
                 profile_matrix[(stability_cutoff, coordinate)].append(height)
 
-        # Compute the mean, upper quartile, and lower quartile profiles
-    mean_profile = {}
-    upper_quartile_profile = {}
-    lower_quartile_profile = {}
+    profile_statistics={}
 
-    #key = (stability_cutofvf, coordinate)
+    #key = (stability_cutoff, coordinate)
     for key, heights in profile_matrix.items():
-        mean_profile[key] = np.mean(heights)
-        upper_quartile_profile[key] = np.percentile(heights, 75)
-        lower_quartile_profile[key] = np.percentile(heights, 25)
+        profile_statistics[key] = compute_statistics(heights)
+    
+    profile_statistics_reformat={}
+    for key, statistics in profile_statistics.items():
+        (stability_cutoff, coordinate) = key
+        profile_statistics_reformat.setdefault(stability_cutoff, {})
+        profile_statistics_reformat[stability_cutoff][coordinate]=statistics
+    
+    return profile_statistics_reformat
 
 
 def main():
     parser = argparse.ArgumentParser(description="read tpx stability file and compute tfo profiles")
     parser.add_argument('tpx_files', nargs='*', metavar='file', help='Input file(s)')
     parser.add_argument('-m', '--multiple_input', action='store_true', help='Multiple intput files, as in randomizations')
+    parser.add_argument('-j', '--json', action='store_true', help='output json and not msgpack')
     args = parser.parse_args()
 
     # Check if stdin flag is provided or no files are provided
-    if !args.multiple_intput
+    if not args.multiple_input:
         data, length = get_TFO_profile_allSparse(sys.stdin)
 
         #data = json.load(sys.stdin)
         profiles = profile2ranges(data["profiles"])
         best_stability = best_stability_to_array(data["best_stability"], length)
         to_export = {"profiles": profiles, "best_stability": best_stability}
-        packed_matrix = msgpack.packb(to_export, use_bin_type=True)
-        sys.stdout.buffer.write(packed_matrix)
+
     else:
         profiles_multiple=[]
-        for file_name in args.files:
+        for file_name in args.tpx_files:
             with open(file_name) as my_file:
                 data, length = get_TFO_profile_allSparse(my_file)
-            profiles_multiple.append(dict(data))
-        
+            profiles_multiple.append(dict(data["profiles"]))
+        to_export = profiles_multiple_stats(profiles_multiple)
+
+    sys.stdout.write(str(to_export))
+    if args.json:
+        sys.stdout.write(json.dumps(to_export))
+    else:
+        packed_matrix = msgpack.packb(to_export, use_bin_type=True)
+        sys.stdout.buffer.write(packed_matrix)        
 
 if __name__=="__main__":
     main()

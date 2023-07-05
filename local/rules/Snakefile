@@ -301,13 +301,20 @@ rule mask_fasta_unpairedWindow_rename:
 		ln -s {input} {output}
 	"""
 
+rule prepare_tfo_profile:
+	input: "{file}.tpx.stability.gz"
+	output: temp("{file}.tpx.stability.tfo_profile.pre")
+	shell:"""
+		zcat {input} | cut -f 2,3,14 | tail -n +2 | bsort -k3,3nr -k1,1n  -S2% > {output}
+	"""
+
 rule get_tfo_profile_range_packed:
         input:
-                "{ssRNA}_ssmasked-dsDNA.tpx.stability.gz"
+                "{ssRNA}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre"
         output:
                 "{ssRNA}.profile_range.msgpack"
         shell: """
-			zcat {input} | cut -f 2,3,14 | unhead | bsort -k3,3nr -k1,1n  -S5% | tfo_profile.py > {output}
+			tfo_profile.py < {input} > {output}
         """
 
 rule dsdna_fasta_from_bed:
@@ -332,10 +339,10 @@ rule shuffle_bed:
 
 rule aggregated_random_tpx:
 	input:
-		expand("ssRNA_ssmasked-dsDNA_shuf_{run}.tpx.stability.gz", run=range(1, config["randomization_num"]+1))
-	output: "ssRNA_ssmasked-dsDNA_shuf.tpx.stability.gz"
+		expand("ssRNA_ssmasked-dsDNA_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+	output: "ssRNA.profile_range.random.msgpack"
 	shell: """
-		matrix_reduce 'ssRNA_ssmasked-dsDNA_shuf_*.tpx' -l '{input}'
+		tfo_profile.py -m {input} > {output}
 	"""
 
 
