@@ -313,15 +313,9 @@ rule get_tfo_profile_range_packed:
                 "{ssRNA}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre"
         output:
                 "{ssRNA}.profile_range.msgpack"
-        shell: """
-<<<<<<< HEAD
-			zcat {input} | cut -f 2,3,14 | unhead | bsort -k3,3nr -k1,1n  -S5% > cutSort
-			tfo_profile.py {output} < cutSort  > {output}
-        """""
-=======
+        shell: """	
 			tfo_profile.py < {input} > {output}
         """
->>>>>>> feature/randomization
 
 rule dsdna_fasta_from_bed:
 	input:
