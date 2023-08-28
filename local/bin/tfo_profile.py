@@ -217,7 +217,7 @@ def main():
             profiles_multiple.append(dict(data["profiles"]))
         to_export = profiles_multiple_stats(profiles_multiple)
 
-    sys.stdout.write(str(to_export))
+    #sys.stdout.write(str(to_export))
     if args.json:
         sys.stdout.write(json.dumps(to_export))
     else:
