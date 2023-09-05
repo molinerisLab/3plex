@@ -1,0 +1,10 @@
+dsDNA_predefined: null
+species: null
+triplexator:
+        min_length: 9
+        max_length: -1
+        error_rate: 20
+        guanine_rate: 40
+        filter_repeat: off
+        consecutive_errors: 1
+        SSTRAND: 0
