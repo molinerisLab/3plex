@@ -8,3 +8,4 @@ triplexator:
         filter_repeat: off
         consecutive_errors: 1
         SSTRAND: 0
+tss_ref: MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500

@@ -346,6 +346,27 @@ rule aggregated_random_tpx:
 	"""
 
 
+###########################
+# Regulatory Regions Test #
+###########################
+
+# create a bed formatted file from the promoter
+rule tss_from_gene:
+	input:
+		tss_ref=config['tss_ref'],
+		gene_list=
+	output:
+
+	shell: """
+	"""
+
+rule run_wilcoxon:
+	input:
+		target=,
+		background= ,# e.g. expressed genes
+	output:
+	shell:"""
+	"""
 """
 
 .META: *.tpx.gz

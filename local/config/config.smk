@@ -40,3 +40,11 @@ if config['dsDNA_predefined']:
 else:
     config['dsDNA_predefined_fa'] = ""
     config['dsDNA_predefined_bed'] = ""
+
+if config['tss_ref']:
+    config['tss_ref_bed']="{gencode_dir_prefix}/{species}/{gencode_version}/{tss_ref}.bed".format(
+        gencode_dir_prefix=config['gencode_dir_prefix'],
+        species=config['species'],
+        gencode_version=config['species_gencode_version_map'][config['species']],
+        tss_ref=config['tss_ref']
+    )
