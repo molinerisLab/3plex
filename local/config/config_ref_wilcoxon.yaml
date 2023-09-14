@@ -8,4 +8,9 @@ triplexator:
         filter_repeat: off
         consecutive_errors: 1
         SSTRAND: 0
-tss_ref: MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500
+tss_ref_name: MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500
+
+target_gene_list: target_genes
+background_gene_list: background_genes
+
+ssRNA: ssRNA

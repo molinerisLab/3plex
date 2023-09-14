@@ -41,10 +41,26 @@ else:
     config['dsDNA_predefined_fa'] = ""
     config['dsDNA_predefined_bed'] = ""
 
-if config['tss_ref']:
-    config['tss_ref_bed']="{gencode_dir_prefix}/{species}/{gencode_version}/{tss_ref}.bed".format(
+
+##########################
+# Regulatory Region Test #
+##########################
+
+config['tss_ref_bed']="{gencode_dir_prefix}/{species}/{gencode_version}/{tss_ref_name}.bed".format(
         gencode_dir_prefix=config['gencode_dir_prefix'],
         species=config['species'],
         gencode_version=config['species_gencode_version_map'][config['species']],
-        tss_ref=config['tss_ref']
+        tss_ref_name=config['tss_ref_name']
     )
+
+config["target_genes_tpx"]="{ssRNA}_ss{single_strandedness_cutoff}-{gene_list}.tss.tpx.summary.add_zeros.gz".format(
+    ssRNA=config["ssRNA"],
+    single_strandedness_cutoff=config["RNAplfold"]["single_strandedness_cutoff"],
+    gene_list=config["target_gene_list"]
+)
+
+config["background_genes_tpx"]="{ssRNA}_ss{single_strandedness_cutoff}-{gene_list}.tss.tpx.summary.add_zeros.gz".format(
+    ssRNA=config["ssRNA"],
+    single_strandedness_cutoff=config["RNAplfold"]["single_strandedness_cutoff"],
+    gene_list=config["background_gene_list"]
+)
