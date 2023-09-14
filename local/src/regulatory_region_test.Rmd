@@ -1,0 +1,45 @@
+---
+VignetteBuilder: knitr
+Suggests: BiocStyle, knitr, rmarkdown
+title: "3plex"
+subtitle: "Regulatory Region Test"
+author: "MolinerisLab"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  rmarkdown::html_document:
+  theme: flatly
+toc: true
+toc_float: true
+toc_depth: 3
+number_sections: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+suppressPackageStartupMessages(library(ggpubr))
+```
+
+```{r}
+z <- read.delim("target_backgound_stability.tsv", header = T)
+```
+
+### Wilcoxon Test
+
+Test whether the median value of the TPX Stability Scores computed on the target regions is greater than the one computed on the background regions.
+
+```{r warning=FALSE}
+wt <- wilcox.test(z[which(z$Class=="target"),1], z[which(z$Class=="background"),1], alternative = "greater")
+print(wt)
+```
+
+### Distribution of Stability Scores
+
+```{r fig.height=4, fig.width=4, fig.align="center"}
+ggboxplot(z, x="Class", y="Stability_best", fill="Class", add="jitter", palette = "jco") +
+  stat_compare_means(label.x = 1.5, method.args = list(alternative = "less")) +
+  xlab("") +  theme(legend.position = "none")
+```
+
