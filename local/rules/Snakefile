@@ -354,11 +354,34 @@ rule aggregated_random_tpx:
 rule tss_from_gene:
 	input:
 		tss_ref=config['tss_ref_bed'], #/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/42/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.bed
-		gene_list="{gene_list}.tsv"
+		gene_list="{path_gene_list}.tsv"
 	output:
-		gene_list_tss="{gene_list}.tss.bed"
+		"{path_gene_list}.tss.bed"
 	shell: """
 		filter_1col 4 {input.gene_list} < {input.tss_ref} > {output} 
+	"""
+
+rule copy_template_Rmd:
+	input:
+		"../../local/src/regulatory_region_test.Rmd"
+	output:
+		"regulatory_region_test.Rmd"
+	shell:"""
+		cp {input} {output}
+	"""
+
+rule regulatory_regions_test_html:
+	input:
+		target=config["target_genes_tpx"],
+		background=config["background_genes_tpx"], # e.g. expressed genes
+		rmd="regulatory_region_test.Rmd"
+	output:
+	   target_backgound_stability="target_backgound_stability.tsv",
+	   html="regulatory_region_test.html"
+	shell:"""
+		bawk 'BEGIN{{print "Stability_best","Class"}} NR>1{{print $12,"target"}}' {input.target} > {output.target_backgound_stability}; \
+		bawk 'NR>1{{print $12, "background"}}' {input.background} >> {output.target_backgound_stability}; \
+		Rscript -e 'library(rmarkdown); rmarkdown::render("{input.rmd}", output_file="{output.html}", quiet=TRUE)'
 	"""
 
 rule run_wilcoxon:
@@ -373,30 +396,6 @@ rule run_wilcoxon:
 		wilcoxon -s greater {wildcards.target_genes}.tmp {wildcards.background_genes}.tmp > {output};\
 		rm {wildcards.target_genes}.tmp {wildcards.background_genes}.tmp
 	"""
-
-rule wilcoxon_html:
-	input:
-		expand(target="", ssRNA=config["ssRNA"],single_strandedness_cutoff=config["single_strandedness_cutoff"],)
-		target="{ssRNA}_ss{single_strandedness_cutoff}-{target_genes}.tss.tpx.summary.add_zeros.gz",
-		background="{ssRNA}_ss{single_strandedness_cutoff}-{background_genes}.tss.tpx.summary.add_zeros.gz", # e.g. expressed genes
-		rmd="../../local/src/wilcoxon_template.Rmd"
-	output:
-	   "{ssRNA}_ss{single_strandedness_cutoff}-{target_genes}_vs_{background_genes}.wilcoxon_comp.html"
-	shell:"""
-		Rscript -e 'library(rmarkdown); rmarkdown::render("{input.rmd}", params=list(target="{input.target}", background="{input.background}"), output_file="{output}", quiet=TRUE)'
-	"""
-
-rule wilcoxon_html:
-	input:
-		expand(target="{ssRNA}_ss{single_strandedness_cutoff}-{target_genes}.tss.tpx.summary.add_zeros.gz", ssRNA=config["ssRNA"],single_strandedness_cutoff=config["single_strandedness_cutoff"],),
-		expand(background="{ssRNA}_ss{single_strandedness_cutoff}-{background_genes}.tss.tpx.summary.add_zeros.gz", # e.g. expressed genes
-		rmd="../../local/src/wilcoxon_template.Rmd"
-	output:
-	   "{ssRNA}_ss{single_strandedness_cutoff}-{target_genes}_vs_{background_genes}.wilcoxon_comp.html"
-	shell:"""
-		Rscript -e 'library(rmarkdown); rmarkdown::render("{input.rmd}", params=list(target="{input.target}", background="{input.background}"), output_file="{output}", quiet=TRUE)'
-	"""
-
 
 """
 
