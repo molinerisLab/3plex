@@ -69,7 +69,8 @@ rule tpx_stability:
 		#Linearize align informations, at the begin {output}
 		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output}.tmp
 		#Add stabilityf
-		cat {output}.tmp | tpx_thermal_stability.py | gzip > {output}
+		cat {output}.tmp | tpx_thermal_stability.py | gzip > {output};
+		rm {output}.tmp
 	"""
 
 rule stability_ssRNA_profile:
@@ -195,13 +196,12 @@ rule add_zeros:
 		summary="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.gz"
 	output:
 		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.gz"
-#	group: "3plex"
 	shell:"""
 		 awk 'BEGIN{{print "Duplex_ID"}} match($1,/>/){{split($1,a,">"); print a[2]}}' {input.dsDNA} \
 		 | translate -a -v -e 0 <(zcat {input.summary}) 1 \
-		 | bawk 'NR==1{{print}} NR>1{{$2={wildcards.ssRNA}; print}}' \
 		 | gzip > {output} 
 	"""
+#| bawk 'NR==1{{print}} NR>1{{$2={wildcards.ssRNA}; print}}' \
 
 
 ######################
@@ -210,10 +210,9 @@ rule add_zeros:
 
 rule check_input:
 	input:
-		"{ssRNA}.fa"
+		"{ssRNA}.fasta"
 	output:
 		".3plex/{ssRNA}.fa.checked"
-#	group: "3plex"
 	shell:"""
 		mkdir -p .3plex
 		perl -lne 'if($.==1 and $_ ne ">{wildcards.ssRNA}"){{m/>(.+)$/; print STDERR "Malformed input fasta file for RNA.\\nPlease put in the header only the sequence name (>{wildcards.ssRNA}) and/or name the file accordingly ($1.fa).\\nAvoid empty rows at the begining of the file.\\nOnly one sequence per file allowed."; exit(1) }}' {input}
@@ -223,13 +222,10 @@ rule check_input:
 # Run RNAplfold
 rule RNAplfold_lunp:
 	input:
-		fasta="{ssRNA}.fa",
-		#check_input=".3plex/{ssRNA}.fa.checked"
+		fasta="{ssRNA}.fasta",
 	output:
 		lunp="RNAplfold/{ssRNA}_lunp",
 		basepairs="RNAplfold/{ssRNA}_basepairs"
-#	shadow: "minimal"
-#	group: "3plex"
 	shell: """
 		mkdir -p RNAplfold; 
 		RNAplfold -W {config[RNAplfold][window_size]} -L {config[RNAplfold][span_size]} -u {config[RNAplfold][unpaired_window]} -o < {input}; 
@@ -237,14 +233,12 @@ rule RNAplfold_lunp:
 		mv *_lunp {output.lunp}; mv *_basepairs {output.basepairs}
 	"""
 
-
 # Compute modified z-score for WINDOW_SIZE base windows
 rule RNAplfold_lunp_unpairedWindow_modif_zscore:
 	input:
 		"RNAplfold/{ssRNA}_lunp"
 	output:
 		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
-#	group: "3plex"
 	shell:"""
 		grep -v '#' {input} | awk '{{print $(NF)}}' | distMedian.py > {output}
 	"""
@@ -253,8 +247,7 @@ rule RNAplfold_lunp_unpairedWindow_modif_zscore_packed:
 	input:
 		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
 	output:
-		"{ssRNA}_secondary_structure.msgpack"
-#	group: "3plex"	
+		"{ssRNA}_secondary_structure.msgpack"	
 	shell:"""
 		secondary_structure_to_msgpack.py {wildcards.ssRNA}_secondary_structure.msgpack < {input}
 	"""
@@ -268,13 +261,11 @@ ruleorder: mask_fasta_unpairedWindow_shortcut > mask_fasta_unpairedWindow
 
 rule mask_fasta_unpairedWindow_shortcut:
 	input:
-		fasta="{ssRNA}.fa",
-		#check_input=".3plex/{ssRNA}.fa.checked"
+		fasta="{ssRNA}.fasta",
 	output:
 			"{ssRNA}_ss0.fa"
-#	group: "3plex"
 	shell: """
-			ln -sf {input.fasta} {output}
+			ln -sf $(basename {input.fasta}) {output}
 	"""
 
 rule mask_fasta_unpairedWindow:
@@ -283,7 +274,6 @@ rule mask_fasta_unpairedWindow:
 		fasta="{ssRNA}.fa"
 	output:
 		"{ssRNA,\w+}_{single_strandedness_cutoff,\d+}.fa"
-#	group: "3plex"
 	shell:"""
 			PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.single_strandedness_cutoff}/100 - 0.5)]}}'); \
 			bedtools maskfasta -fi {input.fasta} -fo {output} -bed <(awk -v perc=$PERC 'BEGIN{{OFS="\\t"}} $1<perc {{print "{wildcards.ssRNA}",NR - 1 + {RNAplfold_WINDOW_CENTER}, NR + {RNAplfold_WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge)
@@ -296,7 +286,6 @@ rule mask_fasta_unpairedWindow_rename:
 		"{ssRNA}.fa"
 	output:
 		"{ssRNA}_ssmasked.fa"
-#	group: "3plex"
 	shell: """
 		ln -s {input} {output}
 	"""
@@ -350,7 +339,7 @@ rule aggregated_random_tpx:
 # Regulatory Regions Test #
 ###########################
 
-# create a bed formatted file from the promoter
+# create a bed formatted file from the promoters list
 rule tss_from_gene:
 	input:
 		tss_ref=config['tss_ref_bed'], #/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/42/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.bed
@@ -363,9 +352,9 @@ rule tss_from_gene:
 
 rule copy_template_Rmd:
 	input:
-		"../../local/src/regulatory_region_test.Rmd"
+		"../../local/src/{r_markdown}.Rmd"
 	output:
-		"regulatory_region_test.Rmd"
+		"./{r_markdown}.Rmd"
 	shell:"""
 		cp {input} {output}
 	"""
@@ -384,18 +373,81 @@ rule regulatory_regions_test_html:
 		Rscript -e 'library(rmarkdown); rmarkdown::render("{input.rmd}", output_file="{output.html}", quiet=TRUE)'
 	"""
 
+# Input: 
+# 1) list of ssRNA with associated targets
+# 2) unique list of background genes (e.g. expressed genes)
+
+# Output:
+# 1) dir structure with singular mann-whitney test
+# 2) matrix reduced table
+
+def all_selected_ssRNA_id():
+	selected_ssRNA = set([line.rstrip().split('\t')[0] for line in open("ssRNA_target.tsv").readlines()])
+	for ssRNA in selected_ssRNA:
+		yield ssRNA
+
+rule get_targets_from_ssRNA:
+	input:
+		"ssRNA_target.tsv"
+	output:
+		"{ssRNA}_target_genes.tsv"
+	shell: """
+		bawk '$1=="{wildcards.ssRNA}"{{print $2}}' {input} > {output};
+	"""
+
+#ruleorder: get_ssRNA_fasta > mask_fasta_unpairedWindow_shortcut
+#get_fasta -i {wildcards.ssRNA} < {input} > {output}
+rule get_ssRNA_fasta:
+	input:
+		config["longest_transcripts"]
+	output:
+		"regRegion_test/{ssRNA}/{ssRNA}.fasta"
+	shell: """
+		zcat {input} | fasta2oneline | bawk '$2=="{wildcards.ssRNA}"{{print ">"$2"\\n"$3}}' > {output}
+	"""
+
+def get_all_target_tpx(wildcards):
+	for ssRNA in all_selected_ssRNA_id():
+		for target in expand("{ssRNA}_ss{single_strandedness_cutoff}-{ssRNA}_target_genes.tss.tpx.summary.add_zeros.gz",
+				ssRNA = all_selected_ssRNA_id(),
+				single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
+			):
+			yield target
+
+def get_all_backgrounds_tpx(wildcards):
+	for ssRNA in all_selected_ssRNA_id():
+		for background in expand("regRegion_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-exp_genes.tss.tpx.summary.add_zeros.gz",
+				ssRNA = all_selected_ssRNA_id(),
+				single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]#,background_genes = config["background_gene_list"]
+			):
+			yield background
+
 rule run_wilcoxon:
 	input:
 		target="{ssRNA}_ss{single_strandedness_cutoff}-{target_genes}.tss.tpx.summary.add_zeros.gz",
 		background="{ssRNA}_ss{single_strandedness_cutoff}-{background_genes}.tss.tpx.summary.add_zeros.gz" # e.g. expressed genes
 	output:
-		"{ssRNA}_ss{single_strandedness_cutoff}-{target_genes}_vs_{background_genes}.wilcoxon_comp.tsv"
+		"{ssRNA}_ss{single_strandedness_cutoff}-{ssRNA}_target_genes_vs_{background_genes}-mv_comp.tsv"
 	shell:"""
 		bawk 'NR>1{{print $12}}' {input.target} > {wildcards.target_genes}.tmp;\
 		bawk 'NR>1{{print $12}}' {input.background} > {wildcards.background_genes}.tmp;\
 		wilcoxon -s greater {wildcards.target_genes}.tmp {wildcards.background_genes}.tmp > {output};\
 		rm {wildcards.target_genes}.tmp {wildcards.background_genes}.tmp
 	"""
+
+def get_all_mw_tests(wildcards):
+	for ssRNA in all_selected_ssRNA_id():
+		for target in expand("regRegion_test/{ssRNA}_ss{single_strandedness_cutoff}/{ssRNA}_target_genes-{background_genes}/mv_comp.tsv",
+				ssRNA = all_selected_ssRNA_id(),
+				single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
+			):
+			yield target
+
+rule all_tpx:
+	input:
+		#target_tpx=get_all_target_tpx
+		#,
+		background_tpx=get_all_backgrounds_tpx
 
 """
 
