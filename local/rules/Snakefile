@@ -33,14 +33,17 @@ rule pato:
 	input:
 		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}.fa",
 		dsDNA_file="{dsDNA}.fa"
-	#params:
-	#        prefix="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}"
 	output:
 		tpx = temp("{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx"),
 		summary = temp("{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary")
 	log:
 		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.log"
 	threads: 64
+	#wildcard_constraints:
+	#	single_strandedness_cutoff = "\d+",
+	#	window                     = "\w+",
+	#	ssRNA                      = "[^/]+",
+	#	dsDNA                      = "[^/]+"
 	#retries: 3
 #	group: "3plex"
 	shell: """
@@ -61,9 +64,9 @@ rule pato:
 
 rule tpx_stability:
 	input:
-		"{path}.tpx"
+		"{file_path}.tpx"
 	output:
-		"{path}.tpx.stability.gz"
+		"{file_path}.tpx.stability.gz"
 #	group: "3plex"
 	shell: """
 		#Linearize align informations, at the begin {output}
@@ -306,9 +309,22 @@ rule get_tfo_profile_range_packed:
 			tfo_profile.py < {input} > {output}
         """
 
+rule aggregated_random_tpx:
+	input:
+		expand("ssRNA_ssmasked-dsDNA_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+	output: "ssRNA.profile_range.random.msgpack"
+	shell: """
+		tfo_profile.py -m {input} > {output}
+	"""
+
+
+##################
+# dsDNA Sequence #
+##################
+
 rule dsdna_fasta_from_bed:
 	input:
-		dsDNA_file="{dsDNA}.bed"
+		"{dsDNA}.bed"
 	output:
 		"{dsDNA}.fa"
 	shell: """
@@ -324,14 +340,6 @@ rule shuffle_bed:
 	shell:"""
 		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed {config[seed]} > {output}
 		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
-	"""
-
-rule aggregated_random_tpx:
-	input:
-		expand("ssRNA_ssmasked-dsDNA_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
-	output: "ssRNA.profile_range.random.msgpack"
-	shell: """
-		tfo_profile.py -m {input} > {output}
 	"""
 
 
@@ -384,7 +392,7 @@ rule regulatory_regions_test_html:
 def all_selected_ssRNA_id():
 	selected_ssRNA = set([line.rstrip().split('\t')[0] for line in open("ssRNA_target.tsv").readlines()])
 	for ssRNA in selected_ssRNA:
-		yield ssRNA
+		yield ssRNA.replace("-","_")
 
 rule get_targets_from_ssRNA:
 	input:
@@ -392,7 +400,7 @@ rule get_targets_from_ssRNA:
 	output:
 		"{ssRNA}_target_genes.tsv"
 	shell: """
-		bawk '$1=="{wildcards.ssRNA}"{{print $2}}' {input} > {output};
+		VAR=$(echo "{wildcards.ssRNA}" | tr "_" "-"); bawk -v env_var="$VAR" '$1==env_var{{print $2}}' {input} > {output}
 	"""
 
 #ruleorder: get_ssRNA_fasta > mask_fasta_unpairedWindow_shortcut
@@ -403,24 +411,8 @@ rule get_ssRNA_fasta:
 	output:
 		"regRegion_test/{ssRNA}/{ssRNA}.fasta"
 	shell: """
-		zcat {input} | fasta2oneline | bawk '$2=="{wildcards.ssRNA}"{{print ">"$2"\\n"$3}}' > {output}
+		VAR=$(echo "{wildcards.ssRNA}" | tr "_" "-"); zcat {input} | fasta2oneline | bawk -v env_var="$VAR" '$2==env_var{{print ">"$2"\\n"$3}}' > {output}
 	"""
-
-def get_all_target_tpx(wildcards):
-	for ssRNA in all_selected_ssRNA_id():
-		for target in expand("{ssRNA}_ss{single_strandedness_cutoff}-{ssRNA}_target_genes.tss.tpx.summary.add_zeros.gz",
-				ssRNA = all_selected_ssRNA_id(),
-				single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
-			):
-			yield target
-
-def get_all_backgrounds_tpx(wildcards):
-	for ssRNA in all_selected_ssRNA_id():
-		for background in expand("regRegion_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-exp_genes.tss.tpx.summary.add_zeros.gz",
-				ssRNA = all_selected_ssRNA_id(),
-				single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]#,background_genes = config["background_gene_list"]
-			):
-			yield background
 
 rule run_wilcoxon:
 	input:
@@ -443,11 +435,21 @@ def get_all_mw_tests(wildcards):
 			):
 			yield target
 
-rule all_tpx:
+rule all_ssRNA_targets:
 	input:
-		#target_tpx=get_all_target_tpx
-		#,
-		background_tpx=get_all_backgrounds_tpx
+		expand("{ssRNA}_target_genes.tss.fa",
+			ssRNA = all_selected_ssRNA_id())
+
+rule all_target_tpx:
+	input:
+		targets=expand("regRegion_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-{ssRNA}_target_genes.tss.tpx.summary.add_zeros.gz",
+			ssRNA = all_selected_ssRNA_id(),
+			single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
+			),
+		background=expand("regRegion_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-exp_genes.tss.tpx.summary.add_zeros.gz",
+			ssRNA = all_selected_ssRNA_id(),
+			single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
+			)
 
 """
 
