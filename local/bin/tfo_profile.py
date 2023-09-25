@@ -193,6 +193,48 @@ def profiles_multiple_stats(profiles_multiple):
     return profile_statistics_reformat
 
 
+def compress_random_profile_single_bin(data, statistics):
+    max_position = max([int(k) for k in data.keys()])
+    compressed = []
+    last_stat = None
+    for stat in statistics: #for each statistics
+        for_stat = []
+        last_value = None; last_len = 0
+        for key in range(max_position+1): #for each position position
+            key = str(key)
+            if (key in data and data[key][stat]):
+                value = data[key][stat]
+            else:
+                value = None
+            if (last_value != value):
+                if (last_len > 1):
+                    for_stat.append([last_value, last_len])
+                elif (last_len == 1):
+                    for_stat.append([last_value])
+                last_value = value; last_len = 1
+            else:
+                last_len += 1 
+
+        if (last_len > 1):
+            for_stat.append([last_value, last_len])
+        elif (last_len == 1):
+            for_stat.append([last_value])
+        if (for_stat != last_stat):
+            compressed.append(for_stat)
+            last_stat = for_stat
+        else:
+            compressed.append([])
+    return compressed
+
+def compress_profile_random(data):
+    statistics = ["median","lower_quartile","upper_quartile","percentile_95", "max"]
+    compressed = dict()
+    compressed["statistics"] = statistics
+    compressed["data"] = dict()
+    for key in data.keys():
+        compressed["data"][key] = compress_random_profile_single_bin(data[key], statistics)
+    return compressed
+
 def main():
     parser = argparse.ArgumentParser(description="read tpx stability file and compute tfo profiles")
     parser.add_argument('tpx_files', nargs='*', metavar='file', help='Input file(s)')
@@ -215,9 +257,17 @@ def main():
             with open(file_name) as my_file:
                 data, length = get_TFO_profile_allSparse(my_file)
             profiles_multiple.append(dict(data["profiles"]))
-        to_export = profiles_multiple_stats(profiles_multiple)
+        stats = profiles_multiple_stats(profiles_multiple)
+        #Add compression to random profile
+        """
+        Uncompr: thr: { position: {"median": 1.0, "lower_quartile": 1.0, "upper_quartile": 1.0, "percentile_95": 1, "max": 1} }
+        Compr: thr: [ [value, (len)] for each statistics ]
+            >If (len)==1, implicit: [value]
+            >For each statistic, if same as previous, empty array
+                [[median...], [], [], []] if all same values
+        """
+        to_export = compress_profile_random(stats)
 
-    sys.stdout.write(str(to_export))
     if args.json:
         sys.stdout.write(json.dumps(to_export))
     else:
