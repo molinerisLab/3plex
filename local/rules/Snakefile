@@ -333,7 +333,7 @@ rule shuffle_bed:
 		chrom_info = config["chrom_info"]
 	output:  temp("{file}_shuf_{run,\d+}.bed")
 	shell:"""
-		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed {config[seed]} > {output}
+		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed $(date +%s%N) > {output}
 		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
 	"""
 
@@ -350,7 +350,7 @@ rule shuffle_fasta:
 		fasta = "{file}.fa"
 	output:  temp("{file}_shuf_{run,\d+}.fa")
 	shell:"""
-		fasta-shuffle-letters {input.fasta} -kmer 1 > {output}
+		fasta-shuffle-letters {input.fasta} -kmer 1 -seed $(date +%s%N) > {output}
 	"""
 
 rule aggregated_random_tpx_fasta:
