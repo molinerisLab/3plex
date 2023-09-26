@@ -200,8 +200,8 @@ def compress_random_profile_single_bin(data, statistics):
     for stat in statistics: #for each statistics
         for_stat = []
         last_value = None; last_len = 0
-        for key in range(max_position+1): #for each position position
-            key = str(key)
+        for key in range(max_position+1): #for each position
+            #key = str(key)
             if (key in data and data[key][stat]):
                 value = data[key][stat]
             else:
@@ -258,6 +258,8 @@ def main():
                 data, length = get_TFO_profile_allSparse(my_file)
             profiles_multiple.append(dict(data["profiles"]))
         stats = profiles_multiple_stats(profiles_multiple)
+        """with open("temp_.json", "w") as o:
+            o.write(json.dumps(stats))"""
         #Add compression to random profile
         """
         Uncompr: thr: { position: {"median": 1.0, "lower_quartile": 1.0, "upper_quartile": 1.0, "percentile_95": 1, "max": 1} }

@@ -325,13 +325,13 @@ rule dsdna_fasta_from_bed:
 	shell: """
 		bedtools getfasta -fi {config[genome_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
 	"""
-
+	
 rule shuffle_bed:
 	input: 
 		bed = "{file}.bed",
 		exclude = config["shuffle_blacklist"],
 		chrom_info = config["chrom_info"]
-	output: "{file}_shuf_{run,\d+}.bed"
+	output:  temp("{file}_shuf_{run,\d+}.bed")
 	shell:"""
 		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed {config[seed]} > {output}
 		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
@@ -345,6 +345,23 @@ rule aggregated_random_tpx:
 		tfo_profile.py -m {input} > {output}
 	"""
 
+rule shuffle_fasta:
+	input: 
+		fasta = "{file}.fa"
+	output:  temp("{file}_shuf_{run,\d+}.fa")
+	shell:"""
+		fasta-shuffle-letters {input.fasta} -kmer 1 > {output}
+	"""
+
+rule aggregated_random_tpx_fasta:
+	input:
+		expand("ssRNA_shuf_{run}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+	output: "ssRNA.profile_range.random.msgpack"
+	shell: """
+		tfo_profile.py -m {input} > {output}
+	"""
+ruleorder: aggregated_random_tpx > aggregated_random_tpx_fasta
+ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 """
 
 .META: *.tpx.gz

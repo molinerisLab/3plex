@@ -1,9 +1,6 @@
-name: 3plex_test
+name: /home/mmasera/3plex_backend_server/server/3plex/local/envs/3plex
 channels:
   - defaults
-  - conda-forge
-  - bioconda
-  - molinerislab
 dependencies:
   - snakemake=7.29.0
   - bedtools=2.30.0
@@ -15,3 +12,5 @@ dependencies:
   - certifi
   - openssl
   - fasta2oneline
+  - meme
+prefix: /home/mmasera/3plex_backend_server/server/3plex/local/envs/3plex
