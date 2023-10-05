@@ -68,7 +68,7 @@ rule tpx_stability:
 		#Linearize align informations, at the begin {output}
 		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output}.tmp
 		#Add stabilityf
-		cat {output}.tmp | tpx_thermal_stability.py | gzip > {output};
+		cat {output}.tmp | ../../local/bin/tpx_thermal_stability.py | gzip > {output};
 		rm {output}.tmp
 	"""
 
@@ -79,7 +79,7 @@ rule stability_ssRNA_profile:
 		"{file_path}.tpx.stability.profile.msgpack"
 #	group: "3plex"
 	shell: """
-		zcat {input} | cut -f 2,3,14 | stability_profile.py 22743 > {output}
+		zcat {input} | cut -f 2,3,14 | ../../local/bin/stability_profile.py 22743 > {output}
 	"""
 	#TODO determinare lungehzza ssRNA
 
@@ -239,7 +239,7 @@ rule RNAplfold_lunp_unpairedWindow_modif_zscore:
 	output:
 		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
 	shell:"""
-		grep -v '#' {input} | awk '{{print $(NF)}}' | distMedian.py > {output}
+		grep -v '#' {input} | awk '{{print $(NF)}}' | ../../local/bin/distMedian.py > {output}
 	"""
 
 rule RNAplfold_lunp_unpairedWindow_modif_zscore_packed:
@@ -248,7 +248,7 @@ rule RNAplfold_lunp_unpairedWindow_modif_zscore_packed:
 	output:
 		"{ssRNA}_secondary_structure.msgpack"	
 	shell:"""
-		secondary_structure_to_msgpack.py {wildcards.ssRNA}_secondary_structure.msgpack < {input}
+		../../local/bin/secondary_structure_to_msgpack.py {wildcards.ssRNA}_secondary_structure.msgpack < {input}
 	"""
 
 RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2
@@ -302,7 +302,7 @@ rule get_tfo_profile_range_packed:
         output:
                 "{ssRNA}.profile_range.msgpack"
         shell: """	
-			tfo_profile.py < {input} > {output}
+			../../local/bin/tfo_profile.py < {input} > {output}
         """
 
 rule aggregated_random_tpx:
@@ -310,7 +310,7 @@ rule aggregated_random_tpx:
 		expand("ssRNA_ssmasked-dsDNA_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
 	output: "ssRNA.profile_range.random.msgpack"
 	shell: """
-		tfo_profile.py -m {input} > {output}
+		../../local/bin/tfo_profile.py -m {input} > {output}
 	"""
 
 
