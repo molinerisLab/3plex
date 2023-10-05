@@ -39,13 +39,9 @@ rule pato:
 	log:
 		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.log"
 	threads: 64
-	#wildcard_constraints:
-	#	single_strandedness_cutoff = "\d+",
-	#	window                     = "\w+",
-	#	ssRNA                      = "[^/]+",
-	#	dsDNA                      = "[^/]+"
-	#retries: 3
-#	group: "3plex"
+	wildcard_constraints:
+		single_strandedness_cutoff = "\d+",
+		dsDNA                      = "[^/]+"
 	shell: """
 		OMP_NUM_THREADS={threads}\
 		/opt/bin/pato \
@@ -347,109 +343,88 @@ rule shuffle_bed:
 # Regulatory Regions Test #
 ###########################
 
+# Input: 
+# 1) list of ssRNA with associated targets and background genes (e.g. expressed genes)
+# .META:
+#	1) ssRNA
+#	2) gene_name
+#	3) class (target | background)
+
+# Output:
+# 1) matrix reduced tpx table
+# 2) table of mw pval
+
+# retrieve ssRNA names from each list
+def all_selected_ssRNA_id():
+	selected_ssRNA = set([line.rstrip().split("\t")[0] for line in open("ssRNA_tblist.tsv").readlines()])
+	for ssRNA in selected_ssRNA:
+		yield ssRNA.replace("-","_")
+
+# split target and background lists for each ssRNA
+rule prepare_regRegion_inputs:
+	input:
+		tblist=config["tblist"],
+		trasncript_fastas=config["transcript_fastas"]
+	output:
+		ssRNA_fasta="regRegion_test/{ssRNA}/{ssRNA}.fasta",
+		ssRNA_tblist="{ssRNA}_tblist.tsv"
+	shell: """
+		ssRNA=$(echo "{wildcards.ssRNA}" | tr "_" "-");\
+		mkdir -p $(dirname {output.ssRNA_fasta});\
+		zcat {input.trasncript_fastas} | fasta2oneline | bawk -v env_var="$ssRNA" '$2==env_var{{print ">"$2"\\n"$3}}' > {output.ssRNA_fasta};\
+		 bawk -v env_var="$ssRNA" '$1==env_var{{print $2}}' {input.tblist} > {output.ssRNA_tblist}
+	"""
+
 # create a bed formatted file from the promoters list
 rule tss_from_gene:
 	input:
 		tss_ref=config['tss_ref_bed'], #/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/42/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.bed
-		gene_list="{path_gene_list}.tsv"
+		gene_list="{ssRNA}_tblist.tsv"
 	output:
-		"{path_gene_list}.tss.bed"
+		"{ssRNA}_tblist.tss.bed"
 	shell: """
 		filter_1col 4 {input.gene_list} < {input.tss_ref} > {output} 
 	"""
 
-rule copy_template_Rmd:
-	input:
-		"../../local/src/{r_markdown}.Rmd"
-	output:
-		"./{r_markdown}.Rmd"
-	shell:"""
-		cp {input} {output}
-	"""
-
-rule regulatory_regions_test_html:
-	input:
-		target=config["target_genes_tpx"],
-		background=config["background_genes_tpx"], # e.g. expressed genes
-		rmd="regulatory_region_test.Rmd"
-	output:
-	   target_backgound_stability="target_backgound_stability.tsv",
-	   html="regulatory_region_test.html"
-	shell:"""
-		bawk 'BEGIN{{print "Stability_best","Class"}} NR>1{{print $12,"target"}}' {input.target} > {output.target_backgound_stability}; \
-		bawk 'NR>1{{print $12, "background"}}' {input.background} >> {output.target_backgound_stability}; \
-		Rscript -e 'library(rmarkdown); rmarkdown::render("{input.rmd}", output_file="{output.html}", quiet=TRUE)'
-	"""
-
-# Input: 
-# 1) list of ssRNA with associated targets
-# 2) unique list of background genes (e.g. expressed genes)
-
-# Output:
-# 1) dir structure with singular mann-whitney test
-# 2) matrix reduced table
-
-def all_selected_ssRNA_id():
-	selected_ssRNA = set([line.rstrip().split('\t')[0] for line in open("ssRNA_target.tsv").readlines()])
-	for ssRNA in selected_ssRNA:
-		yield ssRNA.replace("-","_")
-
-rule get_targets_from_ssRNA:
-	input:
-		"ssRNA_target.tsv"
-	output:
-		"{ssRNA}_target_genes.tsv"
-	shell: """
-		VAR=$(echo "{wildcards.ssRNA}" | tr "_" "-"); bawk -v env_var="$VAR" '$1==env_var{{print $2}}' {input} > {output}
-	"""
-
-#ruleorder: get_ssRNA_fasta > mask_fasta_unpairedWindow_shortcut
-#get_fasta -i {wildcards.ssRNA} < {input} > {output}
-rule get_ssRNA_fasta:
-	input:
-		config["longest_transcripts"]
-	output:
-		"regRegion_test/{ssRNA}/{ssRNA}.fasta"
-	shell: """
-		VAR=$(echo "{wildcards.ssRNA}" | tr "_" "-"); zcat {input} | fasta2oneline | bawk -v env_var="$VAR" '$2==env_var{{print ">"$2"\\n"$3}}' > {output}
-	"""
-
-rule run_wilcoxon:
-	input:
-		target="{ssRNA}_ss{single_strandedness_cutoff}-{target_genes}.tss.tpx.summary.add_zeros.gz",
-		background="{ssRNA}_ss{single_strandedness_cutoff}-{background_genes}.tss.tpx.summary.add_zeros.gz" # e.g. expressed genes
-	output:
-		"{ssRNA}_ss{single_strandedness_cutoff}-{ssRNA}_target_genes_vs_{background_genes}-mv_comp.tsv"
-	shell:"""
-		bawk 'NR>1{{print $12}}' {input.target} > {wildcards.target_genes}.tmp;\
-		bawk 'NR>1{{print $12}}' {input.background} > {wildcards.background_genes}.tmp;\
-		wilcoxon -s greater {wildcards.target_genes}.tmp {wildcards.background_genes}.tmp > {output};\
-		rm {wildcards.target_genes}.tmp {wildcards.background_genes}.tmp
-	"""
-
-def get_all_mw_tests(wildcards):
-	for ssRNA in all_selected_ssRNA_id():
-		for target in expand("regRegion_test/{ssRNA}_ss{single_strandedness_cutoff}/{ssRNA}_target_genes-{background_genes}/mv_comp.tsv",
-				ssRNA = all_selected_ssRNA_id(),
-				single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
-			):
-			yield target
-
-rule all_ssRNA_targets:
-	input:
-		expand("{ssRNA}_target_genes.tss.fa",
-			ssRNA = all_selected_ssRNA_id())
-
+# run 3plex 
 rule all_target_tpx:
 	input:
-		targets=expand("regRegion_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-{ssRNA}_target_genes.tss.tpx.summary.add_zeros.gz",
-			ssRNA = all_selected_ssRNA_id(),
-			single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
-			),
-		background=expand("regRegion_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-exp_genes.tss.tpx.summary.add_zeros.gz",
+		expand("regRegion_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-{ssRNA}_tblist.tss.tpx.summary.add_zeros.gz",
 			ssRNA = all_selected_ssRNA_id(),
 			single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
 			)
+	output:
+		"target_genes.tss.tpx.summary.add_zeros.gz"
+	shell:"""
+		matrix_reduce -t 'regRegion_test/*/*_ss*-*_tblist.tss.tpx.summary.add_zeros.gz'	\
+		| tr ";" "\\t" | cut -f5- | bawk 'NR==1 || $1!="Duplex_ID"' \
+		| gzip > {output}
+	"""
+
+# run mw test on scores
+rule run_regRegionTest:
+	input:
+		tpx="target_genes.tss.tpx.summary.add_zeros.gz",
+		tblist=config["tblist"]
+	output:
+		"mwtest_3plex.tsv"
+	shell:"""
+		../../local/bin/mwtest.r -t {input.tpx} -l {input.tblist} --score {config[score]} > {output}
+	"""
+
+#rule regulatory_regions_test_html:
+#	input:
+#		target=config["target_genes_tpx"],
+#		background=config["background_genes_tpx"], # e.g. expressed genes
+#		rmd="regulatory_region_test.Rmd"
+#	output:
+#	   target_backgound_stability="target_backgound_stability.tsv",
+#	   html="regulatory_region_test.html"
+#	shell:"""
+#		bawk 'BEGIN{{print "Stability_best","Class"}} NR>1{{print $12,"target"}}' {input.target} > {output.target_backgound_stability}; \
+#		bawk 'NR>1{{print $12, "background"}}' {input.background} >> {output.target_backgound_stability}; \
+#		Rscript -e 'library(rmarkdown); rmarkdown::render("{input.rmd}", output_file="{output.html}", quiet=TRUE)'
+#	"""
 
 """
 
