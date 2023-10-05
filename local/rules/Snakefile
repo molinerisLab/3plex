@@ -196,11 +196,12 @@ rule add_zeros:
 	output:
 		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.gz"
 	shell:"""
-		 awk 'BEGIN{{print "Duplex_ID"}} match($1,/>/){{split($1,a,">"); print a[2]}}' {input.dsDNA} \
-		 | translate -a -v -e 0 <(zcat {input.summary}) 1 \
-		 | gzip > {output} 
+		VAR=$(bawk 'NR==2{{print $2}}' {input.summary});\
+		awk 'BEGIN{{print "Duplex_ID"}} match($1,/>/){{split($1,a,">"); print a[2]}}' {input.dsDNA} \
+		| translate -a -v -e 0 <(zcat {input.summary}) 1 \
+		| bawk -v env_var="$VAR" 'NR==1{{print}} NR>1{{$2=env_var;print}}' \
+		| gzip > {output} 
 	"""
-#| bawk 'NR==1{{print}} NR>1{{$2={wildcards.ssRNA}; print}}' \
 
 
 ######################
