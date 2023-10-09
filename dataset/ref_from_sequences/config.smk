@@ -1,1 +1,1 @@
-../../local/config/config.smk
+../../local/config/config_ref_from_sequences.smk
