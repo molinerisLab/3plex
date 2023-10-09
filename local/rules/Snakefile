@@ -15,7 +15,6 @@ rule ln_dsDNA_predefined_fa:
 		config['dsDNA_predefined_fa']
 	output:
 		"dsDNA.fa"
-#	group: "3plex"
 	shell: """
 		ln -s {input} {output}
 	"""
@@ -24,7 +23,6 @@ rule ln_dsDNA_predefined_bed:
 		config['dsDNA_predefined_bed']
 	output:
 		"dsDNA.bed"
-#	group: "3plex"
 	shell: """
 		ln -s {input} {output}
 	"""

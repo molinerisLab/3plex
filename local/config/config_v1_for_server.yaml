@@ -20,7 +20,7 @@ TTS_bed:
 pato_simultaneus_sequences: 256
 
 species_gencode_version_map:
-        hsapiens: 42
+        hsapiens: 37
         mmusculus: m32
 
 species_genome_version_map:
