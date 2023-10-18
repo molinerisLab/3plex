@@ -158,12 +158,16 @@ def compute_statistics(data):
     else:
         upper_quartile = sorted_data[3 * n // 4]
 
+    # Compute average and variance
+    np_sorted_data = np.array(sorted_data)
+    average = np.mean(np_sorted_data)
+    variance = np.var(np_sorted_data)
+
     index = int(n * 0.95)
     percentile_95 = sorted_data[index]
     
     max=sorted_data[-1]
-
-    return {"median": median, "lower_quartile": lower_quartile, "upper_quartile": upper_quartile, "percentile_95": percentile_95, "max": max}
+    return {"median": median, "lower_quartile": lower_quartile, "upper_quartile": upper_quartile, "percentile_95": percentile_95, "max": max, "avg":average, "var":variance}
 
 
 def profiles_multiple_stats(profiles_multiple):
@@ -227,7 +231,7 @@ def compress_random_profile_single_bin(data, statistics):
     return compressed
 
 def compress_profile_random(data):
-    statistics = ["median","lower_quartile","upper_quartile","percentile_95", "max"]
+    statistics = ["median","lower_quartile","upper_quartile","percentile_95", "max", "avg", "var"]
     compressed = dict()
     compressed["statistics"] = statistics
     compressed["data"] = dict()
