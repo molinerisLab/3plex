@@ -69,7 +69,10 @@ rule tpx_stability:
 		#Linearize align informations, at the begin {output}
 		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output}.tmp
 		#Add stabilityf
-		cat {output}.tmp | tpx_thermal_stability.py | gzip > {output}
+		cat {output}.tmp | tpx_thermal_stability.py > {output}.tmp
+		#Sort, compress and index
+		cat {output}.tmp | bedtools sort |  bgzip > {output};
+		tabix -p bed {output}
 	"""
 
 rule stability_ssRNA_profile:
