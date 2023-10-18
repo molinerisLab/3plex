@@ -63,16 +63,25 @@ rule tpx_stability:
 	input:
 		"{path}.tpx"
 	output:
-		"{path}.tpx.stability.gz"
+		tpx="{path}.tpx.stability.gz",
+		tmp=temp("{path}.tpx.stability.gz.tmp")
 #	group: "3plex"
 	shell: """
 		#Linearize align informations, at the begin {output}
-		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output}.tmp
+		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output.tmp}
 		#Add stabilityf
-		cat {output}.tmp | tpx_thermal_stability.py > {output}.tmp
-		#Sort, compress and index
-		cat {output}.tmp | bedtools sort |  bgzip > {output};
-		tabix -p bed {output}
+		cat {output.tmp} | tpx_thermal_stability.py | gzip > {output.tpx}
+	"""
+
+rule tpx_stability_index:
+	input:
+		"{path}.tpx.stability.gz"
+	output:
+		tpx_indexed="{path}.tpx.stability.indexed.gz",
+		indexes="{path}.tpx.stability.indexed.gz.tbi"
+	shell:"""
+		zcat {input} | bedtools sort |  bgzip > {output.tpx_indexed}
+		tabix -p bed {output.tpx_indexed}
 	"""
 
 rule stability_ssRNA_profile:

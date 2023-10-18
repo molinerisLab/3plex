@@ -1,5 +1,6 @@
 name: /home/mmasera/3plex_backend_server/server/3plex/local/envs/3plex
 channels:
+  - bioconda
   - defaults
 dependencies:
   - snakemake=7.29.0
@@ -13,4 +14,5 @@ dependencies:
   - openssl
   - fasta2oneline
   - meme
+  - tabix
 prefix: /home/mmasera/3plex_backend_server/server/3plex/local/envs/3plex
