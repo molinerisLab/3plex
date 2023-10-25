@@ -82,6 +82,7 @@ config["RNAplfold"]["single_strandedness_cutoff"]=args.RNAplfold_single_stranded
 config["TTS_bed"]["ucsc_dark_gray"]=args.TTS_bed_ucsc_dark_gray
 config["TTS_bed"]["dark_gray_stability"]=args.TTS_bed_ucsc_dark_gray_stability
 
+#TODO aggiornare funzionamento config
 config_yaml = yaml.dump(config)
 
 

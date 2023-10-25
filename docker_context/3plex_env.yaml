@@ -19,4 +19,3 @@ dependencies:
   - matrix_reduce=1.2
   - bsort
   - transpose
-prefix: /home/mmasera/3plex_backend_server/server/3plex/local/envs/3plex
