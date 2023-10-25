@@ -27,6 +27,12 @@ def get_ssRNA_seq_name(ssRNA):
 		return m.group(1)
 
 
+print("Ciao sono 3plex")
+exit()
+
+#!!!  Remember to add local/bin to path before calling snakemake rules
+#     And use micromamba to activate env
+
 parser = argparse.ArgumentParser(
     description="Given an RNA sequence and a list of DNA sequences, compute all possible triplexes that satisfy the constraints associating a thermal stability score. RNA secondary structure prediction can be used to exclude RNA nucleotides from search.",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
