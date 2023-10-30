@@ -20,3 +20,4 @@ dependencies:
   - bsort
   - transpose
   - dropbox
+  - yaml
