@@ -147,11 +147,6 @@ def main():
     micromamba activate 3plex;
     export PATH=$PATH:/3plex/bin
     """ 
-    #DEBUG
-    #bashCommand = """
-    #conda init;
-    #conda activate ../local/envs/3plex;
-    #"""
     bashCommand+=f"""
     cd {os.path.abspath(tmpdir)};
 snakemake -c{args.jobs} \

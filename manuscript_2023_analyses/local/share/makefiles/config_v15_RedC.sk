@@ -1,5 +1,0 @@
-def all_selected_ssRNA_id():
-	with open("selected_ssRNA", mode='rt') as fh:
-		for line in fh:
-			ssRNA = line.rstrip()
-			yield ssRNA

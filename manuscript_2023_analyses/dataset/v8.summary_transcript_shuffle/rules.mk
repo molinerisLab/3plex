@@ -1,1 +1,0 @@
-../../local/share/rules/rules_v8.summary_transcript_shuffle.mk

@@ -1,8 +1,0 @@
-name: rnaFoldRand_v0.1
-channels:
-  - bioconda
-  - conda-forge
-  - defaults
-dependencies:
-  - numpy
-  - viennarna
