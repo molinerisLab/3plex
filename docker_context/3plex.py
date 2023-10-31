@@ -8,8 +8,14 @@ import yaml
 import tempfile
 import subprocess
 
+REMOVE_TMP_DIR = True
+PRINT_ACTIONS = True
+def print_log(text):
+    if (PRINT_ACTIONS):
+        print(text)
+
 def execute(cmd, cwd):
-    print(cmd)
+    #print(cmd)
     #with subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True, bufsize=1) as p:
     with subprocess.Popen(['/bin/bash', '-c', cmd], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, bufsize=1) as p:
         for line in p.stdout:
@@ -39,7 +45,6 @@ def main():
     description="Given an RNA sequence and a list of DNA sequences, 3plex finds all the triplexes that satisfy the constraints and computes a thermal stability score for the interaction. The RNA secondary structure prediction can be used to exclude RNA nucleotides from the search.",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     epilog="Please cite: Cicconetti C, Lauria A, Proserpio V, et al. 3plex enables deep computational investigation of triplex forming lncRNAs. Comput Struct Biotechnol J. 2023;21:3091-3102.\n\nHave a good 3plex journey!")
-
     # positional
     parser.add_argument("ssRNA", metavar="ssRNA.fa", 
                         help="The RNA sequence in FASTA format. The file must contain only one sequence.")
@@ -119,10 +124,11 @@ def main():
     config["pato_simultaneus_sequences"]= args.pato_simultaneus_sequences
 
     #Create output dir
+    print_log("Preparing execution environment...")
     if not os.path.exists(args.out_dir):
         os.mkdir(args.out_dir)
+    #tmpdir = os.path.join(args.out_dir, "tmp__")
     tmpdir = tempfile.mkdtemp(prefix=args.out_dir + "/" + "3plex_tmp_directory_", dir=".")
-    tmpdir = os.path.abspath(tmpdir)
 
     #Esporta config
     config_yaml = yaml.dump(config)
@@ -132,23 +138,24 @@ def main():
     #Prepare directory:
     #Link ssRNA and sdDNA files
     ssRNA_name=get_ssRNA_seq_name(args.ssRNA)
-    os.symlink(os.path.abspath(args.ssRNA), f"{tmpdir}/{ssRNA_name}.fa")
-    os.symlink(os.path.abspath(args.dsDNA), os.path.join(tmpdir, os.path.basename(args.dsDNA)))
     dsDNA_name = os.path.splitext(os.path.basename(args.dsDNA))[0]
+    os.symlink(os.path.abspath(args.ssRNA), f"{tmpdir}/{ssRNA_name}.fa")
+    os.symlink(os.path.abspath(args.dsDNA), f"{tmpdir}/{dsDNA_name}.fa")
     #Link snakefile
-    os.symlink(os.path.join(os. getcwd(), "Snakefile"), os.path.join(tmpdir, "Snakefile"))
+    os.symlink(os.path.join(os.getcwd(), "Snakefile"), os.path.join(tmpdir, "Snakefile"))
     #TODO test that it works with dsDNA bed + why dsDNA as fasta is needed anyway?
     if args.dsDNA_bed:
         os.symlink(args.dsDNA_bed, os.path.join(tmpdir, os.path.basename(dsDNA_bed)))
 
     #Prepare bash command
     bashCommand = """
+    export MAMBA_ROOT_PREFIX=/root/micromamba;
     eval "$(micromamba shell hook --shell bash)" && source ~/.bashrc && micromamba activate;
     micromamba activate 3plex;
     export PATH=$PATH:/3plex/bin
     """ 
     bashCommand+=f"""
-    cd {os.path.abspath(tmpdir)};
+    cd {tmpdir};
 snakemake -c{args.jobs} \
     {ssRNA_name}_ssmasked-{dsDNA_name}.tpx.summary.add_zeros.gz \
     {ssRNA_name}_ssmasked-{dsDNA_name}.tpx.stability.gz >> {tmpdir}/STDOUT 2>>{tmpdir}/STDERR;
@@ -156,14 +163,18 @@ snakemake -c{args.jobs} \
     mv STDOUT STDERR ../;
 """
 
+
     if args.RNA2D_out is not None:
         bashCommand+=f"\n mv RNAplfold/{ssRNA_name}_lunp.unpairedWindow.modif_zscore ../{args.RNA2D_out};"
     
-    bashCommand+=f"""
-    rm -rf {tmpdir}"""
+    if (REMOVE_TMP_DIR):
+        bashCommand+=f"""
+        rm -rf {tmpdir}"""
     
     #Execute command
+    print_log("Running 3plex...")
     execute(bashCommand, tmpdir)
+    print_log(f"Done. Output files' path: {args.out_dir}")
 
 if __name__ == "__main__":
     main()
