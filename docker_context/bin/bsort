@@ -1,0 +1,5 @@
+#!/bin/bash
+if [ -z "$CORES" ]; then CORES=6; fi;
+
+export LC_ALL=C
+exec sort -t $'\t' --parallel=$CORES $@

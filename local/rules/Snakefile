@@ -64,10 +64,21 @@ rule tpx_stability:
 #	group: "3plex"
 	shell: """
 		#Linearize align informations, at the begin {output}
-		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output}.tmp
+		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output.tmp}
 		#Add stabilityf
 		cat {output}.tmp | ../../local/bin/tpx_thermal_stability.py | gzip > {output};
 		rm {output}.tmp
+	"""
+
+rule tpx_stability_index:
+	input:
+		"{path}.tpx.stability.gz"
+	output:
+		tpx_indexed="{path}.tpx.stability.indexed.gz",
+		indexes="{path}.tpx.stability.indexed.gz.tbi"
+	shell:"""
+		zcat {input} | bedtools sort |  bgzip > {output.tpx_indexed}
+		tabix -p bed {output.tpx_indexed}
 	"""
 
 rule stability_ssRNA_profile:
@@ -311,15 +322,15 @@ rule dsdna_fasta_from_bed:
 	shell: """
 		bedtools getfasta -name+ -fi {config[genome_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
 	"""
-
+	
 rule shuffle_bed:
 	input: 
 		bed = "{file}.bed",
 		exclude = config["shuffle_blacklist"],
 		chrom_info = config["chrom_info"]
-	output: "{file}_shuf_{run,\d+}.bed"
+	output:  temp("{file}_shuf_{run,\d+}.bed")
 	shell:"""
-		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed {config[seed]} > {output}
+		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed $(date +%s%N) > {output}
 		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
 	"""
 
@@ -499,6 +510,23 @@ rule run_gsea:
 	shell:"""
 
 	"""
+rule shuffle_fasta:
+	input: 
+		fasta = "{file}.fa"
+	output:  temp("{file}_shuf_{run,\d+}.fa")
+	shell:"""
+		fasta-shuffle-letters {input.fasta} -kmer 1 -seed $(date +%s%N) > {output}
+	"""
+
+rule aggregated_random_tpx_fasta:
+	input:
+		expand("ssRNA_shuf_{run}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+	output: "ssRNA.profile_range.random.msgpack"
+	shell: """
+		tfo_profile.py -m {input} > {output}
+	"""
+ruleorder: aggregated_random_tpx > aggregated_random_tpx_fasta
+ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 """
 
 .META: *.tpx.gz

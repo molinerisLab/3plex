@@ -1,1 +1,0 @@
-../../local/share/rules/prj_rules_v8.4_ReChIRP_idr_mouse.mk

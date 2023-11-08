@@ -1,7 +1,0 @@
-V8_DIRS=../v8.6_ReChIRP_idr_overlap_top1000 ../v8.7_ReChIRP_idr_overlap_top1000_mouse
-
-BEST_PREDICTOR=Stability_best
-
-BEST_PARAMS=10_10_1_20_10_off_3
-
-SHUFFLE_METHOD=peaks
