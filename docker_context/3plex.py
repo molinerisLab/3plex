@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-from __future__ import with_statement
-
 import os
 import re
 import argparse
 import yaml
 import tempfile
 import subprocess
+#from __future__ import with_statement
 
 REMOVE_TMP_DIR = True
 PRINT_ACTIONS = True
@@ -58,28 +57,28 @@ def main():
                         help="Genomic coordinates of the DNA sequences in BED format. The 4th column must contain the same identifiers of the sequences in dsDNA.fa")
     parser.add_argument("-j", "--jobs", metavar="CPUS", dest="jobs", type=int, default=1, 
                         help="Number of parallel threads.")
-    parser.add_argument("-l", "--min_length", metavar="N", dest="triplexator_min_length", type=minlen_type, default=8,          
+    parser.add_argument("-l", "--min_length", metavar="N", dest="pato_min_length", type=minlen_type, default=8,          
                         help="Minimum triplex length required. Allowed values: N>=5.")
-    parser.add_argument("-e", "--error_rate", metavar="E", dest="triplexator_error_rate", type=int, default=20, choices=range(21), 
+    parser.add_argument("-e", "--error_rate", metavar="E", dest="pato_error_rate", type=int, default=20, choices=range(21), 
                         help="Maximum percentage of error allowed in a triplex.")
     parser.add_argument("-s", "--single_strandedness_cutoff", metavar="S", dest="RNAplfold_single_strandedness_cutoff", type=int, default=0, choices=range(100), 
                         help="Percentage of masked RNA nucleotides based on RNAplfold base pairing probabilities.")
-    parser.add_argument("-c", "--consecutive_errors", metavar="C", dest="triplexator_consecutive_errors", type=int, default=1, 
+    parser.add_argument("-c", "--consecutive_errors", metavar="C", dest="pato_consecutive_errors", type=int, default=1, 
                         help="Maximum number of consecutive errors allowed in a triplex.")
-    parser.add_argument("-g", "--guanine_rate", metavar="G", dest="triplexator_guanine_rate", type=int, default=40, choices=range(100), 
+    parser.add_argument("-g", "--guanine_rate", metavar="G", dest="pato_guanine_rate", type=int, default=40, choices=range(100), 
                         help="Minimum percentage of guanines required in a TTS.")
-    parser.add_argument("-r", "--filter_repeat", dest="triplexator_filter_repeat", action="store_true",
+    parser.add_argument("-r", "--filter_repeat", dest="pato_filter_repeat", action="store_true",
                         help="If enabled, exclude repeat and low complexity regions.")
-    parser.add_argument("-L", "--max_length", metavar="M", dest="triplexator_max_length", type=int, default=-1, 
+    parser.add_argument("-L", "--max_length", metavar="M", dest="pato_max_length", type=int, default=-1, 
                         help="Maximum triplex length permitted, M=-1 imply no limits.")
-    parser.add_argument("-t", "--triplexator_other_parameters", metavar="T", dest="triplexator_other_parameters", type=str, default="", 
-                        help="Additional triplexator parameters passed as a sting (e.g. -t '-mamg 90 -E 4'). 3plex output format will not change.")
-    parser.add_argument("--pato_simultaneus_sequences", type=int, default=256,
+    parser.add_argument("-t", "--pato_other_parameters", metavar="T", dest="pato_other_parameters", type=str, default="", 
+                        help="Additional pato parameters passed as a string (e.g. -t '-mamg 90 -E 4'). 3plex output format will not change.")
+    parser.add_argument("--pato_simultaneous_sequences", type=int, default=256,
                         help="Maximum number of sequences that may be processed simultaneously (less simultaneous sequences equals less memory usage)."),
-    parser.add_argument("--ucsc_dark_gray", metavar="G", dest="TTS_bed_ucsc_dark_gray", type=int, default=843, choices=range(1000), 
-                        help="TTS BED UCSC dark gray.")
-    parser.add_argument("--dark_gray_stability", metavar="G", dest="TTS_bed_ucsc_dark_gray_stability", type=int, default=43, 
-                        help="10%% of TTS in paper.")
+    #parser.add_argument("--ucsc_dark_gray", metavar="G", dest="TTS_bed_ucsc_dark_gray", type=int, default=843, choices=range(1000), 
+    #                    help="TTS BED UCSC dark gray.")
+    #parser.add_argument("--dark_gray_stability", metavar="G", dest="TTS_bed_ucsc_dark_gray_stability", type=int, default=43, 
+    #                    help="10%% of TTS in paper.")
     parser.add_argument("--RNAplfold_window_size", metavar="S", dest="RNAplfold_window_size", type=int, default=200, 
                         help="RNAplfold: average pair probabilities over windows of specified size.")
     parser.add_argument("--RNAplfold_span_size", metavar="S", dest="RNAplfold_span_size", type=int, default=150, 
@@ -92,36 +91,35 @@ def main():
                         help="Override the default Snakefile using the one specified.")
     args = parser.parse_args()
 
-    if args.triplexator_filter_repeat:
-        args.triplexator_filter_repeat="on"
+    if args.pato_filter_repeat:
+        args.pato_filter_repeat="on"
     else:
-        args.triplexator_filter_repeat="off"
+        args.pato_filter_repeat="off"
 
     #Build config object
     config={}
-    config["triplexator"]={}
+
+    config["pato"]={}
     config["RNAplfold"]={}
-    config["TTS_bed"]={}
-    config["triplexator_other"]={}
+    #config["TTS_bed"]={}
 
-    config["triplexator"]["min_length"]=args.triplexator_min_length
-    config["triplexator"]["max_length"]=args.triplexator_max_length
-    config["triplexator"]["error_rate"]=args.triplexator_error_rate
-    config["triplexator"]["guanine_rate"]=args.triplexator_guanine_rate
-    config["triplexator"]["filter_repeat"]=args.triplexator_filter_repeat
-    config["triplexator"]["consecutive_errors"]=args.triplexator_consecutive_errors
-
-    config["triplexator_other"]["other_parameters"]=args.triplexator_other_parameters
+    config["pato"]["min_length"]=args.pato_min_length
+    config["pato"]["max_length"]=args.pato_max_length
+    config["pato"]["error_rate"]=args.pato_error_rate
+    config["pato"]["guanine_rate"]=args.pato_guanine_rate
+    config["pato"]["filter_repeat"]=args.pato_filter_repeat
+    config["pato"]["consecutive_errors"]=args.pato_consecutive_errors
+    config["pato"]["other_parameters"]=args.pato_other_parameters
+    config["pato"]["sim_sequences"]=args.pato_simultaneous_sequences
 
     config["RNAplfold"]["window_size"]=args.RNAplfold_window_size
     config["RNAplfold"]["span_size"]=args.RNAplfold_span_size
     config["RNAplfold"]["unpaired_window"]=args.RNAplfold_unpaired_window
     config["RNAplfold"]["single_strandedness_cutoff"]=args.RNAplfold_single_strandedness_cutoff
 
-    config["TTS_bed"]["ucsc_dark_gray"]=args.TTS_bed_ucsc_dark_gray
-    config["TTS_bed"]["dark_gray_stability"]=args.TTS_bed_ucsc_dark_gray_stability
+    #config["TTS_bed"]["ucsc_dark_gray"]=args.TTS_bed_ucsc_dark_gray
+    #config["TTS_bed"]["dark_gray_stability"]=args.TTS_bed_ucsc_dark_gray_stability
 
-    config["pato_simultaneus_sequences"]= args.pato_simultaneus_sequences
 
     #Create output dir
     print_log("Preparing execution environment...")
@@ -147,6 +145,8 @@ def main():
     if args.dsDNA_bed:
         os.symlink(args.dsDNA_bed, os.path.join(tmpdir, os.path.basename(dsDNA_bed)))
 
+    print_log(f"Input files:\n>{args.ssRNA}\n>{args.dsDNA}")
+
     #Prepare bash command
     bashCommand = """
     export MAMBA_ROOT_PREFIX=/root/micromamba;
@@ -158,14 +158,14 @@ def main():
     cd {tmpdir};
 snakemake -c{args.jobs} \
     {ssRNA_name}_ssmasked-{dsDNA_name}.tpx.summary.add_zeros.gz \
-    {ssRNA_name}_ssmasked-{dsDNA_name}.tpx.stability.gz >> {tmpdir}/STDOUT 2>>{tmpdir}/STDERR;
+    {ssRNA_name}_ssmasked-{dsDNA_name}.tpx.stability.gz 2>>{tmpdir}/tpx.log;
     mv {ssRNA_name}_ssmasked-{dsDNA_name}.tpx.summary.add_zeros.gz {ssRNA_name}_ssmasked-{dsDNA_name}.tpx.stability.gz ../;
-    mv STDOUT STDERR ../;
+    mv tpx.log ../;
 """
 
 
     if args.RNA2D_out is not None:
-        bashCommand+=f"\n mv RNAplfold/{ssRNA_name}_lunp.unpairedWindow.modif_zscore ../{args.RNA2D_out};"
+        bashCommand+=f"\n mv RNAplfold/{ssRNA_name}_lunp.modif_zscore ../{args.RNA2D_out};"
     
     if (REMOVE_TMP_DIR):
         bashCommand+=f"""
