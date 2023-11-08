@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
-library(optparse)
+suppressPackageStartupMessages(library(optparse))
+suppressPackageStartupMessages(library(ggpubr))
 
 option_list <- list( 
   make_option(c("-t", "--tpxlist"), action="store", default=NULL,
@@ -22,9 +23,10 @@ z$Duplex_ID_gene <- gsub(pattern = "(.*)::(.*)","\\1",z$Duplex_ID)
 message(paste0("--- Reading: ", opt$tblist))
 tblist <- read.delim(opt$tblist, header = F)
 
-# create outdf
+# create outdf and boxplot list
 outdf <- data.frame(ssRNA=character(), pval=double(), median_diff=double())
 outdf_cols <- colnames(outdf)
+
 for (ssRNA in unique(z$Sequence_ID)) {
   #filter for ssRNA
   tblist_ssRNA <- tblist[tblist$V1==ssRNA,]
@@ -34,16 +36,23 @@ for (ssRNA in unique(z$Sequence_ID)) {
   tblist_ssRNA <- tblist_ssRNA_ordered[!duplicated(tblist_ssRNA_ordered$V2), ]
   # add target/background labels
   m <- merge(z_ssRNA,tblist_ssRNA, by.x="Duplex_ID_gene", by.y="V2")
-  # run mann whitney test
-  target_stab <- m[m$V3=="target",opt$score]
-  background_stab <- m[m$V3=="background",opt$score]
-  mw <-wilcox.test(target_stab, background_stab, paired = F, alternative = "greater")
-  # rbind new row
-  outdf <- rbind(c(ssRNA, mw$p.value, median(target_stab)-median(background_stab)),outdf)
+  if(any(m$V3=="target")){
+    if(any(m$V3=="background")){
+      # run mann whitney test
+      target_stab <- m[m$V3=="target",opt$score]
+      background_stab <- m[m$V3=="background",opt$score]
+      mw <-wilcox.test(target_stab, background_stab, paired = F, alternative = "greater")
+      # rbind new row
+      outdf <- rbind(c(ssRNA, mw$p.value, median(target_stab)-median(background_stab)),outdf)
+    }
+  }
 }
+
 colnames(outdf)<-outdf_cols
+
 # adjust pvalues
 outdf$padj <- p.adjust(outdf$pval, method = "fdr")
 
 # save tabular results as stdout
 write.table(x = outdf[order(outdf$pval), ], file = "", quote = F, sep = "\t", row.names = F)
+
