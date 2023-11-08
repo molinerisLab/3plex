@@ -12,4 +12,4 @@ triplexator:
 # Regulatory Regions Test
 tss_ref_name: MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500
 tblist: "ssRNA_tblist.tsv"
-score: "Score_best"
+score: "Stability_best"

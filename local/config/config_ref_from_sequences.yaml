@@ -8,3 +8,5 @@ triplexator:
         filter_repeat: off
         consecutive_errors: 1
         SSTRAND: 0
+
+dsDNA_bed: "dsDNA_list"
