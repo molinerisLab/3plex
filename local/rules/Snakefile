@@ -201,21 +201,9 @@ rule add_zeros:
 		| gzip > {output} 
 	"""
 
-
 ######################
 # ssRNA 2D structure #
 ######################
-
-rule check_input:
-	input:
-		"{ssRNA}.fasta"
-	output:
-		".3plex/{ssRNA}.fa.checked"
-	shell:"""
-		mkdir -p .3plex
-		perl -lne 'if($.==1 and $_ ne ">{wildcards.ssRNA}"){{m/>(.+)$/; print STDERR "Malformed input fasta file for RNA.\\nPlease put in the header only the sequence name (>{wildcards.ssRNA}) and/or name the file accordingly ($1.fa).\\nAvoid empty rows at the begining of the file.\\nOnly one sequence per file allowed."; exit(1) }}' {input}
-		touch {output}
-	"""
 
 # Run RNAplfold
 rule RNAplfold_lunp:
@@ -277,8 +265,6 @@ rule mask_fasta_unpairedWindow:
 			bedtools maskfasta -fi {input.fasta} -fo {output} -bed <(awk -v perc=$PERC 'BEGIN{{OFS="\\t"}} $1<perc {{print "{wildcards.ssRNA}",NR - 1 + {RNAplfold_WINDOW_CENTER}, NR + {RNAplfold_WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge)
 	"""
 
-SS=config['RNAplfold']['single_strandedness_cutoff']
-
 rule mask_fasta_unpairedWindow_rename:
 	input:
 		"{ssRNA}.fa"
@@ -339,7 +325,7 @@ rule shuffle_bed:
 
 
 ###########################
-# Regulatory Regions Test #
+# Promoter Stability Test #
 ###########################
 
 # Input: 
@@ -351,7 +337,8 @@ rule shuffle_bed:
 
 # Output:
 # 1) matrix reduced tpx table
-# 2) table of mw pval
+# 2) boxplot for each ssRNA
+# 3) table of mw pval
 
 # retrieve ssRNA names from each list
 def all_selected_ssRNA_id():
@@ -360,19 +347,27 @@ def all_selected_ssRNA_id():
 		yield ssRNA.replace("-","_")
 
 # split target and background lists for each ssRNA
-rule prepare_regRegion_inputs:
+rule prepare_promoter_stability_ssRNA:
 	input:
-		tblist=config["tblist"],
+		tblist=config["promoter_stability_test"]["tblist"],
 		trasncript_fastas=config["transcript_fastas"]
 	output:
-		ssRNA_fasta="regRegion_test/{ssRNA}/{ssRNA}.fasta",
-		ssRNA_tblist="{ssRNA}_tblist.tsv"
+		"promoter_stability_test/{ssRNA}/{ssRNA}.fasta"
 	shell: """
 		ssRNA=$(echo "{wildcards.ssRNA}" | tr "_" "-");\
-		mkdir -p $(dirname {output.ssRNA_fasta});\
-		zcat {input.trasncript_fastas} | fasta2oneline | bawk -v env_var="$ssRNA" '$2==env_var{{print ">"$2"\\n"$3}}' > {output.ssRNA_fasta};\
-		 bawk -v env_var="$ssRNA" '$1==env_var{{print $2}}' {input.tblist} > {output.ssRNA_tblist}
+		mkdir -p $(dirname {output});\
+		zcat {input.trasncript_fastas} | fasta2oneline | bawk -v env_var="$ssRNA" '$2==env_var{{print ">"$2"\\n"$3}}' > {output}
 	"""
+
+rule prepare_promoter_stability_ssRNA_tblist:
+	input:
+		config["promoter_stability_test"]["tblist"]
+	output:
+		"{ssRNA}_tblist.tsv"
+	shell: """
+		ssRNA=$(echo "{wildcards.ssRNA}" | tr "_" "-");\
+		bawk -v env_var="$ssRNA" '$1==env_var{{print $2}}' {input} > {output}
+	"""	
 
 # create a bed formatted file from the promoters list
 rule tss_from_gene:
@@ -388,27 +383,40 @@ rule tss_from_gene:
 # run 3plex 
 rule all_target_tpx:
 	input:
-		expand("regRegion_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-{ssRNA}_tblist.tss.tpx.summary.add_zeros.gz",
+		expand("promoter_stability_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-{ssRNA}_tblist.tss.tpx.summary.add_zeros.gz",#mw_boxplot.pdf
 			ssRNA = all_selected_ssRNA_id(),
 			single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
 			)
 	output:
 		"target_genes.tss.tpx.summary.add_zeros.gz"
 	shell:"""
-		matrix_reduce -t 'regRegion_test/*/*_ss*-*_tblist.tss.tpx.summary.add_zeros.gz'	\
+		matrix_reduce -t 'promoter_stability_test/*/*_ss*-*_tblist.tss.tpx.summary.add_zeros.gz'	\
 		| tr ";" "\\t" | cut -f5- | bawk 'NR==1 || $1!="Duplex_ID"' \
 		| gzip > {output}
 	"""
 
+# to fix: check lists merge 
+rule mw_boxplot:
+	input:
+		tpx="{path}.tpx.summary.add_zeros.gz",
+		#tpx="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.gz",
+		tblist=config["promoter_stability_test"]["tblist"]
+	output:
+		"{path}.tpx.summary.add_zeros.mw_boxplot.pdf"
+		#"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.mw_boxplot.pdf"
+	shell:"""
+		../../local/bin/mw_boxplot.r -t {input.tpx} -l {input.tblist} --score {config[promoter_stability_test][score]} > {output}
+	"""
+
 # run mw test on scores
-rule run_regRegionTest:
+rule run_promoter_stability_test:
 	input:
 		tpx="target_genes.tss.tpx.summary.add_zeros.gz",
-		tblist=config["tblist"]
+		tblist=config["promoter_stability_test"]["tblist"]
 	output:
 		"mwtest_3plex.tsv"
 	shell:"""
-		../../local/bin/mwtest.r -t {input.tpx} -l {input.tblist} --score {config[score]} > {output}
+		../../local/bin/mwtest.r -t {input.tpx} -l {input.tblist} --score {config[promoter_stability_test][score]} > {output}
 	"""
 
 #rule regulatory_regions_test_html:
@@ -425,6 +433,72 @@ rule run_regRegionTest:
 #		Rscript -e 'library(rmarkdown); rmarkdown::render("{input.rmd}", output_file="{output.html}", quiet=TRUE)'
 #	"""
 
+
+
+###################
+# Enrichment Test #
+###################
+
+# Input: 
+# 1) ssRNA name
+# 2) List of all genes (e.g, expressed genes or ChIRP-seq identified genes)
+# 3) List of genes of interest (e.g., differentially expressed genes)
+
+# Output:
+# 1) Leading edge list
+
+# create gmt formatted file from the list of genes of interest
+rule create_gmt:
+	input:
+		config["enrichment_test"]["genes_of_interest"]
+	output:
+		"enrichment_test/"+str(config["enrichment_test"]["ssRNA"])+"/genes_of_interest.gmt"
+	shell:"""
+		tr "\\n" "\\t" < {input} \
+		| bawk '{{print "genes_of_interest",".",$0}}' > {output}
+	"""
+
+rule tss_from_gene_enrich:
+	input:
+		tss_ref=config['tss_ref_bed'],
+		gene_list=config["enrichment_test"]["genes_all"]
+	output:
+		"genes_all.tss.bed"
+	shell: """
+		filter_1col 4 {input.gene_list} < {input.tss_ref} > {output} 
+	"""
+
+rule prepare_enrichment_test_ssRNA:
+	input:
+		config["transcript_fastas"]
+	output:
+		"enrichment_test/"+str(config["enrichment_test"]["ssRNA"])+"/"+str(config["enrichment_test"]["ssRNA"])+".fasta"
+	shell: """
+		mkdir -p $(dirname {output});\
+		zcat {input} | fasta2oneline | bawk '$2=="{config[enrichment_test][ssRNA]}"{{print ">"$2"\\n"$3}}' > {output}
+	"""
+
+rule create_rnk:
+	input:
+		expand("enrichment_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-genes_all.tss.tpx.summary.add_zeros.gz",
+			ssRNA = config["enrichment_test"]["ssRNA"],
+			single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
+			)
+	output:
+		"enrichment_test/"+str(config["enrichment_test"]["ssRNA"])+"/genes_all.rnk.gz"
+	shell:"""
+		bawk 'NR>1{{split($1,a,"::"); print a[1],$15}}' {input} | sort -k2,2n | find_best 1 2 | gzip > {output}
+	"""
+
+# try use script and paramters
+rule run_gsea:
+	input:
+		rnk="enrichment_test/"+str(config["enrichment_test"]["ssRNA"])+"/genes_all.rnk.gz",
+		gmt="enrichment_test/"+str(config["enrichment_test"]["ssRNA"])+"/genes_of_interest.gmt"
+	output:
+	shell:"""
+
+	"""
 """
 
 .META: *.tpx.gz
