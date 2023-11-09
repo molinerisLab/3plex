@@ -311,14 +311,53 @@ rule aggregated_random_tpx:
 		expand("ssRNA_ssmasked-dsDNA_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
 	output: "ssRNA.profile_range.random.msgpack"
 	shell: """
-		../../local/bin/tfo_profile.py -m {input} > {output}
+		tfo_profile.py -m {input} > {output}
+	"""
+
+
+#######################################
+# Promoter Stability Test - one ssRNA #
+#######################################
+
+rule create_tblist:
+	input:
+		putative_target_genes=config["prom_stab_test"]["putative_target_genes"],
+		background_genes=config["prom_stab_test"]["background_genes"]
+	output:
+		"tblist.tsv"
+	shell:"""
+		cat <(bawk '{{print $1,"putative_target"}}' {input.putative_target_genes}) <(bawk '{{print $1,"background"}}' {input.background_genes}) > {output}
+	"""
+
+rule tss_from_geneid:
+	input:
+		tss_ref=config["tss_ref_bed"], 
+		tblist="tblist.tsv"
+	output:
+		"tblist.tss.bed"
+	shell: """
+		filter_1col 4 <(cut -f1 {input.tblist}) < {input.tss_ref} > {output} 
+	"""
+
+rule prom_stab_test_boxplot:
+	input:
+		tpx="{ssRNA}_ssmasked-tblist.tss.tpx.summary.add_zeros.gz",
+		tblist="tblist.tsv"
+	output:
+		"{ssRNA}_ssmasked-tblist.tss.tpx.summary.add_zeros.boxplot.pdf"
+	shell:"""
+		../../local/src/promoter_stability_test.r \
+			-t {input.tpx} \
+			-l {input.tblist} \
+			--score {config[prom_stab_test][score]} \
+		> {output}
 	"""
 
 
 
-###########################
-# Promoter Stability Test #
-###########################
+########################################
+# Promoter Stability Test - ssRNA List #
+########################################
 
 # Input: 
 # 1) list of ssRNA with associated targets and background genes (e.g. expressed genes)

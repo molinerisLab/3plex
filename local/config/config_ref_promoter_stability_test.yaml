@@ -28,6 +28,11 @@ RNAplfold:
 
 dsDNA_predefined: null
 
+prom_stab_test:
+        putative_target_genes: putative_target_genes.txt
+        background_genes: background_genes.txt
+        score: Stability_norm
+
 promoter_stability_test:
         tblist: "null"
         score: "null"
