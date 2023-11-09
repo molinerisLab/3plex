@@ -1,3 +1,4 @@
+# General config
 
 if config['species']:
     config['genome_fasta'] = "{gencode_dir_prefix}/{species}/{gencode_version}/{genome_version}.primary_assembly.genome.fa".format(
@@ -24,6 +25,9 @@ else:
     config['chrom_info'] = ""
 
 
+
+# Server specific config
+
 if config['dsDNA_predefined']:
     config['dsDNA_predefined_fa']="{gencode_dir_prefix}/{species}/{gencode_version}/{dsDNA_predefined}.fa".format(
         gencode_dir_prefix=config['gencode_dir_prefix'],
@@ -42,9 +46,8 @@ else:
     config['dsDNA_predefined_bed'] = ""
 
 
-##########################
-# Regulatory Region Test #
-##########################
+
+# Advanced workflows config
 
 config['tss_ref_bed']="{gencode_dir_prefix}/{species}/{gencode_version}/{tss_ref_name}.bed".format(
     gencode_dir_prefix=config['gencode_dir_prefix'],
