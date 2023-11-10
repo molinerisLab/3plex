@@ -267,7 +267,7 @@ rule tpx_stability_index:
 		tpx_indexed="{path}.tpx.stability.indexed.gz",
 		indexes="{path}.tpx.stability.indexed.gz.tbi"
 	shell:"""
-		zcat {input} | bedtools sort |  bgzip > {output.tpx_indexed}
+		zcat {input} | bawk '{{$1="ssRNA"; print}}' | bedtools sort |  bgzip > {output.tpx_indexed}
 		tabix -p bed {output.tpx_indexed}
 	"""
 
