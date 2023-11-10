@@ -277,17 +277,17 @@ rule stability_ssRNA_profile:
 	output:
 		"{file_path}.tpx.stability.profile.msgpack"
 	shell: """
-		zcat {input} | cut -f 2,3,14 | ../../local/bin/stability_profile.py 22743 > {output}
+		zcat {input} | cut -f 2,3,14 | stability_profile.py 22743 > {output}
 	"""
 	#TODO: define ssRNA length
 
-rule RNAplfold_lunp_unpairedWindow_modif_zscore_packed:
+rule RNAplfold_lunp_modif_zscore_packed:
 	input:
-		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
+		"RNAplfold/{ssRNA}_lunp.modif_zscore"
 	output:
 		"{ssRNA}_secondary_structure.msgpack"	
 	shell:"""
-		../../local/bin/secondary_structure_to_msgpack.py {wildcards.ssRNA}_secondary_structure.msgpack < {input}
+		secondary_structure_to_msgpack.py {wildcards.ssRNA}_secondary_structure.msgpack < {input}
 	"""
 
 rule prepare_tfo_profile:
@@ -303,7 +303,7 @@ rule get_tfo_profile_range_packed:
         output:
                 "{ssRNA}.profile_range.msgpack"
         shell: """	
-			../../local/bin/tfo_profile.py < {input} > {output}
+			tfo_profile.py < {input} > {output}
         """
 
 rule aggregated_random_tpx:
@@ -347,7 +347,7 @@ rule prom_stab_test_boxplot:
 		tab="{ssRNA}_ssmasked-tblist.tss.tpx.summary.add_zeros.prom_stab_test.tsv",
 		boxplot="{ssRNA}_ssmasked-tblist.tss.tpx.summary.add_zeros.prom_stab_test_boxplot.pdf"
 	shell:"""
-		../../local/src/promoter_stability_test.r \
+		promoter_stability_test.r \
 			-t {input.tpx} \
 			-l {input.tblist} \
 			--score {config[prom_stab_test][score]}
@@ -409,7 +409,7 @@ rule run_fgsea:
 		enrich_plot="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.enrichment_plot.pdf",
 		fgsea="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.fgseaRes.tsv"
 	shell:"""
-		Rscript ../../local/src/run_fgsea.r \
+		Rscript run_fgsea.r \
 			-g {input.gmt} \
 			-r {input.rnk} \
 			-n 1000 \
@@ -504,7 +504,7 @@ rule mw_boxplot:
 		"{path}.tpx.summary.add_zeros.mw_boxplot.pdf"
 		#"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.mw_boxplot.pdf"
 	shell:"""
-		../../local/bin/mw_boxplot.r -t {input.tpx} -l {input.tblist} --score {config[promoter_stability_test][score]} > {output}
+		mw_boxplot.r -t {input.tpx} -l {input.tblist} --score {config[promoter_stability_test][score]} > {output}
 	"""
 
 # run mw test on scores
@@ -515,7 +515,7 @@ rule run_promoter_stability_test:
 	output:
 		"mwtest_3plex.tsv"
 	shell:"""
-		../../local/bin/mwtest.r -t {input.tpx} -l {input.tblist} --score {config[promoter_stability_test][score]} > {output}
+		mwtest.r -t {input.tpx} -l {input.tblist} --score {config[promoter_stability_test][score]} > {output}
 	"""
 
 #rule regulatory_regions_test_html:
@@ -554,6 +554,8 @@ rule aggregated_random_tpx_fasta:
 	"""
 ruleorder: aggregated_random_tpx > aggregated_random_tpx_fasta
 ruleorder: dsdna_fasta_from_bed > shuffle_fasta
+
+
 """
 
 .META: *.tpx.gz
@@ -587,7 +589,7 @@ ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 	13	Guanine_rate
 	14	Stability
 
-.META: raw.tpx.stability.best.gz
+.META: *.tpx.stability.best.gz
 	1	Duplex_ID
 	2	Stability_best
 
@@ -599,7 +601,7 @@ ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 	4	EntrezGene
 	4	tpx_score	
 
-.META: *raw.tpx.stability.tts_genome_coords.pre
+.META: *.tpx.stability.tts_genome_coords.pre
 	1	sequence_id
 	2	TFO_start
 	3	TFO_end
@@ -622,7 +624,7 @@ ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 	20	region_b
 	21	region_e
 
-.META: *raw.tpx.stability.tts_genome_coords.gz
+.META: *.tpx.stability.tts_genome_coords.gz
 	1	sequence_id
 	2	TFO_start
 	3	TFO_end
@@ -647,7 +649,7 @@ ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 	22	TTS_start_genome
 	23	TTS_end_genome
 
-.META: *raw.tpx.stability.tts_genome_coords.bed
+.META: *.tpx.stability.tts_genome_coords.bed
 	1	region_chr
 	2	TTS_start_genome
 	3	TTS_end_genome
@@ -670,29 +672,5 @@ ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 	20	tpx_seq_B
 	21	tpx_seq_C
 	22	tpx_seq_D
-
-.META: *.fisher_select_cutoff
-	1	ssRNA
-	2	greater_and_positive
-	3	lower_and_positive
-	4	greater_and_negative
-	5	lower_and_negative
-	6	oddsratio
-	7	pvalue
-
-.META: cCRE.tpx.best.complete.*-neg_pos.gz
-	1	ssRNA	HOTTIP
-	2	region	merged_ChIRP_1
-	3	score	0
-	4	condition	HOTTIP
-	5	neg_pos	pos
-
-.META: cCRE.tpx.best.complete.*-neg_pos_rand.gz
-	1	ssRNA	HOTTIP
-	2	region	merged_ChIRP_1
-	3	score	0
-	4	condition	HOTTIP
-	5	neg_pos	pos
-
 
 """

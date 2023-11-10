@@ -6,6 +6,7 @@ randomization_num: 100
 
 pato:
         sim_sequences: 256
+        other_parameters: ""
 
 
 RNAplfold:
@@ -33,11 +34,15 @@ tss_ref_name: MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500
 # Null fields must be valorised to run the test
 dsDNA_predefined: null
 
-promoter_stability_test:
-        tblist: "null"
-        score: "null"
-
 enrichment_test:
         ssRNA: "null"
         genes_of_interest: "null"
         genes_all: "null"
+
+prom_stab_test:
+        putative_target_genes: "null"
+        background_genes: "null"
+        score: "null"
+promoter_stability_test:
+        tblist: "null"
+        score: "null"
