@@ -29,15 +29,18 @@ RNAplfold:
 dsDNA_predefined: null
 
 prom_stab_test:
-        putative_target_genes: putative_target_genes.txt
-        background_genes: background_genes.txt
-        score: Stability_norm
+        putative_target_genes: "null"
+        background_genes: "null"
+        score: "null"
+
+enrichment_test:
+        genes_of_interest: genes_of_interest.txt
+        genes_all: genes_all.txt
+        gsea:
+                max_genes_in_set: 10000
+                min_genes_in_set: 5
+                gsea_weight: 0
 
 promoter_stability_test:
         tblist: "null"
         score: "null"
-
-enrichment_test:
-        ssRNA: "null"
-        genes_of_interest: "null"
-        genes_all: "null"

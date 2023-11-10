@@ -344,13 +344,79 @@ rule prom_stab_test_boxplot:
 		tpx="{ssRNA}_ssmasked-tblist.tss.tpx.summary.add_zeros.gz",
 		tblist="tblist.tsv"
 	output:
-		"{ssRNA}_ssmasked-tblist.tss.tpx.summary.add_zeros.boxplot.pdf"
+		tab="{ssRNA}_ssmasked-tblist.tss.tpx.summary.add_zeros.prom_stab_test.tsv",
+		boxplot="{ssRNA}_ssmasked-tblist.tss.tpx.summary.add_zeros.prom_stab_test_boxplot.pdf"
 	shell:"""
 		../../local/src/promoter_stability_test.r \
 			-t {input.tpx} \
 			-l {input.tblist} \
-			--score {config[prom_stab_test][score]} \
-		> {output}
+			--score {config[prom_stab_test][score]}
+	"""
+
+
+
+###############################
+# Enrichment Test - one ssRNA #
+###############################
+
+# Input: 
+# 1) List of all genes (e.g, expressed genes or ChIRP-seq identified genes)
+# 2) List of genes of interest (e.g., differentially expressed genes)
+
+# Output:
+# 1) fgsea table
+# 2) Enrichment plot
+# 3) Leading edge list
+
+rule create_gmt:
+	input:
+		config["enrichment_test"]["genes_of_interest"]
+	output:
+		"genes_of_interest.gmt"
+	shell:"""
+		tr "\\n" "\\t" < {input} \
+		| bawk '{{print "genes_of_interest",".",$0}}' > {output}
+	"""
+
+rule tss_from_gene_enrich:
+	input:
+		tss_ref=config["tss_ref_bed"],
+		gene_list=config["enrichment_test"]["genes_all"]
+	output:
+		"genes_all.tss.bed"
+	shell: """
+		filter_1col 4 {input.gene_list} < {input.tss_ref} > {output} 
+	"""
+
+rule create_rnk:
+	input:
+		"{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.gz"
+	output:
+		"{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.gz"
+	shell:"""
+		bawk 'NR>1{{split($1,a,"::"); print a[1],$15}}' {input} \
+		| sort -k2,2n \
+		| find_best 1 2 \
+		| gzip > {output}
+	"""
+
+rule run_fgsea:
+	input:
+		rnk="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.gz",
+		gmt="genes_of_interest.gmt"
+	output:
+		leading_edge="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.leading_edge.tsv",
+		enrich_plot="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.enrichment_plot.pdf",
+		fgsea="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.fgseaRes.tsv"
+	shell:"""
+		Rscript ../../local/src/run_fgsea.r \
+			-g {input.gmt} \
+			-r {input.rnk} \
+			-n 1000 \
+			-b {config[enrichment_test][gsea][max_genes_in_set]} \
+			-s {config[enrichment_test][gsea][min_genes_in_set]} \
+			-d `dirname {output.fgsea}` \
+			--gseaParam {config[enrichment_test][gsea][gsea_weight]}
 	"""
 
 
@@ -468,70 +534,9 @@ rule run_promoter_stability_test:
 
 
 
-###################
-# Enrichment Test #
-###################
+##################
+# other
 
-# Input: 
-# 1) ssRNA name
-# 2) List of all genes (e.g, expressed genes or ChIRP-seq identified genes)
-# 3) List of genes of interest (e.g., differentially expressed genes)
-
-# Output:
-# 1) Leading edge list
-
-# create gmt formatted file from the list of genes of interest
-rule create_gmt:
-	input:
-		config["enrichment_test"]["genes_of_interest"]
-	output:
-		"enrichment_test/"+str(config["enrichment_test"]["ssRNA"])+"/genes_of_interest.gmt"
-	shell:"""
-		tr "\\n" "\\t" < {input} \
-		| bawk '{{print "genes_of_interest",".",$0}}' > {output}
-	"""
-
-rule tss_from_gene_enrich:
-	input:
-		tss_ref=config['tss_ref_bed'],
-		gene_list=config["enrichment_test"]["genes_all"]
-	output:
-		"genes_all.tss.bed"
-	shell: """
-		filter_1col 4 {input.gene_list} < {input.tss_ref} > {output} 
-	"""
-
-rule prepare_enrichment_test_ssRNA:
-	input:
-		config["transcript_fastas"]
-	output:
-		"enrichment_test/"+str(config["enrichment_test"]["ssRNA"])+"/"+str(config["enrichment_test"]["ssRNA"])+".fasta"
-	shell: """
-		mkdir -p $(dirname {output});\
-		zcat {input} | fasta2oneline | bawk '$2=="{config[enrichment_test][ssRNA]}"{{print ">"$2"\\n"$3}}' > {output}
-	"""
-
-rule create_rnk:
-	input:
-		expand("enrichment_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-genes_all.tss.tpx.summary.add_zeros.gz",
-			ssRNA = config["enrichment_test"]["ssRNA"],
-			single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
-			)
-	output:
-		"enrichment_test/"+str(config["enrichment_test"]["ssRNA"])+"/genes_all.rnk.gz"
-	shell:"""
-		bawk 'NR>1{{split($1,a,"::"); print a[1],$15}}' {input} | sort -k2,2n | find_best 1 2 | gzip > {output}
-	"""
-
-# try use script and paramters
-rule run_gsea:
-	input:
-		rnk="enrichment_test/"+str(config["enrichment_test"]["ssRNA"])+"/genes_all.rnk.gz",
-		gmt="enrichment_test/"+str(config["enrichment_test"]["ssRNA"])+"/genes_of_interest.gmt"
-	output:
-	shell:"""
-
-	"""
 rule shuffle_fasta:
 	input: 
 		fasta = "{file}.fa"
