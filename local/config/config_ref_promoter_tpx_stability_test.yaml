@@ -1,0 +1,46 @@
+# General config
+
+species: hsapiens
+
+
+
+
+# 3plex config
+
+pato:
+        min_length: 9
+        max_length: -1
+        error_rate: 20
+        guanine_rate: 40
+        filter_repeat: off
+        consecutive_errors: 1
+        other_parameters: ""
+
+RNAplfold:
+        single_strandedness_cutoff: 10
+
+
+
+
+# Advanced workflows config
+
+# Null fields must be valorised to run the test
+
+dsDNA_predefined: null
+
+prom_stab_test:
+        putative_target_genes: putative_target_genes.txt
+        background_genes: background_genes.txt
+        score: Stability_norm
+
+enrichment_test:
+        genes_of_interest: "null"
+        genes_all: "null"
+        gsea:
+                max_genes_in_set: null
+                min_genes_in_set: null
+                gsea_weight: null
+
+promoter_stability_test:
+        tblist: "null"
+        score: "null"
