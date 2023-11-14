@@ -1,4 +1,4 @@
-#All paths in the snakefile are interpreted relative to the directory snakemake is executed in. This behaviour can be overridden
+# All paths in the snakefile are interpreted relative to the directory snakemake is executed in. This behaviour can be overridden
 configfile: "config.yaml"
 
 rule pato:
@@ -34,9 +34,7 @@ rule tpx_stability:
 		tpx="{path}.tpx.stability.gz",
 		tmp=temp("{path}.tpx.stability.gz.tmp")
 	shell: """
-		#Linearize align informations, at the begin {output}
 		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output.tmp}
-		#Add stabilityf
 		cat {output.tmp} | tpx_thermal_stability.py | gzip > {output.tpx}
 	"""
 
@@ -55,14 +53,15 @@ rule duplex_length:
 	output:
 		"{file_path}.fa.length"
 	shell:"""
-		fasta2oneline < {input} | perl -lane 'BEGIN{{$,="\\t"}} print $F[0],length($F[1])' > {output}
+		fasta2oneline < {input} \
+		| perl -lane 'BEGIN{{$,="\\t"}} print $F[0],length($F[1])' > {output}
 	"""
 
 rule stability_best:
 	input:
 		"{file_path}.tpx.stability.gz"
 	output:
-		"{file_path}.best.tpx.stability.gz"
+		temp("{file_path}.best.tpx.stability.gz")
 	shell: """
 		zcat {input} | find_best 4 14 | gzip > {output}
 	"""
@@ -73,7 +72,8 @@ rule score_best:
 	output:
 		temp("{file_path}.tpx.score_best")
 	shell: """
-		bawk 'BEGIN{{print "Duplex_ID","Score_best"}} NR>1 {{print $Duplex_ID,$Score}}' {input} | find_best -H 1 2 > {output}
+		bawk 'BEGIN{{print "Duplex_ID","Score_best"}} NR>1 {{print $Duplex_ID,$Score}}' {input} \
+		| find_best -H 1 2 > {output}
 	"""
 
 rule stability_tot_undercount:
@@ -105,7 +105,7 @@ rule summary:
 		stability_tot_undercount = "{ssRNA}_ssmasked-{dsDNA}.tpx.stability.tot_undercount",
 		duplex_length = "{dsDNA}.fa.length"
 	output:
-		"{ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz"
+		temp("{ssRNA}_ssmasked-{dsDNA}.tpx.summary.gz")
 	shell: """
 		cat {input.summary} \
 		| translate -a -r -v -e 0 <(bawk 'BEGIN{{print "Duplex_ID","Duplex_length"}} {{print}}' {input.duplex_length}) 1 \
