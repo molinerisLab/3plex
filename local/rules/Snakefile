@@ -271,16 +271,6 @@ rule tpx_stability_index:
 		tabix -p bed {output.tpx_indexed}
 	"""
 
-rule stability_ssRNA_profile:
-	input:
-		"{file_path}.tpx.stability.gz"
-	output:
-		"{file_path}.tpx.stability.profile.msgpack"
-	shell: """
-		zcat {input} | cut -f 2,3,14 | stability_profile.py 22743 > {output}
-	"""
-	#TODO: define ssRNA length
-
 rule RNAplfold_lunp_modif_zscore_packed:
 	input:
 		"RNAplfold/{ssRNA}_lunp.modif_zscore"
