@@ -31,7 +31,8 @@ rule shuffle_bed:
 		bed = "{file}.bed",
 		exclude = config["shuffle_blacklist"],
 		chrom_info = config["chrom_info"]
-	output:  temp("{file}_shuf_{run,\d+}.bed")
+	output:
+		temp("{file}_shuf_{run,\d+}.bed")
 	shell:"""
 		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed $(date +%s%N) > {output}
 		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
@@ -130,6 +131,24 @@ rule aggregated_random_tpx:
 		tfo_profile.py -m {input} > {output}
 	"""
 
+rule shuffle_fasta:
+	input: 
+		fasta = "{file}.fa"
+	output:  temp("{file}_shuf_{run,\d+}.fa")
+	shell:"""
+		fasta-shuffle-letters {input.fasta} -kmer 1 -seed $(date +%s%N) > {output}
+	"""
+
+rule aggregated_random_tpx_fasta:
+	input:
+		expand("ssRNA_shuf_{run}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+	output: "ssRNA.profile_range.random.msgpack"
+	shell: """
+		tfo_profile.py -m {input} > {output}
+	"""
+ruleorder: aggregated_random_tpx > aggregated_random_tpx_fasta
+ruleorder: dsdna_fasta_from_bed > shuffle_fasta
+
 
 
 ###########################################
@@ -192,7 +211,7 @@ rule run_stability_comp:
             "results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
             caption="../../local/report/promoter_tpx_stability_test-stability_comp_boxplot.rst",
             category="promoter_tpx_stability_test",
-            subcategory="stability_cmp",
+            subcategory="stability_comp",
             labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
         )
 	shell:"""
@@ -261,12 +280,21 @@ rule run_promoter_tpx_stability_test:
 
 
 
+###################################
+# Random Regions Test - one ssRNA #
+###################################
+
+# Input:
+
+# Output:
+
+
 ########################################
 # Promoter Stability Test - ssRNA List #
 ########################################
 
 # Input: 
-# 1) list of ssRNA with associated targets and background genes (e.g. expressed genes)
+# 1) list of ssRNA with associated targets and background genes (e.g., expressed genes)
 # .META:
 #	1) ssRNA
 #	2) gene_name
@@ -371,29 +399,6 @@ rule run_promoter_stability_test:
 #		bawk 'NR>1{{print $12, "background"}}' {input.background} >> {output.target_backgound_stability}; \
 #		Rscript -e 'library(rmarkdown); rmarkdown::render("{input.rmd}", output_file="{output.html}", quiet=TRUE)'
 #	"""
-
-
-
-##################
-# other
-
-rule shuffle_fasta:
-	input: 
-		fasta = "{file}.fa"
-	output:  temp("{file}_shuf_{run,\d+}.fa")
-	shell:"""
-		fasta-shuffle-letters {input.fasta} -kmer 1 -seed $(date +%s%N) > {output}
-	"""
-
-rule aggregated_random_tpx_fasta:
-	input:
-		expand("ssRNA_shuf_{run}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
-	output: "ssRNA.profile_range.random.msgpack"
-	shell: """
-		tfo_profile.py -m {input} > {output}
-	"""
-ruleorder: aggregated_random_tpx > aggregated_random_tpx_fasta
-ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 
 
 
