@@ -15,8 +15,15 @@ dependencies:
   - openssl
   - fasta2oneline
   - find_best
+  - filter_1col
+  - r-rmarkdown
+  - r-reshape2
+  - r-ggpubr
+  - get_fasta
   - translate
   - matrix_reduce=1.2
+  - r-optparse
   - bsort
   - transpose
-prefix: /home/mmasera/3plex_backend_server/server/3plex/local/envs/3plex
+  - snakefmt
+  - bioconductor-fgsea
