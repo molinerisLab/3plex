@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
-library(fgsea)
-library(optparse)
+suppressPackageStartupMessages(library(fgsea))
+suppressPackageStartupMessages(library(optparse))
 
 # Functions ----
 read.gmt <- function (file) 
@@ -61,8 +61,6 @@ names(rnk_vector) <- rnk$GeneID
 # Create fGSEA an Leading_Edge directory
 if(!dir.exists(opt$directory)) dir.create(opt$directory, recursive = T, showWarnings = FALSE)
 if(!dir.exists(opt$leadingedge)) dir.create(opt$leadingedge, recursive = T, showWarnings = FALSE)
-# outprefix
-outprefix <- gsub(".gz","",opt$rnkfile)
 
 
 # 1. Run fGSEA ----
@@ -83,7 +81,7 @@ if(!is.null(fgseaRes)){
   stop(" -- Error in fgseaSimple! Exit")
 }
 # save fgseaRes
-outfile_tab <- paste0(opt$directory,"/",outprefix,".fgseaRes.tsv")
+outfile_tab <- paste0(opt$directory,"/fgseaRes.tsv")
 message(" -- saving to: ", outfile_tab)
 write.table(subset(fgseaRes, select = -c(leadingEdge)), outfile_tab, col.names = T, quote = F, row.names = F, sep="\t")
 
@@ -96,7 +94,7 @@ fgseaPlot <- fgsea::plotEnrichment(
   gseaParam = opt$gseaParam
   )
 # save plot fgsea
-outfile <- paste0(opt$directory,"/",outprefix,".enrichment_plot.pdf")
+outfile <- paste0(opt$directory,"/enrichment_plot.pdf")
 message(" -- saving to: ", outfile)
 pdf(file = outfile, paper = "a4", w = 4, h = 4)
 print(fgseaPlot)
@@ -115,7 +113,7 @@ leadingEdge_tab <- merge(leadingEdge_tab, rnk, by="GeneID")
 colnames(leadingEdge_tab)[3]<-"ranking_score"
 leadingEdge_tab <- leadingEdge_tab[order(leadingEdge_tab$ranking_score),]
 # save LeadingEdge
-outfile <- paste0(opt$directory,"/",outprefix,".leading_edge.tsv")
+outfile <- paste0(opt$directory,"/leading_edge.tsv")
 message(" -- saving to: ", outfile)
 write.table(leadingEdge_tab, outfile, col.names = T, quote = F, row.names = F, sep="\t")
 

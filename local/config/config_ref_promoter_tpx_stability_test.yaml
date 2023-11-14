@@ -24,22 +24,21 @@ RNAplfold:
 
 # Advanced workflows config
 
-# Null fields must be valorised to run the test
 
 dsDNA_predefined: null
 
-prom_stab_test:
-        putative_target_genes: putative_target_genes.txt
-        background_genes: background_genes.txt
-        score: Stability_norm
-
-enrichment_test:
-        genes_of_interest: "null"
-        genes_all: "null"
+promoter_tpx_stability_test:
+        ssRNA: ssRNA
+        genes_all: genes_all.txt # path/to/universe_of_genes
+        genes_of_interest: genes_of_interest.txt # path/to/genes_of_interest
+        score: 
+                - Stability_best
+                - Stability_norm
         gsea:
-                max_genes_in_set: null
-                min_genes_in_set: null
-                gsea_weight: null
+                max_genes_in_set: 10000
+                min_genes_in_set: 5
+                nperm: 1000
+                gsea_weight: 0
 
 promoter_stability_test:
         tblist: "null"

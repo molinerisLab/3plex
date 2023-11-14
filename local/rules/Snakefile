@@ -42,6 +42,7 @@ rule ln_dsDNA_predefined_fa:
 	shell: """
 		ln -s {input} {output}
 	"""
+
 rule ln_dsDNA_predefined_bed:
 	input:
 		config['dsDNA_predefined_bed']
@@ -127,62 +128,87 @@ rule aggregated_random_tpx:
 	"""
 
 
-#######################################
-# Promoter Stability Test - one ssRNA #
-#######################################
 
-rule create_tblist:
-	input:
-		putative_target_genes=config["prom_stab_test"]["putative_target_genes"],
-		background_genes=config["prom_stab_test"]["background_genes"]
-	output:
-		"tblist.tsv"
-	shell:"""
-		cat <(bawk '{{print $1,"putative_target"}}' {input.putative_target_genes}) <(bawk '{{print $1,"background"}}' {input.background_genes}) > {output}
-	"""
-
-rule tss_from_geneid:
-	input:
-		tss_ref=config["tss_ref_bed"], 
-		tblist="tblist.tsv"
-	output:
-		"tblist.tss.bed"
-	shell: """
-		filter_1col 4 <(cut -f1 {input.tblist}) < {input.tss_ref} > {output} 
-	"""
-
-rule prom_stab_test_boxplot:
-	input:
-		tpx="{ssRNA}_ssmasked-tblist.tss.tpx.summary.add_zeros.gz",
-		tblist="tblist.tsv"
-	output:
-		tab="{ssRNA}_ssmasked-tblist.tss.tpx.summary.add_zeros.prom_stab_test.tsv",
-		boxplot="{ssRNA}_ssmasked-tblist.tss.tpx.summary.add_zeros.prom_stab_test_boxplot.pdf"
-	shell:"""
-		promoter_stability_test.r \
-			-t {input.tpx} \
-			-l {input.tblist} \
-			--score {config[prom_stab_test][score]}
-	"""
-
-
-
-###############################
-# Enrichment Test - one ssRNA #
-###############################
+###########################################
+# Promoter TPX Stability Test - one ssRNA #
+###########################################
 
 # Input: 
-# 1) List of all genes (e.g, expressed genes or ChIRP-seq identified genes)
+# 1) List of the universe of genes (e.g, expressed genes or ChIRP-seq identified genes)
 # 2) List of genes of interest (e.g., differentially expressed genes)
 
 # Output:
-# 1) fgsea table
-# 2) Enrichment plot
-# 3) Leading edge list
+# 1) Stability comparison boxplot
+# 2) Stability comparison table
+# 3) fGSEA table
+# 4) Enrichment plot
+# 5) Leading edge list
+
+# check if genes of interest are included in the universe of genes
+# TODO
+rule check_gene_inclusion:
+	input:
+		genes_all=config["promoter_tpx_stability_test"]["genes_all"],
+		genes_of_interest=config["promoter_tpx_stability_test"]["genes_of_interest"]
+	output:
+		"check_gene_inclusion_done"
+	shell:"""
+
+	"""
+
+rule tss_from_gene:
+	input:
+		tss_ref=config["tss_ref_bed"],
+		gene_list=config["promoter_tpx_stability_test"]["genes_all"]
+	output:
+		"genes_all.tss.bed"
+	shell: """
+		filter_1col 4 {input.gene_list} < {input.tss_ref} > {output} 
+	"""
+
+rule create_tblist:
+	input:
+		genes_all=config["promoter_tpx_stability_test"]["genes_all"],
+		genes_of_interest=config["promoter_tpx_stability_test"]["genes_of_interest"]
+	output:
+		"tblist.tsv"
+	shell:"""
+		cat \
+			<(bawk '{{print $1,"putative_target"}}' {input.genes_of_interest}) \
+			<(filter_1col -v 1 {input.genes_of_interest} < {input.genes_all} | bawk '{{print $1,"background"}}') \
+		> {output}
+	"""
+
+rule run_stability_comp:
+	input:
+		tpx="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.gz",
+		tblist="tblist.tsv"
+	output:
+		tab="results/{ssRNA}/{stability_score}/stability_comp.tsv",
+		boxplot="results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf"
+	shell:"""
+		stability_comp.r \
+			-t {input.tpx} \
+			-l {input.tblist} \
+			-d `dirname {output.boxplot}` \
+			--score {wildcards.stability_score}
+	"""
+
+rule create_rnk:
+	input:
+		"{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.gz"
+	output:
+		"{ssRNA}_{stability_score}_rnk.gz"
+	shell:"""
+		bawk 'NR>1{{split($1,a,"::"); print a[1],${wildcards.stability_score}}}' {input} \
+		| sort -k2,2n \
+		| find_best 1 2 \
+		| gzip > {output}
+	"""
 
 rule create_gmt:
 	input:
-		config["enrichment_test"]["genes_of_interest"]
+		config["promoter_tpx_stability_test"]["genes_of_interest"]
 	output:
 		"genes_of_interest.gmt"
 	shell:"""
@@ -190,46 +216,33 @@ rule create_gmt:
 		| bawk '{{print "genes_of_interest",".",$0}}' > {output}
 	"""
 
-rule tss_from_gene_enrich:
-	input:
-		tss_ref=config["tss_ref_bed"],
-		gene_list=config["enrichment_test"]["genes_all"]
-	output:
-		"genes_all.tss.bed"
-	shell: """
-		filter_1col 4 {input.gene_list} < {input.tss_ref} > {output} 
-	"""
-
-rule create_rnk:
-	input:
-		"{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.gz"
-	output:
-		"{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.gz"
-	shell:"""
-		bawk 'NR>1{{split($1,a,"::"); print a[1],$15}}' {input} \
-		| sort -k2,2n \
-		| find_best 1 2 \
-		| gzip > {output}
-	"""
-
 rule run_fgsea:
 	input:
-		rnk="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.gz",
+		rnk="{ssRNA}_{stability_score}_rnk.gz",
 		gmt="genes_of_interest.gmt"
 	output:
-		leading_edge="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.leading_edge.tsv",
-		enrich_plot="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.enrichment_plot.pdf",
-		fgsea="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.rnk.fgseaRes.tsv"
+		leading_edge="results/{ssRNA}/{stability_score}/leading_edge.tsv",
+		enrich_plot="results/{ssRNA}/{stability_score}/enrichment_plot.pdf",
+		fgsea="results/{ssRNA}/{stability_score}/fgseaRes.tsv"
 	shell:"""
-		Rscript run_fgsea.r \
+		run_fgsea.r \
 			-g {input.gmt} \
 			-r {input.rnk} \
-			-n 1000 \
-			-b {config[enrichment_test][gsea][max_genes_in_set]} \
-			-s {config[enrichment_test][gsea][min_genes_in_set]} \
+			-n {config[promoter_tpx_stability_test][gsea][nperm]} \
+			-b {config[promoter_tpx_stability_test][gsea][max_genes_in_set]} \
+			-s {config[promoter_tpx_stability_test][gsea][min_genes_in_set]} \
 			-d `dirname {output.fgsea}` \
-			--gseaParam {config[enrichment_test][gsea][gsea_weight]}
+			--gseaParam {config[promoter_tpx_stability_test][gsea][gsea_weight]}
 	"""
+
+rule run_promoter_tpx_stability_test:
+	input:
+		enrich=expand("results/{ssRNA}/{stability_score}/fgseaRes.tsv",
+				ssRNA=config["promoter_tpx_stability_test"]["ssRNA"],
+				stability_score=config["promoter_tpx_stability_test"]["score"]),
+		mann_whitney=expand("results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
+				ssRNA=config["promoter_tpx_stability_test"]["ssRNA"],
+				stability_score=config["promoter_tpx_stability_test"]["score"])
 
 
 
@@ -281,7 +294,7 @@ rule prepare_promoter_stability_ssRNA_tblist:
 	"""	
 
 # create a bed formatted file from the promoters list
-rule tss_from_gene:
+rule tss_from_gene_list:
 	input:
 		tss_ref=config['tss_ref_bed'], #/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/42/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.bed
 		gene_list="{ssRNA}_tblist.tsv"
