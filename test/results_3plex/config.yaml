@@ -1,0 +1,14 @@
+RNAplfold:
+  single_strandedness_cutoff: 10
+  span_size: 150
+  unpaired_window: 8
+  window_size: 200
+pato:
+  consecutive_errors: 1
+  error_rate: 20
+  filter_repeat: 'off'
+  guanine_rate: 40
+  max_length: -1
+  min_length: 8
+  other_parameters: ''
+  sim_sequences: 256
