@@ -5,11 +5,10 @@ configfile: "config_general.yaml"
 configfile: "config.yaml"
 
 
+PRJ_ROOT=os.environ.get("PRJ_ROOT")
 include: "config.smk"
-include: "../../docker_context/Snakefile"
-
-
-report: "../../local/report/workflow.rst"
+include: PRJ_ROOT + "/docker_context/Snakefile"
+report: PRJ_ROOT + "/local/report/workflow.rst"
 
 
 

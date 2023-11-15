@@ -26,3 +26,18 @@ species_genome_version_map:
         mmusculus: GRCm39
 
 tss_ref_name: MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500
+
+promoter_tpx_stability_test:
+        ssRNA: "null"
+        genes_all: "null"
+        genes_of_interest: "null"
+        score: "null"
+        gsea:
+                max_genes_in_set: "null"
+                min_genes_in_set: "null"
+                nperm: "null"
+                gsea_weight: "null"
+
+promoter_stability_test:
+        tblist: "null"
+        score: "null"
