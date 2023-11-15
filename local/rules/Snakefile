@@ -88,7 +88,7 @@ rule tts_genome_coords_bed:
 
 rule tpx_stability_index:
 	input:
-		"{path}.tpx.stability.gz"
+		"{path}.tpx.stability.tts_genome_coords.gz"
 	output:
 		tpx_indexed="{path}.tpx.stability.indexed.gz",
 		indexes="{path}.tpx.stability.indexed.gz.tbi"
