@@ -1,15 +1,45 @@
-dsDNA_predefined: null
+# General config
+
 species: hsapiens
-triplexator:
+
+
+
+
+# 3plex config
+
+pato:
         min_length: 9
         max_length: -1
         error_rate: 20
         guanine_rate: 40
         filter_repeat: off
         consecutive_errors: 1
-        SSTRAND: 0
+        other_parameters: ""
 
-# Regulatory Regions Test 
-tss_ref_name: MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500
-tblist: "ssRNA_tblist.tsv"
-score: "Stability_best"
+RNAplfold:
+        single_strandedness_cutoff: 10
+
+
+
+
+# Advanced workflows config
+
+
+dsDNA_predefined: null
+
+promoter_tpx_stability_test:
+        ssRNA: ssRNA
+        genes_all: genes_all.txt # path/to/universe_of_genes
+        genes_of_interest: genes_of_interest.txt # path/to/genes_of_interest
+        score: 
+                - Stability_best
+                - Stability_norm
+        gsea:
+                max_genes_in_set: 10000
+                min_genes_in_set: 5
+                nperm: 1000
+                gsea_weight: 0
+
+promoter_stability_test:
+        tblist: "null"
+        score: "null"
