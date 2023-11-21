@@ -101,15 +101,14 @@ rule summary_web_version:
 
 
 #Index tts_genome_coords by position in ssRNA;
-rule tpx_stability_index_by_ssRNA:
+rule tpx_stability_index:
 	input:
 		"{path}.tpx.stability.gz"
 	output:
-		tpx_indexed="{path}.tpx.stability.indexed.rna.gz",
-		indexes="{path}.tpx.stability.indexed.rna.gz.tbi"
+		tpx_indexed="{path}.tpx.stability.indexed.db"
 	shell:"""
-		zcat {input} | bawk '{{$1="ssRNA"; print}}' | bedtools sort |  bgzip > {output.tpx_indexed}
-		tabix -p bed {output.tpx_indexed}
+		zcat {input} | index_tpx_stability_into_sqlite.py
+		mv index_tpx_stability.db {output.tpx_indexed}
 	"""
 
 rule RNAplfold_lunp_modif_zscore_packed:

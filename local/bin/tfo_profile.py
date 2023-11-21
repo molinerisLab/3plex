@@ -5,7 +5,6 @@
 import argparse
 from collections import defaultdict
 import json
-import sys
 import msgpack
 import sys
 import os 
