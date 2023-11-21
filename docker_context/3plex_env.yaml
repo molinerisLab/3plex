@@ -15,15 +15,9 @@ dependencies:
   - openssl
   - fasta2oneline
   - find_best
-  - filter_1col
-  - r-rmarkdown
-  - r-reshape2
-  - r-ggpubr
-  - get_fasta
   - translate
   - matrix_reduce=1.2
-  - r-optparse
   - bsort
   - transpose
-  - snakefmt
-  - bioconductor-fgsea
+  - dropbox
+  - yaml

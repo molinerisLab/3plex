@@ -1,1 +1,0 @@
-../../local/share/rules/prj_rules_v8.5_ReChIRP_overlap_mouse.mk

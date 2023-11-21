@@ -1,141 +1,58 @@
-#All paths in the snakefile are interpreted relative to the directory snakemake is executed in. This behaviour can be overridden
+# All paths in the snakefile are interpreted relative to the directory snakemake is executed in. This behaviour can be overridden
+
+
 configfile: "config_general.yaml"
 configfile: "config.yaml"
 
-#import os
-#if os.path.exists("/opt/3plex/Snakefile_RNA_secondary_structure"):#working inside 3plex docker image
-#	include: "/opt/3plex/Snakefile_RNA_secondary_structure"
-#else:
-#	include: "Snakefile_RNA_secondary_structure"
+
+PRJ_ROOT=os.environ.get("PRJ_ROOT")
+include: "config.smk"
+include: PRJ_ROOT + "/docker_context/Snakefile"
+report: PRJ_ROOT + "/local/report/workflow.rst"
 
 
-rule pato:
+
+##################
+# dsDNA Specific #
+##################
+
+rule dsdna_fasta_from_bed:
 	input:
-		ssRNA_file="{ssRNA}_ss{single_strandedness_cutoff}.fa",
-		dsDNA_file="{dsDNA}.fa"
-	#params:
-	#        prefix="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}"
+		"{dsDNA}.bed"
 	output:
-		tpx = temp("{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx"),
-		summary = temp("{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary")
-	log:
-		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.log"
-	threads: 64
-	#retries: 3
-#	group: "3plex"
+		"{dsDNA}.fa"
 	shell: """
-		OMP_NUM_THREADS={threads}\
-		/opt/bin/pato \
-				-l  {config[triplexator][min_length]} \
-				-L  {config[triplexator][max_length]} \
-				-e  {config[triplexator][error_rate]} \
-				-g  {config[triplexator][guanine_rate]} \
-				-fr {config[triplexator][filter_repeat]} \
-				-c  {config[triplexator][consecutive_errors]} \
-				{config[triplexator_other][other_parameters]} \
-				-of 1 \
-				--chunk-size {config[pato_simultaneus_sequences]} \
-				-ss {input.ssRNA_file} -ds {input.dsDNA_file} -o {output.tpx} > {log} 2> pato_e.txt
-		mv {output.tpx}.out {output.tpx}
+		bedtools getfasta -name+ -fi {config[genome_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
 	"""
-
-rule tpx_stability:
-	input:
-		"{path}.tpx"
+	
+rule shuffle_bed:
+	input: 
+		bed = "{file}.bed",
+		exclude = config["shuffle_blacklist"],
+		chrom_info = config["chrom_info"]
 	output:
-		"{path}.tpx.stability.gz"
-	shell: """
-		#Linearize align informations, at the begin {output}
-		tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output}.tmp
-		#Add stabilityf
-		cat {output}.tmp | tpx_thermal_stability.py | gzip > {output}
-	"""
-
-rule stability_ssRNA_profile:
-	input:
-		"{file_path}.tpx.stability.gz"
-	output:
-		"{file_path}.tpx.stability.profile.msgpack"
-	shell: """
-		zcat {input} | cut -f 2,3,14 | stability_profile.py 22743 > {output}
-	"""
-	#TODO determinare lungehzza ssRNA
-
-rule gzip_tpx_summary:
-	input:
-		"{file_path}.tpx.summary"
-	output:
-		temp("{file_path}.tpx.summary.clean")
-#	group: "3plex"
+		temp("{file}_shuf_{run,\d+}.bed")
 	shell:"""
-		perl -pe 'if($.==1){{s/^#\s+//; s/ //g; s/-/_/g}}' {input} > {output}
+		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed $(date +%s%N) > {output}
+		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
 	"""
 
-rule duplex_length:
+rule ln_dsDNA_predefined_fa:
 	input:
-		"{file_path}.fa"
+		config['dsDNA_predefined_fa']
 	output:
-		"{file_path}.fa.length"
-	shell:"""
-		fasta2oneline < {input} | perl -lane 'BEGIN{{$,="\\t"}} print $F[0],length($F[1])' > {output}
-	"""
-
-rule stability_best:
-	input:
-		"{file_path}.tpx.stability.gz"
-	output:
-		"{file_path}.best.tpx.stability.gz"
+		"dsDNA.fa"
 	shell: """
-		zcat {input} | find_best 4 14 | gzip > {output}
+		ln -s {input} {output}
 	"""
 
-rule score_best:
+rule ln_dsDNA_predefined_bed:
 	input:
-		"{file_path}.tpx.stability.gz"
+		config['dsDNA_predefined_bed']
 	output:
-		temp("{file_path}.tpx.score_best")
+		"dsDNA.bed"
 	shell: """
-		bawk 'BEGIN{{print "Duplex_ID","Score_best"}} NR>1 {{print $Duplex_ID,$Score}}' {input} | find_best -H 1 2 > {output}
-	"""
-
-rule stability_tot_undercount:
-	input:
-		"{file_path}.tpx.stability.gz"
-	output:
-		temp("{file_path}.tpx.stability.tot_undercount")
-	shell: """
-		bawk 'NR>1 {{print $Duplex_ID,$TTS_start,$TTS_end,$Stability}}' {input} \
-		| bedtools sort | bedtools merge -c 4 -o max | cut -f 1,4 \
-		| bsort \
-		| bawk 'BEGIN{{t=0; l=""; print "Duplex_ID","Stability_tot"}}\
-			{{
-				if($1!=l){{\
-					if(l!=""){{print l,t}}\
-					t=$2; l=$1\
-				}}else{{\
-					t+=$2\
-				}}\
-			}}
-			END{{ print l,t}}' > {output}
-	"""
-
-rule summary:
-	input:
-		summary="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.clean",
-		stability_best="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.best.tpx.stability.gz",
-		score_best="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.score_best",
-		stability_tot_undercount = "{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.stability.tot_undercount",
-		duplex_length = "{dsDNA}.fa.length"
-	output:
-		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.gz"
-	shell: """
-		cat {input.summary} \
-		| translate -a -r -v -e 0 <(bawk 'BEGIN{{print "Duplex_ID","Duplex_length"}} {{print}}' {input.duplex_length}) 1 \
-		| translate -a -r -v -e 0 <(bawk 'BEGIN{{print "Duplex_ID","Stability_best"}} NR>1 {{print $Duplex_ID,$Stability}}' {input.stability_best}) 1 \
-		| translate -a -r -v -e 0 {input.stability_tot_undercount} 1 \
-		| translate -a -r -v -e 0 {input.score_best} 1 > {output}.tmp
-		bawk 'NR==1 {{print $0,"Stability_norm"}} NR>1 {{print $0,$Stability_tot/$Duplex_length}}' {output}.tmp | gzip > {output}
-		rm {output}.tmp
+		ln -s {input} {output}
 	"""
 
 rule tts_genome_coords:
@@ -151,148 +68,372 @@ rule tts_genome_coords:
        """
 
 rule tts_genome_coords_bed:
-       input:
-               "{file}.tts_genome_coords.gz"
-       output:
-               "{file}.tts_genome_coords.bed"
-       shell:"""
+	input:
+		"{file}.tts_genome_coords.gz"
+	output:
+		"{file}.tts_genome_coords.bed"
+	shell:"""
 		bawk 'NR>1 {{\
 			score = int($Stability*10*({config[TTS_bed][ucsc_dark_gray]}/({config[TTS_bed][dark_gray_stability]}*10))); if(a>1000){{a = 1000}}; \
 			print $TTS_chr,$TTS_start_genome,$TTS_end_genome,$Duplex_ID,score\\
 		}}' {input} | \
 		bedtools sort | bedtools merge -i - -c 4,5 -o distinct,max | id2count -a 4 > {output}
-       """
+	"""
 
-rule add_zeros:
+
+
+#######################
+# Web Server Specific #
+#######################
+
+# visualization
+rule summary_web_version:
 	input:
-		dsDNA="{dsDNA}.fa",
-		summary="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.gz"
+		"{ssRNA}_ssmasked-{dsDNA}.tpx.summary.add_zeros.gz"
 	output:
-		"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.gz"
+		"{ssRNA}_ssmasked-{dsDNA}.tpx.summary.add_zeros.web_version.gz"
 	shell:"""
-		 awk 'BEGIN{{print "Duplex_ID"}} match($1,/>/){{split($1,a,">"); print a[2]}}' {input.dsDNA} \
-		 | translate -a -v -e 0 <(zcat {input.summary}) 1 \
-		 | bawk 'NR==1{{print}} NR>1{{$2={wildcards.ssRNA}; print}}' \
-		 | gzip > {output} 
-	"""
+		bawk 'BEGIN{{print "ssRNA_id","dsDNA_id","dsDNA_chr","dsDNA_b","dsDNA_e","Stability_best","Stability_norm","Score_best"}} \
+		NR>1{{split($1,a,":"); split(a[4],b,"-"); \
+		print $2,$1,a[2],a[3],b[1],b[2],$12,$15,$14}}' {input} \
+		| gzip > {output}
+"""
 
 
-######################
-# ssRNA 2D structure #
-######################
-
-rule check_input:
+#Index tts_genome_coords by position in ssRNA;
+rule tpx_stability_index_by_ssRNA:
 	input:
-		"{ssRNA}.fa"
+		"{path}.tpx.stability.gz"
 	output:
-		".3plex/{ssRNA}.fa.checked"
-#	group: "3plex"
+		tpx_indexed="{path}.tpx.stability.indexed.rna.gz",
+		indexes="{path}.tpx.stability.indexed.rna.gz.tbi"
 	shell:"""
-		mkdir -p .3plex
-		perl -lne 'if($.==1 and $_ ne ">{wildcards.ssRNA}"){{m/>(.+)$/; print STDERR "Malformed input fasta file for RNA.\\nPlease put in the header only the sequence name (>{wildcards.ssRNA}) and/or name the file accordingly ($1.fa).\\nAvoid empty rows at the begining of the file.\\nOnly one sequence per file allowed."; exit(1) }}' {input}
-		touch {output}
+		zcat {input} | bawk '{{$1="ssRNA"; print}}' | bedtools sort |  bgzip > {output.tpx_indexed}
+		tabix -p bed {output.tpx_indexed}
 	"""
 
-# Run RNAplfold
-rule RNAplfold_lunp:
+rule RNAplfold_lunp_modif_zscore_packed:
 	input:
-		fasta="{ssRNA}.fa",
-		check_input=".3plex/{ssRNA}.fa.checked"
+		"RNAplfold/{ssRNA}_lunp.modif_zscore"
 	output:
-		lunp="RNAplfold/{ssRNA}_lunp",
-		basepairs="RNAplfold/{ssRNA}_basepairs"
-#	shadow: "minimal"
-#	group: "3plex"
-	shell: """
-		mkdir -p RNAplfold; 
-		RNAplfold -W {config[RNAplfold][window_size]} -L {config[RNAplfold][span_size]} -u {config[RNAplfold][unpaired_window]} -o < {input}; 
-		#mv {wildcards.ssRNA}_lunp {output.lunp}; mv {wildcards.ssRNA}_basepairs {output.basepairs} # this do not work if the filename and the name of the sequence in the header are different
-		mv *_lunp {output.lunp}; mv *_basepairs {output.basepairs}
-	"""
-
-
-# Compute modified z-score for WINDOW_SIZE base windows
-rule RNAplfold_lunp_unpairedWindow_modif_zscore:
-	input:
-		"RNAplfold/{ssRNA}_lunp"
-	output:
-		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
-#	group: "3plex"
-	shell:"""
-		grep -v '#' {input} | awk '{{print $(NF)}}' | distMedian.py > {output}
-	"""
-
-rule RNAplfold_lunp_unpairedWindow_modif_zscore_packed:
-	input:
-		"RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore"
-	output:
-		"{ssRNA}_secondary_structure.msgpack"
+		"{ssRNA}_secondary_structure.msgpack"	
 	shell:"""
 		secondary_structure_to_msgpack.py {wildcards.ssRNA}_secondary_structure.msgpack < {input}
 	"""
 
-RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2
-
-if(config["RNAplfold"]["unpaired_window"] % 2 != 0):
-        RNAplfold_WINDOW_CENTER=config["RNAplfold"]["unpaired_window"] / 2 + 0.5
-
-ruleorder: mask_fasta_unpairedWindow_shortcut > mask_fasta_unpairedWindow
-
-rule mask_fasta_unpairedWindow_shortcut:
-	input:
-		fasta="{ssRNA}.fa",
-		check_input=".3plex/{ssRNA}.fa.checked"
-	output:
-			"{ssRNA}_ss0.fa"
-#	group: "3plex"
-	shell: """
-			ln -sf {input.fasta} {output}
-	"""
-
-rule mask_fasta_unpairedWindow:
-	input:
-		RNAplfold_prob="RNAplfold/{ssRNA}_lunp.unpairedWindow.modif_zscore",
-		fasta="{ssRNA}.fa"
-	output:
-		"{ssRNA}_{single_strandedness_cutoff,\d+}.fa"
+rule prepare_tfo_profile:
+	input: "{file}.tpx.stability.gz"
+	output: temp("{file}.tpx.stability.tfo_profile.pre")
 	shell:"""
-			PERC=$(sort -n {input.RNAplfold_prob} | awk '{{all[NR] = $0}} END{{print all[int(NR*{wildcards.single_strandedness_cutoff}/100 - 0.5)]}}'); \
-			bedtools maskfasta -fi {input.fasta} -fo {output} -bed <(awk -v perc=$PERC 'BEGIN{{OFS="\\t"}} $1<perc {{print "{wildcards.ssRNA}",NR - 1 + {RNAplfold_WINDOW_CENTER}, NR + {RNAplfold_WINDOW_CENTER}}}' {input.RNAplfold_prob} | bedtools merge)
+		zcat {input} | cut -f 2,3,14 | tail -n +2 | bsort -k3,3nr -k1,1n  -S2% > {output}
 	"""
 
-SS=config['RNAplfold']['single_strandedness_cutoff']
-
-rule mask_fasta_unpairedWindow_rename:
+rule get_tfo_profile_range_packed:
         input:
-                "{ssRNA}.fa"
+                "{ssRNA}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre"
         output:
-                "{ssRNA}_ssmasked.fa"
-        shell: """
-			ln -s {input} {output}
-        """""
+                "{ssRNA}.profile_range.msgpack"
+        shell: """	
+			tfo_profile.py < {input} > {output}
+        """
 
-rule get_profile_range_packed:
-        input:
-                "{ssRNA}_ssmasked-dsDNA.tpx.stability.gz"
-        output:
-                "{ssRNA}profile_range.msgpack"
-        shell: """
-			zcat {input} | cut -f 2,3,14 | unhead | bsort -k3,3nr -k1,1n  -S5% > cutSort
-			tfo_profile.py {output} < cutSort
-			echo "." > {output}
-        """""
-
-rule dsdna_fasta_from_bed:
+rule aggregated_random_tpx:
 	input:
-		dsDNA_file="{dsDNA}.bed"
-	output:
-		"{dsDNA}.fa"
+		expand("ssRNA_ssmasked-dsDNA_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+	output: "ssRNA.profile_range.random.msgpack"
 	shell: """
-		bedtools getfasta -fi {config[species_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
+		tfo_profile.py -m {input} > {output}
 	"""
+
+rule shuffle_fasta:
+	input: 
+		fasta = "{file}.fa"
+	output:  temp("{file}_shuf_{run,\d+}.fa")
+	shell:"""
+		fasta-shuffle-letters {input.fasta} -kmer 1 -seed $(date +%s%N) > {output}
+	"""
+
+rule aggregated_random_tpx_fasta:
+	input:
+		expand("ssRNA_shuf_{run}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+	output: "ssRNA.profile_range.random.msgpack"
+	shell: """
+		tfo_profile.py -m {input} > {output}
+	"""
+ruleorder: aggregated_random_tpx > aggregated_random_tpx_fasta
+ruleorder: dsdna_fasta_from_bed > shuffle_fasta
+
+
+
+###########################################
+# Promoter TPX Stability Test - one ssRNA #
+###########################################
+
+# Input: 
+# 1) List of the universe of genes (e.g, expressed genes or ChIRP-seq identified genes)
+# 2) List of genes of interest (e.g., differentially expressed genes)
+
+# Output:
+# 1) Stability comparison boxplot
+# 2) Stability comparison table
+# 3) fGSEA table
+# 4) Enrichment plot
+# 5) Leading edge list
+
+# check if genes of interest are included in the universe of genes
+# TODO
+rule check_gene_inclusion:
+	input:
+		genes_all=config["promoter_tpx_stability_test"]["genes_all"],
+		genes_of_interest=config["promoter_tpx_stability_test"]["genes_of_interest"]
+	output:
+		"check_gene_inclusion_done"
+	shell:"""
+
+	"""
+
+rule tss_from_gene:
+	input:
+		tss_ref=config["tss_ref_bed"],
+		gene_list=config["promoter_tpx_stability_test"]["genes_all"]
+	output:
+		"genes_all.tss.bed"
+	shell: """
+		filter_1col 4 {input.gene_list} < {input.tss_ref} > {output} 
+	"""
+
+rule create_tblist:
+	input:
+		genes_all=config["promoter_tpx_stability_test"]["genes_all"],
+		genes_of_interest=config["promoter_tpx_stability_test"]["genes_of_interest"]
+	output:
+		"tblist.tsv"
+	shell:"""
+		cat \
+			<(bawk '{{print $1,"putative_target"}}' {input.genes_of_interest}) \
+			<(filter_1col -v 1 {input.genes_of_interest} < {input.genes_all} | bawk '{{print $1,"background"}}') \
+		> {output}
+	"""
+
+rule run_stability_comp:
+	input:
+		tpx="{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.gz",
+		tblist="tblist.tsv"
+	output:
+		tab="results/{ssRNA}/{stability_score}/stability_comp.tsv",
+		boxplot=report(
+            "results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
+            caption="../../local/report/promoter_tpx_stability_test-stability_comp_boxplot.rst",
+            category="promoter_tpx_stability_test",
+            subcategory="stability_comp",
+            labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
+        )
+	shell:"""
+		stability_comp.r \
+			-t {input.tpx} \
+			-l {input.tblist} \
+			-d `dirname {output.boxplot}` \
+			--score {wildcards.stability_score}
+	"""
+
+rule create_rnk:
+	input:
+		"{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.gz"
+	output:
+		"{ssRNA}_{stability_score}_rnk.gz"
+	shell:"""
+		bawk 'NR>1{{split($1,a,"::"); print a[1],${wildcards.stability_score}}}' {input} \
+		| sort -k2,2n \
+		| find_best 1 2 \
+		| gzip > {output}
+	"""
+
+rule create_gmt:
+	input:
+		config["promoter_tpx_stability_test"]["genes_of_interest"]
+	output:
+		"genes_of_interest.gmt"
+	shell:"""
+		tr "\\n" "\\t" < {input} \
+		| bawk '{{print "genes_of_interest",".",$0}}' > {output}
+	"""
+
+rule run_fgsea:
+	input:
+		rnk="{ssRNA}_{stability_score}_rnk.gz",
+		gmt="genes_of_interest.gmt"
+	output:
+		leading_edge="results/{ssRNA}/{stability_score}/leading_edge.tsv",
+		enrich_plot=report(
+            "results/{ssRNA}/{stability_score}/enrichment_plot.pdf",
+            caption="../../local/report/promoter_tpx_stability_test-enrich_plot.rst",
+            category="promoter_tpx_stability_test",
+            subcategory="enrichment_test",
+            labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
+        ),
+		fgsea="results/{ssRNA}/{stability_score}/fgseaRes.tsv"
+	shell:"""
+		run_fgsea.r \
+			-g {input.gmt} \
+			-r {input.rnk} \
+			-n {config[promoter_tpx_stability_test][gsea][nperm]} \
+			-b {config[promoter_tpx_stability_test][gsea][max_genes_in_set]} \
+			-s {config[promoter_tpx_stability_test][gsea][min_genes_in_set]} \
+			-d `dirname {output.fgsea}` \
+			--gseaParam {config[promoter_tpx_stability_test][gsea][gsea_weight]}
+	"""
+
+rule run_promoter_tpx_stability_test:
+	input:
+		enrich=expand("results/{ssRNA}/{stability_score}/fgseaRes.tsv",
+				ssRNA=config["promoter_tpx_stability_test"]["ssRNA"],
+				stability_score=config["promoter_tpx_stability_test"]["score"]),
+		mann_whitney=expand("results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
+				ssRNA=config["promoter_tpx_stability_test"]["ssRNA"],
+				stability_score=config["promoter_tpx_stability_test"]["score"])
+
+
+
+###################################
+# Random Regions Test - one ssRNA #
+###################################
+
+# Input:
+
+# Output:
+
+
+########################################
+# Promoter Stability Test - ssRNA List #
+########################################
+
+# Input: 
+# 1) list of ssRNA with associated targets and background genes (e.g., expressed genes)
+# .META:
+#	1) ssRNA
+#	2) gene_name
+#	3) class (target | background)
+
+# Output:
+# 1) matrix reduced tpx table
+# 2) boxplot for each ssRNA
+# 3) table of mw pval
+
+# retrieve ssRNA names from each list
+def all_selected_ssRNA_id():
+	if (config["promoter_stability_test"]["tblist"] == "null"):
+		return set()
+	selected_ssRNA = set([line.rstrip().split("\t")[0] for line in open(config["promoter_stability_test"]["tblist"]).readlines()])
+	for ssRNA in selected_ssRNA:
+		yield ssRNA.replace("-","_")
+
+# split target and background lists for each ssRNA
+rule prepare_promoter_stability_ssRNA:
+	input:
+		tblist=config["promoter_stability_test"]["tblist"],
+		trasncript_fastas=config["transcript_fastas"]
+	output:
+		"promoter_stability_test/{ssRNA}/{ssRNA}.fasta"
+	shell: """
+		ssRNA=$(echo "{wildcards.ssRNA}" | tr "_" "-");\
+		mkdir -p $(dirname {output});\
+		zcat {input.trasncript_fastas} | fasta2oneline | bawk -v env_var="$ssRNA" '$2==env_var{{print ">"$2"\\n"$3}}' > {output}
+	"""
+
+rule prepare_promoter_stability_ssRNA_tblist:
+	input:
+		config["promoter_stability_test"]["tblist"]
+	output:
+		"{ssRNA}_tblist.tsv"
+	shell: """
+		ssRNA=$(echo "{wildcards.ssRNA}" | tr "_" "-");\
+		bawk -v env_var="$ssRNA" '$1==env_var{{print $2}}' {input} > {output}
+	"""	
+
+# create a bed formatted file from the promoters list
+rule tss_from_gene_list:
+	input:
+		tss_ref=config['tss_ref_bed'], #/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/42/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.bed
+		gene_list="{ssRNA}_tblist.tsv"
+	output:
+		"{ssRNA}_tblist.tss.bed"
+	shell: """
+		filter_1col 4 {input.gene_list} < {input.tss_ref} > {output} 
+	"""
+
+# run 3plex 
+rule all_target_tpx:
+	input:
+		expand("promoter_stability_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-{ssRNA}_tblist.tss.tpx.summary.add_zeros.gz",#mw_boxplot.pdf
+			ssRNA = all_selected_ssRNA_id(),
+			single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
+			)
+	output:
+		"target_genes.tss.tpx.summary.add_zeros.gz"
+	shell:"""
+		matrix_reduce -t 'promoter_stability_test/*/*_ss*-*_tblist.tss.tpx.summary.add_zeros.gz'	\
+		| tr ";" "\\t" | cut -f5- | bawk 'NR==1 || $1!="Duplex_ID"' \
+		| gzip > {output}
+	"""
+
+# to fix: check lists merge 
+rule mw_boxplot:
+	input:
+		tpx="{path}.tpx.summary.add_zeros.gz",
+		#tpx="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.gz",
+		tblist=config["promoter_stability_test"]["tblist"]
+	output:
+		"{path}.tpx.summary.add_zeros.mw_boxplot.pdf"
+		#"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.mw_boxplot.pdf"
+	shell:"""
+		mw_boxplot.r -t {input.tpx} -l {input.tblist} --score {config[promoter_stability_test][score]} > {output}
+	"""
+
+# run mw test on scores
+rule run_promoter_stability_test:
+	input:
+		tpx="target_genes.tss.tpx.summary.add_zeros.gz",
+		tblist=config["promoter_stability_test"]["tblist"]
+	output:
+		"mwtest_3plex.tsv"
+	shell:"""
+		mwtest.r -t {input.tpx} -l {input.tblist} --score {config[promoter_stability_test][score]} > {output}
+	"""
+
+#rule regulatory_regions_test_html:
+#	input:
+#		target=config["target_genes_tpx"],
+#		background=config["background_genes_tpx"], # e.g. expressed genes
+#		rmd="regulatory_region_test.Rmd"
+#	output:
+#	   target_backgound_stability="target_backgound_stability.tsv",
+#	   html="regulatory_region_test.html"
+#	shell:"""
+#		bawk 'BEGIN{{print "Stability_best","Class"}} NR>1{{print $12,"target"}}' {input.target} > {output.target_backgound_stability}; \
+#		bawk 'NR>1{{print $12, "background"}}' {input.background} >> {output.target_backgound_stability}; \
+#		Rscript -e 'library(rmarkdown); rmarkdown::render("{input.rmd}", output_file="{output.html}", quiet=TRUE)'
+#	"""
+
 
 
 """
+
+.META: *.tpx.summary.add_zeros.gz
+	1       Duplex_ID
+	2       Sequence_ID
+	3       Total(abs)
+	4       Total(rel)
+	5       GA(abs)
+	6       GA(rel)
+	7       TC(abs)
+	8       TC(rel)
+	9       GT(abs)
+	10      GT(rel)
+	11      Duplex_length
+	12      Stability_best
+	13      Stability_tot
+	14      Score_best
+	15      Stability_norm
 
 .META: *.tpx.gz
 	1       ssRNA
@@ -325,19 +466,11 @@ rule dsdna_fasta_from_bed:
 	13	Guanine_rate
 	14	Stability
 
-.META: raw.tpx.stability.best.gz
+.META: *.tpx.stability.best.gz
 	1	Duplex_ID
 	2	Stability_best
 
-.META: *.tpx.tts_genom_coords.assoc_genes
-	1	ssRNA
-	2	cCRE
-	2	genehancer_region
-	3	gene
-	4	EntrezGene
-	4	tpx_score	
-
-.META: *raw.tpx.stability.tts_genome_coords.pre
+.META: *.tpx.stability.tts_genome_coords.pre
 	1	sequence_id
 	2	TFO_start
 	3	TFO_end
@@ -360,7 +493,7 @@ rule dsdna_fasta_from_bed:
 	20	region_b
 	21	region_e
 
-.META: *raw.tpx.stability.tts_genome_coords.gz
+.META: *.tpx.stability.tts_genome_coords.gz
 	1	sequence_id
 	2	TFO_start
 	3	TFO_end
@@ -385,7 +518,7 @@ rule dsdna_fasta_from_bed:
 	22	TTS_start_genome
 	23	TTS_end_genome
 
-.META: *raw.tpx.stability.tts_genome_coords.bed
+.META: *.tpx.stability.tts_genome_coords.bed
 	1	region_chr
 	2	TTS_start_genome
 	3	TTS_end_genome
@@ -408,29 +541,5 @@ rule dsdna_fasta_from_bed:
 	20	tpx_seq_B
 	21	tpx_seq_C
 	22	tpx_seq_D
-
-.META: *.fisher_select_cutoff
-	1	ssRNA
-	2	greater_and_positive
-	3	lower_and_positive
-	4	greater_and_negative
-	5	lower_and_negative
-	6	oddsratio
-	7	pvalue
-
-.META: cCRE.tpx.best.complete.*-neg_pos.gz
-	1	ssRNA	HOTTIP
-	2	region	merged_ChIRP_1
-	3	score	0
-	4	condition	HOTTIP
-	5	neg_pos	pos
-
-.META: cCRE.tpx.best.complete.*-neg_pos_rand.gz
-	1	ssRNA	HOTTIP
-	2	region	merged_ChIRP_1
-	3	score	0
-	4	condition	HOTTIP
-	5	neg_pos	pos
-
 
 """

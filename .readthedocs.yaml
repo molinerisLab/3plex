@@ -1,13 +1,22 @@
+<<<<<<< HEAD
 version: 2
+=======
+version: "2"
+>>>>>>> develop
 
 build:
   os: "ubuntu-22.04"
   tools:
+<<<<<<< HEAD
     python: "3.8"
+=======
+    python: "3.10"
+>>>>>>> develop
 
 python:
   install:
     - requirements: docs/requirements.txt
+<<<<<<< HEAD
     # Install our python package before building the docs
     - method: pip
       path: .
@@ -18,3 +27,5 @@ sphinx:
 formats:
   - pdf
   - epub
+=======
+>>>>>>> develop

@@ -36,5 +36,5 @@ docker_context/conda_environment.yaml:
 	#conda env export --from-history > $@
 	#this modality do not include version if not explicated during install 
 
-3plex.%.img:
-        singularity build $@ docker://imolineris/3plex:$*
+#3plex.%.img:
+#        singularity build $@ docker://imolineris/3plex:$*
