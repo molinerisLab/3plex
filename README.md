@@ -1,4 +1,4 @@
-<img src="https://github.com/molinerisLab/3plex/blob/main/images/3plex_logo.png" alt="logo" width="600"/>
+<img src="https://github.com/molinerisLab/3plex/blob/main/.images/3plex_logo.png" alt="logo" width="600"/>
 
 # Introduction
 
