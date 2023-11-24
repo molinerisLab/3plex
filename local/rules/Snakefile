@@ -100,17 +100,6 @@ rule summary_web_version:
 """
 
 
-#Index tts_genome_coords by position in ssRNA;
-rule tpx_stability_index:
-	input:
-		"{path}.tpx.stability.gz"
-	output:
-		tpx_indexed="{path}.tpx.stability.indexed.db"
-	shell:"""
-		zcat {input} | index_tpx_stability_into_sqlite.py
-		mv index_tpx_stability.db {output.tpx_indexed}
-	"""
-
 rule RNAplfold_lunp_modif_zscore_packed:
 	input:
 		"RNAplfold/{ssRNA}_lunp.modif_zscore"
