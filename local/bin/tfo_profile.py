@@ -49,6 +49,8 @@ def get_TFO_profile_allSparse(tpx_file):
                 best_stability[i] = stability
             if (e > max_len):
                 max_len = e
+    if stability_pre is not None:
+        profiles[stability_pre]=dict(profile_current)
                 
     return {"profiles": profiles, "best_stability": best_stability}, max_len
 
