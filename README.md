@@ -36,11 +36,11 @@ Extensive description of the tool can be found in our paper:
 
 # Web interface
 
-A web interface to easily work with 3plex is coming soon!
+An open beta web interface is available at https://3plex.unito.it/. Please be patient about bugs and report them on issues.
 
 ---
 
-# Usage 
+# Command line usage 
 
 3plex can be used to produce raw triplex predictions by downloading and running the 3plex Docker image. 
 
