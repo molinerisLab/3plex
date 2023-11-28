@@ -1,4 +1,5 @@
 gencode_dir_prefix: /home/reference_data/bioinfotree/task/gencode/dataset
+
 species: hsapiens
 
 seed: 42
@@ -28,10 +29,14 @@ species_genome_version_map:
 
 tss_ref_name: MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500
 
+from_sequences:
+        ssRNA: path/to/ssRNA.fa
+        dsDNA: path/to/dsDNA.fa
+
 promoter_tpx_stability_test:
-        ssRNA: "null"
-        genes_all: "null"
-        genes_of_interest: "null"
+        ssRNA: path/to/ssRNA.fa
+        genes_all: path/to/genes_all.txt
+        genes_of_interest: path/to/genes_of_interest.txt
         score: "null"
         gsea:
                 max_genes_in_set: "null"
