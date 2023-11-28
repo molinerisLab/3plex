@@ -63,8 +63,8 @@ Have a good 3plex journey!
     # optional arguments
     parser.add_argument("-j", "--jobs", metavar="CPUS", dest="jobs", type=int, default=1, 
                         help="Number of parallel threads.")
-    parser.add_argument("-l", "--min_length", metavar="N", dest="pato_min_length", type=minlen_type, default=8,          
-                        help="Minimum triplex length required. Allowed values: N>=5. [ Default: 8 ]")
+    parser.add_argument("-l", "--min_length", metavar="N", dest="pato_min_length", type=minlen_type, default=10,          
+                        help="Minimum triplex length required. Allowed values: N>=5. [ Default: 10 ]")
     parser.add_argument("-e", "--error_rate", metavar="E", dest="pato_error_rate", type=int, default=20, choices=range(21), 
                         help="Maximum percentage of error allowed in a triplex. [ Default: 20 ]")
     parser.add_argument("-s", "--single_strandedness_cutoff", metavar="S", dest="RNAplfold_single_strandedness_cutoff", type=int, default=0, choices=range(100), 
