@@ -1,4 +1,5 @@
 gencode_dir_prefix: /home/reference_data/bioinfotree/task/gencode/dataset
+species: hsapiens
 
 seed: 42
 
