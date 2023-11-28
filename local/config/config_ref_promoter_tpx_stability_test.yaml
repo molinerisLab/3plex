@@ -1,7 +1,8 @@
 # General config
 
-species: hsapiens
-
+tss_ref_bed: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.bed
+transcript_fastas: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/transcripts.longest.fa.gz
+genome_fasta: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/GRCh38.primary_assembly.genome.fa
 
 
 
@@ -27,10 +28,19 @@ RNAplfold:
 
 dsDNA_predefined: null
 
+from_sequences:
+        # path/to/ssRNA.fa
+        ssRNA: path/to/ssRNA.fa
+        # path/to/dsDNA.fa
+        dsDNA: path/to/dsDNA.fa
+
 promoter_tpx_stability_test:
-        ssRNA: ssRNA
-        genes_all: genes_all.txt # path/to/universe_of_genes
-        genes_of_interest: genes_of_interest.txt # path/to/genes_of_interest
+        # path/to/ssRNA.fa
+        ssRNA: ../../../3plex/dataset/ref_enrichment_test/LINC01693.fa 
+        # path/to/universe_of_genes
+        genes_all: ../../../3plex/dataset/ref_enrichment_test/genes_all.txt 
+        # path/to/genes_of_interest
+        genes_of_interest: ../../../3plex/dataset/ref_enrichment_test/genes_of_interest.txt 
         score: 
                 - Stability_best
                 - Stability_norm

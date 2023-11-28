@@ -51,7 +51,7 @@ rule duplex_length:
 	input:
 		"{file_path}.fa"
 	output:
-		"{file_path}.fa.length"
+		temp("{file_path}.fa.length")
 	shell:"""
 		fasta2oneline < {input} \
 		| perl -lane 'BEGIN{{$,="\\t"}} print $F[0],length($F[1])' > {output}

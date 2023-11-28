@@ -12,6 +12,13 @@ report: PRJ_ROOT + "/local/report/workflow.rst"
 
 
 
+def get_sequence_name(path):
+	sequence = os.path.basename(path)
+	if(not 'path' in path and not os.path.isfile(sequence)):
+		os.symlink(path, sequence)
+	return(re.sub(".fa|.bed", "", sequence))
+
+
 ##################
 # dsDNA Specific #
 ##################
@@ -153,6 +160,23 @@ ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 
 
 
+##############################
+# From sequences - one ssRNA #
+##############################
+
+rule run_from_sequences:
+	input:
+		summary=expand("{ssRNA}_ssmasked-{dsDNA}.tpx.summary.add_zeros.gz",
+				ssRNA=get_sequence_name(config["from_sequences"]["ssRNA"]),
+				dsDNA=get_sequence_name(config["from_sequences"]["dsDNA"])
+		),
+		stability=expand("{ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz",
+				ssRNA=get_sequence_name(config["from_sequences"]["ssRNA"]),
+				dsDNA=get_sequence_name(config["from_sequences"]["dsDNA"])
+		)
+
+
+
 ###########################################
 # Promoter TPX Stability Test - one ssRNA #
 ###########################################
@@ -168,8 +192,7 @@ ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 # 4) Enrichment plot
 # 5) Leading edge list
 
-# check if genes of interest are included in the universe of genes
-# TODO
+# TODO: check if genes of interest are included in the universe of genes
 rule check_gene_inclusion:
 	input:
 		genes_all=config["promoter_tpx_stability_test"]["genes_all"],
@@ -274,10 +297,10 @@ rule run_fgsea:
 rule run_promoter_tpx_stability_test:
 	input:
 		enrich=expand("results/{ssRNA}/{stability_score}/fgseaRes.tsv",
-				ssRNA=config["promoter_tpx_stability_test"]["ssRNA"],
+				ssRNA=get_sequence_name(config["promoter_tpx_stability_test"]["ssRNA"]),
 				stability_score=config["promoter_tpx_stability_test"]["score"]),
 		mann_whitney=expand("results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
-				ssRNA=config["promoter_tpx_stability_test"]["ssRNA"],
+				ssRNA=get_sequence_name(config["promoter_tpx_stability_test"]["ssRNA"]),
 				stability_score=config["promoter_tpx_stability_test"]["score"])
 
 
@@ -341,7 +364,7 @@ rule prepare_promoter_stability_ssRNA_tblist:
 # create a bed formatted file from the promoters list
 rule tss_from_gene_list:
 	input:
-		tss_ref=config['tss_ref_bed'], #/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/42/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.bed
+		tss_ref=config['tss_ref_bed'],
 		gene_list="{ssRNA}_tblist.tsv"
 	output:
 		"{ssRNA}_tblist.tss.bed"
