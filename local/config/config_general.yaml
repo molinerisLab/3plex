@@ -3,7 +3,7 @@ gencode_dir_prefix: /home/reference_data/bioinfotree/task/gencode/dataset
 species: hsapiens
 
 seed: 42
-
+dsDNA_predefined: "null"
 randomization_num: 100
 
 pato:
@@ -43,6 +43,7 @@ promoter_tpx_stability_test:
                 min_genes_in_set: "null"
                 nperm: "null"
                 gsea_weight: "null"
+        plot_format: "pdf"
 
 promoter_stability_test:
         tblist: "null"

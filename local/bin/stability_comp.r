@@ -12,7 +12,9 @@ option_list <- list(
   make_option(c("-s", "--score"), action="store", default="Stability_best",
               help="TPX score used to rank target/background regions. Available: Stability_best, Stability_tot, Score_best, Stability_norm. [ Default: Stability_norm ]."),
   make_option(c("-d", "--directory"), action ="store", default=".",
-              help="Output directory [ Default: . ].")
+              help="Output directory [ Default: . ]."),
+  make_option(c("-f","--format"), action="store", default="pdf",
+              help="Plots format: pdf or png.")
 )
 opt <- parse_args(OptionParser(option_list = option_list))
 
@@ -55,8 +57,16 @@ bxp <- ggboxplot(m, x = "class", y = opt$score,
   #geom_jitter(width = .1, height = NULL, size =.5, alpha=.2) +
   xlab("") + ggtitle(ssRNA)
 # save image
-outfile <- paste0(opt$directory, "/stability_comp_boxplot.pdf")
-message(paste0("--- Saving to: ",outfile))
-pdf(file = outfile, paper="a4", width = 3, height = 3.5)
-bxp
-dev.off()
+if(opt$format=="pdf"){
+  print("pdf")
+  outfile <- paste0(opt$directory, "/stability_comp_boxplot.pdf")
+  message(paste0("--- Saving to: ",outfile))
+  pdf(file = outfile, paper="a4", width = 3, height = 3.5)
+  bxp
+  dev.off()
+} else {
+  print("png")
+  outfile <- paste0(opt$directory, "/stability_comp_boxplot.png")
+  message(paste0("--- Saving to: ",outfile))
+  ggsave(outfile, bxp, dpi = 300)  
+}

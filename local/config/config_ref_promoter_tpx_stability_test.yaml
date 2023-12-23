@@ -1,15 +1,15 @@
 # General config
 
 # path to genome assembly [FASTA]
-genome_fasta: path/to/assembly.fa
+genome_fasta: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/GRCh38.primary_assembly.genome.fa
 #/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/GRCh38.primary_assembly.genome.fa
 
 # path to MANE promoters [BED]
-tss_ref_bed: path/to/MANE.bed
+tss_ref_bed: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.bed
 #/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.bed
 
 # path to transcript [FASTA]
-transcript_fastas: path/to/transcript.fa
+transcript_fastas: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/transcripts.longest.fa.gz
 #/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/transcripts.longest.fa.gz
 
 
@@ -43,11 +43,11 @@ from_sequences:
 
 promoter_tpx_stability_test:
         # path to ssRNA [FASTA]
-        ssRNA: path/to/ssRNA.fa
+        ssRNA: ssRNA.fa
         # path to universe of genes [one column TXT]
-        genes_all: path/to/genes_all.txt
+        genes_all: genes_all.txt
         # path to genes of interest [one column TXT]
-        genes_of_interest: path/to/genes_of_interest.txt
+        genes_of_interest: genes_of_interest.txt
         score: 
                 - Stability_best
                 - Stability_norm

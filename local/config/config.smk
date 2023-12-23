@@ -28,7 +28,7 @@ else:
 
 # Server specific config
 
-if config['dsDNA_predefined']:
+if config['dsDNA_predefined'] and config['dsDNA_predefined']!="null":
     config['dsDNA_predefined_fa']="{gencode_dir_prefix}/{species}/{gencode_version}/{dsDNA_predefined}.fa".format(
         gencode_dir_prefix=config['gencode_dir_prefix'],
         species=config['species'],
