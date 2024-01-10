@@ -184,7 +184,6 @@ export PATH=$PATH:$PRJ_ROOT/local/bin
 
 Create and activate conda environment:
 ```
-cd 3plex
 conda env create --name 3plex --file=local/envs/3plex.yaml
 conda activate 3plex
 ```
