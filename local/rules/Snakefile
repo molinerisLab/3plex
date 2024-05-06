@@ -29,7 +29,8 @@ rule dsdna_fasta_from_bed:
 	output:
 		"{dsDNA}.fa"
 	shell: """
-		bedtools getfasta -name+ -fi {config[genome_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
+		bedtools getfasta -name+ -fi {config[genome_fasta]} -bed {input} -fo {wildcards.dsDNA}.tmp.fa
+		seqkit rmdup -s {wildcards.dsDNA}.tmp.fa > {wildcards.dsDNA}.fa
 	"""
 	
 rule shuffle_bed:
@@ -233,7 +234,7 @@ rule run_stability_comp:
 	output:
 		tab="results/{ssRNA}/{stability_score}/stability_comp.tsv",
 		boxplot=report(
-            "results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
+            "results/{ssRNA}/{stability_score}/stability_comp_boxplot." + config.get("promoter_tpx_stability_test", {}).get("plot_format", ""),
             caption="../../local/report/promoter_tpx_stability_test-stability_comp_boxplot.rst",
             category="promoter_tpx_stability_test",
             subcategory="stability_comp",
@@ -244,6 +245,7 @@ rule run_stability_comp:
 			-t {input.tpx} \
 			-l {input.tblist} \
 			-d `dirname {output.boxplot}` \
+			-f {config[promoter_tpx_stability_test][plot_format]} \
 			--score {wildcards.stability_score}
 	"""
 
@@ -276,7 +278,7 @@ rule run_fgsea:
 	output:
 		leading_edge="results/{ssRNA}/{stability_score}/leading_edge.tsv",
 		enrich_plot=report(
-            "results/{ssRNA}/{stability_score}/enrichment_plot.pdf",
+            "results/{ssRNA}/{stability_score}/enrichment_plot." + config.get("promoter_tpx_stability_test", {}).get("plot_format", ""),
             caption="../../local/report/promoter_tpx_stability_test-enrich_plot.rst",
             category="promoter_tpx_stability_test",
             subcategory="enrichment_test",
@@ -291,6 +293,7 @@ rule run_fgsea:
 			-b {config[promoter_tpx_stability_test][gsea][max_genes_in_set]} \
 			-s {config[promoter_tpx_stability_test][gsea][min_genes_in_set]} \
 			-d `dirname {output.fgsea}` \
+			-o {config[promoter_tpx_stability_test][plot_format]} \
 			--gseaParam {config[promoter_tpx_stability_test][gsea][gsea_weight]}
 	"""
 
@@ -299,7 +302,7 @@ rule run_promoter_tpx_stability_test:
 		enrich=expand("results/{ssRNA}/{stability_score}/fgseaRes.tsv",
 				ssRNA=get_sequence_name(config["promoter_tpx_stability_test"]["ssRNA"]),
 				stability_score=config["promoter_tpx_stability_test"]["score"]),
-		mann_whitney=expand("results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
+		mann_whitney=expand("results/{ssRNA}/{stability_score}/stability_comp_boxplot." + config.get("promoter_tpx_stability_test", {}).get("plot_format", ""),
 				ssRNA=get_sequence_name(config["promoter_tpx_stability_test"]["ssRNA"]),
 				stability_score=config["promoter_tpx_stability_test"]["score"])
 
