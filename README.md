@@ -200,7 +200,7 @@ snakemake -j N_CORES run_from_sequences
 
 ### Promoter TPX stability test
 
-This workflow allows the integration of gene expression data to characterise the triplex-forming potential of the investigated ssRNA.
+This workflow allows the integration of gene expression data to characterize the triplex-forming potential of the investigated ssRNA.
 
 Starting from a list of the "universe of genes" (e.g., all the expressed genes in the system) and a list of genes of interest (e.g., differentially expressed genes identified upon a lncRNA KD):
 
