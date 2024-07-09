@@ -215,7 +215,13 @@ Move to `dataset/ref_promoter_tpx_stability_test` and modify the `promoter_tpx_s
 snakemake -j N_CORES run_promoter_tpx_stability_test
 ```
 
-Find the results in the `results` directory. To produce the Snakemake report, add the `--report report.html` option when running snakemake.
+Find the results in the `results` directory. 
+
+To produce the Snakemake HTML report, run the following command after the workflow is finished:
+
+```
+snakemake -j N_CORES run_promoter_tpx_stability_test --report report.html
+```
 
 ### Random regions test
 
