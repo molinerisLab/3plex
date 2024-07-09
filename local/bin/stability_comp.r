@@ -3,6 +3,7 @@
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(ggpubr))
 suppressPackageStartupMessages(library(rstatix))
+suppressPackageStartupMessages(library(dplyr))
 
 option_list <- list( 
   make_option(c("-t", "--tpxlist"), action="store", default=NULL,
@@ -48,12 +49,37 @@ message(paste0("--- Saving to: ",outfile))
 write.table(stat.test[,2:8], outfile, sep = "\t", row.names = F, quote = F)
 
 # boxplot ----
+boxplot_stats <- m %>%
+  group_by(class) %>%
+  summarise(
+    min = min(!!sym(opt$score)),
+    Q1 = quantile(!!sym(opt$score), 0.25),
+    median = median(!!sym(opt$score)),
+    Q3 = quantile(!!sym(opt$score), 0.75),
+    max = max(!!sym(opt$score)),
+    IQR = IQR(!!sym(opt$score))
+  ) %>%
+  mutate(
+    lower_whisker = pmax(Q1 - 1.5 * IQR, min),
+    upper_whisker = pmin(Q3 + 1.5 * IQR, max)
+  )
+
+# Find the maximum upper whisker value
+max_whisker <- max(boxplot_stats$upper_whisker)
+
+# Add a small offset to the maximum whisker value for the comparison bar position
+y_position <- max_whisker + 0.1 * (max(m[[opt$score]]) - min(m[[opt$score]]))
+
 bxp <- ggboxplot(m, x = "class", y = opt$score, 
                  fill = "class", palette = "d3", outlier.shape = NA) +
-  stat_pvalue_manual(stat.test, label = "p.signif") +
+  stat_pvalue_manual(stat.test, label = "p.signif", y.position = y_position) +
   theme_bw() + theme(legend.position = "none") +
   #geom_jitter(width = .1, height = NULL, size =.5, alpha=.2) +
-  xlab("") + ggtitle(ssRNA)
+  xlab("") + ggtitle(ssRNA) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)), limits = c(min(m[[opt$score]]), y_position + 0.1 * (max(m[[opt$score]]) - min(m[[opt$score]])))) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  annotate(geom = "text", label = paste0("Wilcoxon's p-value: ", stat.test$p), x = -Inf, y = Inf, hjust = -.05, vjust = 2, size=3)
+
 # save image
 outfile <- paste0(opt$directory, "/stability_comp_boxplot.pdf")
 message(paste0("--- Saving to: ",outfile))
