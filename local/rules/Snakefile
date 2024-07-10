@@ -233,14 +233,14 @@ rule run_stability_comp:
 	output:
 		tab="results/{ssRNA}/{stability_score}/stability_comp.tsv",
 		boxplot=report(
-            "results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
-            caption="../../local/report/promoter_tpx_stability_test-stability_comp_boxplot.rst",
-            category="promoter_tpx_stability_test",
-            subcategory="stability_comp",
-            labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
-        )
+			"results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
+			caption="../../local/report/promoter_tpx_stability_test-stability_comp_boxplot.rst",
+			category="promoter_tpx_stability_test",
+			subcategory="stability_comp",
+			labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
+			)
 	shell:"""
-		stability_comp.r \
+		../../local/bin/promoter_tpx_stability_test-stability_comp_boxplot.R \
 			-t {input.tpx} \
 			-l {input.tblist} \
 			-d `dirname {output.boxplot}` \
@@ -251,7 +251,7 @@ rule create_rnk:
 	input:
 		"{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.gz"
 	output:
-		"{ssRNA}_{stability_score}_rnk.gz"
+		"{ssRNA}-{stability_score}-rnk.gz"
 	shell:"""
 		bawk 'NR>1{{split($1,a,"::"); print a[1],${wildcards.stability_score}}}' {input} \
 		| sort -k2,2n \
@@ -271,17 +271,17 @@ rule create_gmt:
 
 rule run_fgsea:
 	input:
-		rnk="{ssRNA}_{stability_score}_rnk.gz",
+		rnk="{ssRNA}-{stability_score}-rnk.gz",
 		gmt="genes_of_interest.gmt"
 	output:
 		leading_edge="results/{ssRNA}/{stability_score}/leading_edge.tsv",
 		enrich_plot=report(
-            "results/{ssRNA}/{stability_score}/enrichment_plot.pdf",
-            caption="../../local/report/promoter_tpx_stability_test-enrich_plot.rst",
-            category="promoter_tpx_stability_test",
-            subcategory="enrichment_test",
-            labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
-        ),
+			"results/{ssRNA}/{stability_score}/enrichment_plot.pdf",
+			caption="../../local/report/promoter_tpx_stability_test-enrich_plot.rst",
+			category="promoter_tpx_stability_test",
+			subcategory="enrichment_test",
+			labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
+			),
 		fgsea="results/{ssRNA}/{stability_score}/fgseaRes.tsv"
 	shell:"""
 		run_fgsea.r \
