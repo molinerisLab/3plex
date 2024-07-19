@@ -117,20 +117,22 @@ rule RNAplfold_lunp_modif_zscore_packed:
 	"""
 
 rule prepare_tfo_profile:
-	input: "{file}.tpx.stability.gz"
-	output: temp("{file}.tpx.stability.tfo_profile.pre")
+	input: 
+		"{file}.tpx.stability.gz"
+	output:
+		temp(local("{file}.tpx.stability.tfo_profile.pre"))
 	shell:"""
 		zcat {input} | cut -f 2,3,14 | tail -n +2 | bsort -k3,3nr -k1,1n  -S2% > {output}
 	"""
 
 rule get_tfo_profile_range_packed:
-        input:
-                "{ssRNA}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre"
-        output:
-                "{ssRNA}.profile_range.msgpack"
-        shell: """	
-			tfo_profile.py < {input} > {output}
-        """
+	input:
+		"{ssRNA}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre"
+	output:
+		"{ssRNA}.profile_range.msgpack"
+	shell: """
+		tfo_profile.py < {input} > {output}
+	"""
 
 rule aggregated_random_tpx:
 	input:

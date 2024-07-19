@@ -1,3 +1,4 @@
 dataset/jobs
 dataset/*
 local/envs/3plex/
+.Rproj.user
