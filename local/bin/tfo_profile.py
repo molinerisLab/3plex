@@ -69,6 +69,13 @@ class Ranges:
             l = [count, b]
         self.container.append(l)
 
+def profile_flat(profiles):
+    stability_values = list(profiles.keys())
+    min_stability = sorted(map(lambda x: float(x), stability_values))[0]
+    profiles = profiles[str(min_stability)]
+    return profiles
+
+
 def profile2ranges(profiles):    
     profiles_range={}
     
@@ -84,7 +91,7 @@ def profile2ranges(profiles):
         keys.sort(key=int)
         for i in keys:
             count = profile[i]
-            i = int(i);
+            i = int(i)
             count = int(count)
             if range_b is None:
                 range_b = i
@@ -164,11 +171,13 @@ def compute_statistics(data):
     average = np.mean(np_sorted_data)
     variance = np.var(np_sorted_data)
 
+
     index = int(n * 0.95)
     percentile_95 = sorted_data[index]
     
     max=sorted_data[-1]
-    return {"median": median, "lower_quartile": lower_quartile, "upper_quartile": upper_quartile, "percentile_95": percentile_95, "max": max, "avg":average, "var":variance}
+    min=sorted_data[0]
+    return {"median": median, "lower_quartile": lower_quartile, "upper_quartile": upper_quartile, "percentile_95": percentile_95, "max": max, "min": min, "avg":average, "var":variance}
 
 
 def profiles_multiple_stats(profiles_multiple):
@@ -240,11 +249,14 @@ def compress_profile_random(data):
         compressed["data"][key] = compress_random_profile_single_bin(data[key], statistics)
     return compressed
 
+
 def main():
     parser = argparse.ArgumentParser(description="read tpx stability file and compute tfo profiles")
     parser.add_argument('tpx_files', nargs='*', metavar='file', help='Input file(s)')
     parser.add_argument('-m', '--multiple_input', action='store_true', help='Multiple intput files, as in randomizations')
     parser.add_argument('-j', '--json', action='store_true', help='output json and not msgpack')
+    parser.add_argument('-f', '--flat', action='store_true', help='profile flattened on stability')
+    parser.add_argument('-n', '--noncompressed', action='store_true', help='do not compress output')
     args = parser.parse_args()
 
     # Check if stdin flag is provided or no files are provided
@@ -252,10 +264,12 @@ def main():
         data, length = get_TFO_profile_allSparse(sys.stdin)
 
         #data = json.load(sys.stdin)
-        profiles = profile2ranges(data["profiles"])
+        if args.flat:
+            profiles = profile_flat(data["profiles"])
+        else:
+            profiles = profile2ranges(data["profiles"])
         best_stability = best_stability_to_array(data["best_stability"], length)
         to_export = {"profiles": profiles, "best_stability": best_stability}
-
     else:
         profiles_multiple=[]
         for file_name in args.tpx_files:
@@ -263,23 +277,21 @@ def main():
                 data, length = get_TFO_profile_allSparse(my_file)
             profiles_multiple.append(dict(data["profiles"]))
         stats = profiles_multiple_stats(profiles_multiple)
-        """with open("temp_.json", "w") as o:
-            o.write(json.dumps(stats))"""
-        #Add compression to random profile
-        """
-        Uncompr: thr: { position: {"median": 1.0, "lower_quartile": 1.0, "upper_quartile": 1.0, "percentile_95": 1, "max": 1} }
-        Compr: thr: [ [value, (len)] for each statistics ]
-            >If (len)==1, implicit: [value]
-            >For each statistic, if same as previous, empty array
-                [[median...], [], [], []] if all same values
-        """
-        to_export = compress_profile_random(stats)
+        
+        if not args.noncompressed:
+            to_export = compress_profile_random(stats)
 
-    if args.json:
-        sys.stdout.write(json.dumps(to_export))
-    else:
-        packed_matrix = msgpack.packb(to_export, use_bin_type=True)
-        sys.stdout.buffer.write(packed_matrix)        
+
+        stability_values = list(stats.keys())
+        min_stability = sorted(map(lambda x: float(x), stability_values))[0]
+        to_export = stats[str(min_stability)]
+
+    if not args.tfo_file:
+        if args.json:
+            sys.stdout.write(json.dumps(to_export))
+        else:
+            packed_matrix = msgpack.packb(to_export, use_bin_type=True)
+            sys.stdout.buffer.write(packed_matrix)        
 
 if __name__=="__main__":
     main()
