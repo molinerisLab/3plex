@@ -41,7 +41,6 @@ rule shuffle_bed:
 		temp("{file}_shuf_{run,\d+}.bed")
 	shell:"""
 		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed $(date +%s%N) > {output}
-		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
 	"""
 
 rule ln_dsDNA_predefined_fa:
@@ -157,6 +156,7 @@ rule aggregated_random_tpx_fasta:
 	shell: """
 		tfo_profile.py -m {input} > {output}
 	"""
+
 ruleorder: aggregated_random_tpx > aggregated_random_tpx_fasta
 ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 
