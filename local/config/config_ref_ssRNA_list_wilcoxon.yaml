@@ -1,14 +1,21 @@
-# General config
+# -------------- #
+# General config #
+# -------------- #
 
-species: hsapiens
+# path to genome assembly [FASTA]
+genome_fasta: /path/to/primary_assembly.genome.fa
+
+# path to transcript [FASTA]
+transcript_fastas: path/to/transcript.fa
 
 
 
-
-# 3plex config
+# ------------ # 
+# 3plex config #
+# ------------ #
 
 pato:
-        min_length: 9
+        min_length: 10
         max_length: -1
         error_rate: 20
         guanine_rate: 40
@@ -17,29 +24,63 @@ pato:
         other_parameters: ""
 
 RNAplfold:
-        single_strandedness_cutoff: 10
+        single_strandedness_cutoff: 0
 
 
 
+# ------------------------- #
+# Advanced workflows config #
+# ------------------------- #
 
-# Advanced workflows config
+# General ---
+
+# path to ssRNA [FASTA]
+ssRNA: /path/to/ssRNA.fa
+# path to dsDNA [FASTA|BED]
+dsDNA: /path/to/dsDNA.bed|.fa
 
 
-dsDNA_predefined: null
 
-promoter_tpx_stability_test:
-        ssRNA: ssRNA
-        genes_all: genes_all.txt # path/to/universe_of_genes
-        genes_of_interest: genes_of_interest.txt # path/to/genes_of_interest
-        score: 
-                - Stability_best
-                - Stability_norm
-        gsea:
-                max_genes_in_set: 10000
-                min_genes_in_set: 5
-                nperm: 1000
-                gsea_weight: 0
+# Promoter stability test specific ---
+
+# path to universe of genes [one column TXT]
+genes_all: genes_all.txt
+# path to genes of interest [one column TXT]
+genes_of_interest: genes_of_interest.txt
+# path to promoters [mandatory:  chr | start | end | gene_id ]
+tss_ref_bed: path/to/promoters.bed
+# tpx scores to compare promoters
+score:
+        - Stability_best
+        - Stability_norm
+# params to run gene set enrichment
+gsea:
+        max_genes_in_set: 10000
+        min_genes_in_set: 5
+        nperm: 1000
+        gsea_weight: 0
+
+
+
+# Random region test specific ---
+
+# path to blacklist file to remove when shuffling genomic regions [BED]
+shuffle_blacklist: /path/to/shuffle_blacklist.bed
+# path to chrom.info file
+chrom_info: /path/to/chrom.info.no_alt
+# Number of randomization to build the null model [INT]
+randomization_num: 1000
+
+
+
+# Promoter stability test [ssRNA list version] ---
 
 promoter_stability_test:
         tblist: "null"
         score: "null"
+
+
+
+# Other ---
+
+dsDNA_predefined: null

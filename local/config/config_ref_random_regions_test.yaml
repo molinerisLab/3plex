@@ -1,21 +1,18 @@
-# General config
+# -------------- #
+# General config #
+# -------------- #
 
 # path to genome assembly [FASTA]
-genome_fasta: path/to/assembly.fa
-#/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/GRCh38.primary_assembly.genome.fa
-
-# path to MANE promoters [BED]
-tss_ref_bed: path/to/MANE.bed
-#/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.bed
+genome_fasta: /path/to/primary_assembly.genome.fa
 
 # path to transcript [FASTA]
 transcript_fastas: path/to/transcript.fa
-#/home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/37/transcripts.longest.fa.gz
 
 
 
-
-# 3plex config
+# ------------ # 
+# 3plex config #
+# ------------ #
 
 pato:
         min_length: 10
@@ -31,33 +28,59 @@ RNAplfold:
 
 
 
+# ------------------------- #
+# Advanced workflows config #
+# ------------------------- #
 
-# Advanced workflows config
+# General ---
 
-dsDNA_predefined: null
+# path to ssRNA [FASTA]
+ssRNA: /path/to/ssRNA.fa
+# path to dsDNA [FASTA|BED]
+dsDNA: /path/to/dsDNA.bed|.fa
 
-from_sequences:
-        # path to ssRNA [FASTA]
-        ssRNA: path/to/ssRNA.fa
-        # path to dsDNA [FASTA|BED]
-        dsDNA: path/to/dsDNA.fa
 
-promoter_tpx_stability_test:
-        # path to ssRNA [FASTA]
-        ssRNA: path/to/ssRNA.fa
-        # path to universe of genes [one column TXT]
-        genes_all: path/to/genes_all.txt
-        # path to genes of interest [one column TXT]
-        genes_of_interest: path/to/genes_of_interest.txt
-        score: 
-                - Stability_best
-                - Stability_norm
-        gsea:
-                max_genes_in_set: 10000
-                min_genes_in_set: 5
-                nperm: 1000
-                gsea_weight: 0
+
+# Promoter stability test specific ---
+
+# path to universe of genes [one column TXT]
+genes_all: genes_all.txt
+# path to genes of interest [one column TXT]
+genes_of_interest: genes_of_interest.txt
+# path to promoters [mandatory:  chr | start | end | gene_id ]
+tss_ref_bed: path/to/promoters.bed
+# tpx scores to compare promoters
+score:
+        - Stability_best
+        - Stability_norm
+# params to run gene set enrichment
+gsea:
+        max_genes_in_set: 10000
+        min_genes_in_set: 5
+        nperm: 1000
+        gsea_weight: 0
+
+
+
+# Random region test specific ---
+
+# path to blacklist file to remove when shuffling genomic regions [BED]
+shuffle_blacklist: /path/to/shuffle_blacklist.bed
+# path to chrom.info file
+chrom_info: /path/to/chrom.info.no_alt
+# Number of randomization to build the null model [INT]
+randomization_num: 1000
+
+
+
+# Promoter stability test [ssRNA list version] ---
 
 promoter_stability_test:
         tblist: "null"
         score: "null"
+
+
+
+# Other ---
+
+dsDNA_predefined: null
