@@ -1,4 +1,4 @@
-name: 3plex
+name: 3plex_Env
 channels:
   - bioconda
   - conda-forge
@@ -28,3 +28,5 @@ dependencies:
   - snakefmt
   - bioconductor-fgsea
   - sqlite
+  - meme
+  - seqkit
