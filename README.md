@@ -40,7 +40,7 @@ An open beta web interface is available at https://3plex.unito.it/. Please be pa
 
 ---
 
-# Run 3plex with Docker/Singularity
+# Run 3plex with Docker
 
 3plex can be used to produce raw triplex predictions by downloading and running the 3plex Docker/Singularity image. 
 
@@ -150,7 +150,7 @@ and a second tab-delimited file reporting a summary triplex score for each dsDNA
 
 `Score_best`: PATO best score (sum of the matches).
 
-## Run 3plex with Singularity
+# Run 3plex with Singularity
 
 Find the Singularity image at [3plex/singularity_images/](https://github.com/molinerisLab/3plex/singularity_images/)
 
@@ -160,16 +160,9 @@ Find the Singularity image at [3plex/singularity_images/](https://github.com/mol
 
 The following sections illustrate how to perform some 3plex downstream analyses to additionally evaluate the significance of the triplex-forming capability of an ssRNA.
 
-The workflows are organized as follows:
 ```
-3plex
-  |___ dataset
-          |_____ ref_from_sequences
-          |_____ ref_promoter_tpx_stability_test
-          |_____ ref_random_region_test
+TODO
 ```
-
-Each directory can be used as a reference
 
 ## Dependencies
 
@@ -204,7 +197,7 @@ conda activate 3plex_Env
 
 This workflow produces the raw  _tpx.stability.gz_ and _tpx.summary.add_zeros.gz_ files without Docker from an ssRNA FASTA file and a dsDNA multi-FASTA or BED file.
 
-Move to `dataset/ref_from_sequences` and specify the `ssRNA` and `dsDNA` paths in the `config.yaml`. Then run:
+Specify the `ssRNA` and `dsDNA` paths in the `config.yaml`. Then run:
 
 ```
 snakemake -j N_CORES run_raw_tpx_prediction
@@ -221,7 +214,7 @@ Starting from a list of the "universe of genes" (e.g., all the expressed genes i
 3. compare the stability of the putative triplexes formed with promoters of genes of interest with all the remaining genes (Wilcoxon's test);
 4. perform a [gene set enrichment analysis](https://www.gsea-msigdb.org/gsea/index.jsp) ranking the universe of genes according to their triplex stability score thus computing the significance of the enrichment in promoters with a high or a low stability score. The [leading edge](https://www.gsea-msigdb.org/gsea/doc/GSEAUserGuideTEXT.htm#_Running_a_Leading_Edge%20Analysis) table provides a selection of candidate target genes.
 
-Move to `dataset/ref_promoter_tpx_stability_test` and modify the `Promoter stability test` section in the `config.yaml` according to your needs following the comments. Then run:
+Modify the `Promoter stability test` section in the `config.yaml` according to your needs following the comments. Then run:
 
 ```
 snakemake -j N_CORES run_promoter_tpx_stability_test
@@ -244,6 +237,7 @@ This result is achieved by comparing the stability of the DBD's putative triplex
 Operatively,
 
 ```
+TODO
 snakemake -j N_CORES run_random_region_test
 ```
 
