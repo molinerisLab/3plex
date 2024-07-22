@@ -40,15 +40,11 @@ An open beta web interface is available at https://3plex.unito.it/. Please be pa
 
 ---
 
-# Command line usage 
+# Run 3plex with Docker/Singularity
 
-3plex can be used to produce raw triplex predictions by downloading and running the 3plex Docker image. 
+3plex can be used to produce raw triplex predictions by downloading and running the 3plex Docker/Singularity image. 
 
-For advanced analysis workflows, one can clone the repository and then follow the proposed pipelines listed below. 
-
-We provide a recipe to run 3plex using Singularity.
-
-## 1. Run 3plex with Docker
+## Run 3plex with Docker
 
 Pull the latest image from the Docker hub:
 ```
@@ -154,62 +150,78 @@ and a second tab-delimited file reporting a summary triplex score for each dsDNA
 
 `Score_best`: PATO best score (sum of the matches).
 
+## Run 3plex with Singularity
 
+Find the Singularity image at [3plex/singularity_images/](https://github.com/molinerisLab/3plex/singularity_images/)
 
-## 2. Run 3plex Snakemake workflows
+---
 
-### Dependencies
+# 3plex Snakemake workflows
+
+The following sections illustrate how to perform some 3plex downstream analyses to additionally evaluate the significance of the triplex-forming capability of an ssRNA.
+
+The workflows are organized as follows:
+```
+3plex
+  |___ dataset
+          |_____ ref_from_sequences
+          |_____ ref_promoter_tpx_stability_test
+          |_____ ref_random_region_test
+```
+
+Each directory can be used as a reference
+
+## Dependencies
 
 ```
 pato
-direnv
-viennarna=2.4.7
-snakemake=7.8.5
-bedtools=2.29.0
 gawk
 ```
+Find here the [installation guide for PATO](https://github.com/UDC-GAC/pato).
 
-To run the workflows, clone the repository, move inside `3plex` directory and allow direnv:
-```
-git clone git@github.com:molinerisLab/3plex.git
-cd 3plex
-direv allow
-```
+## Setup
 
-Alternatively, if direnv is not installed, one can manually set the environment variables:
+We suggest to install [direnv](https://direnv.net/). Alternatively, one can manually set the environment variables:
 ```
-export PRJ_ROOT={3plex root directory}
+export PRJ_ROOT={3plex_root_directory}
 export PATH=$PATH:$PRJ_ROOT/local/bin
 ```
 
-Create and activate conda environment:
+To run the workflows clone the repository, move inside `3plex` directory and, if installed, allow direnv:
 ```
-conda env create --name 3plex --file=local/envs/3plex.yaml
-conda activate 3plex
-```
-
-### Raw triplex prediction
-
-This workflow can be used to produce the raw  _tpx.stability.gz_  and _tpx.summary.add_zeros.gz_  files without using Docker starting from a ssRNA FASTA file and a dsDNA multi-FASTA or BED file.
-
-Move to `dataset/ref_from_sequences` and modify the `from_sequences` section of the `config.yaml` according to your needs following the comments. Then run:
-
-```
-snakemake -j N_CORES run_from_sequences
+git clone git@github.com:molinerisLab/3plex.git
+cd 3plex
+direnv allow
 ```
 
-### Promoter TPX stability test
+Create and activate the conda environment:
+```
+conda env create --file=local/envs/3plex.yaml
+conda activate 3plex_Env
+```
+
+## Raw triplex prediction
+
+This workflow produces the raw  _tpx.stability.gz_ and _tpx.summary.add_zeros.gz_ files without Docker from an ssRNA FASTA file and a dsDNA multi-FASTA or BED file.
+
+Move to `dataset/ref_from_sequences` and specify the `ssRNA` and `dsDNA` paths in the `config.yaml`. Then run:
+
+```
+snakemake -j N_CORES run_raw_tpx_prediction
+```
+
+## Promoter TPX stability test
 
 This workflow allows the integration of gene expression data to characterize the triplex-forming potential of the investigated ssRNA.
 
-Starting from a list of the "universe of genes" (e.g., all the expressed genes in the system) and a list of genes of interest (e.g., differentially expressed genes identified upon a lncRNA KD):
+Starting from a list of the "universe of genes" (e.g., all the expressed genes in the system) and a list of genes of interest (e.g., differentially expressed genes identified upon an ssRNA KD):
 
-1. retrieve the promoters associated with the genes as annotated in [MANE](http://www.ensembl.org/info/genome/genebuild/mane.html);
-2. run 3plex with a given ssRNA and the set of promoters;
-3. compare the stability of the putative triplexes formed with promoters of genes of interest and all the remaining genes with a Mann-Whitney test;
+1. retrieve the promoters associated with the universe of genes (we suggest to refer to [MANE](http://www.ensembl.org/info/genome/genebuild/mane.html));
+2. run 3plex to find the putative triplexes formed by the ssRNA and the set of promoters;
+3. compare the stability of the putative triplexes formed with promoters of genes of interest with all the remaining genes (Wilcoxon's test);
 4. perform a [gene set enrichment analysis](https://www.gsea-msigdb.org/gsea/index.jsp) ranking the universe of genes according to their triplex stability score thus computing the significance of the enrichment in promoters with a high or a low stability score. The [leading edge](https://www.gsea-msigdb.org/gsea/doc/GSEAUserGuideTEXT.htm#_Running_a_Leading_Edge%20Analysis) table provides a selection of candidate target genes.
 
-Move to `dataset/ref_promoter_tpx_stability_test` and modify the `promoter_tpx_stability_test` section in the `config.yaml` according to your needs following the comments. Then run:
+Move to `dataset/ref_promoter_tpx_stability_test` and modify the `Promoter stability test` section in the `config.yaml` according to your needs following the comments. Then run:
 
 ```
 snakemake -j N_CORES run_promoter_tpx_stability_test
@@ -217,19 +229,25 @@ snakemake -j N_CORES run_promoter_tpx_stability_test
 
 Find the results in the `results` directory. 
 
-To produce the Snakemake HTML report, run the following command after the workflow is finished:
+To produce an HTML report, run the following command after the workflow is completed:
 
 ```
 snakemake -j N_CORES run_promoter_tpx_stability_test --report report.html
 ```
 
-### Random regions test
+## Random regions test
 
-Available soon.
+This workflow tests the triplex-forming capability of each ssRNA portion, namely the DBDs. 
 
-## 3. Run 3plex with Singularity
+This result is achieved by comparing the stability of the DBD's putative triplexs identified considering a set of target regions (e.g., ChIRP-seq data) with a null distribution built on the stability scores obtained testing randomized genomic regions N times.
 
-Find it at [3plex/singularity_images/](https://github.com/molinerisLab/3plex/singularity_images/)
+Operatively,
+
+```
+snakemake -j N_CORES run_random_region_test
+```
+
+
 
 ---
 
