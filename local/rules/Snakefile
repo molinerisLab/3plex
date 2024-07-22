@@ -162,11 +162,20 @@ ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 
 
 
-##############################
-# From sequences - one ssRNA #
-##############################
+##################################
+# Raw tpx prediction - one ssRNA #
+##################################
 
-rule run_from_sequences:
+# Input:
+# 1) ssRNA [FASTA]
+# 2) dsDNA [BED|FASTA]
+
+# Output:
+# 1) Summary score for the tpx interaction between ssRNA and each dsDNA sequence [*tpx.summary.add_zeros.gz]
+# 2) Singular score for each TFO-TTS interaction as number of matches or thermal stability [*.tpx.stability.gz]
+
+# ALL ---
+rule run_raw_tpx_prediction:
 	input:
 		summary=expand("{ssRNA}_ssmasked-{dsDNA}.tpx.summary.add_zeros.gz",
 				ssRNA=get_sequence_name(config["ssRNA"]),
@@ -320,6 +329,16 @@ rule run_fgsea:
 # Output:
 # 1) Statistics and significance of DBDs
 
+# ALL ---
+rule run_random_region_test:
+	input:
+		expand("results/{ssRNA}_ssmasked-{dsDNA}-dbds_pvalue.tsv", 
+				ssRNA=get_sequence_name(config["ssRNA"]), 
+				dsDNA=get_sequence_name(config["dsDNA"]))
+	shell:"""
+		rm *shuf*
+	"""
+
 rule get_dbd:
 	input:
 		"{file}.tpx.stability.gz"
@@ -341,9 +360,6 @@ rule p_value_for_dbds:
 		random_regions_pvalue.py {input.dbd_file} {input.tpx_profile_pre} {input.tpx_profile_random} > {output}
 	"""
 
-rule all_random_region_test:
-	input:
-		expand("results/{ssRNA}_ssmasked-{dsDNA}-dbds_pvalue.tsv", ssRNA=get_sequence_name(config["ssRNA"]), dsDNA=get_sequence_name(config["dsDNA"]))
 
 
 ########################################

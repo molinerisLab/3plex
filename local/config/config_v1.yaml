@@ -1,15 +1,3 @@
-# -------------- #
-# General config #
-# -------------- #
-
-# path to genome assembly [FASTA]
-genome_fasta: /path/to/primary_assembly.genome.fa
-
-# path to transcript [FASTA]
-transcript_fastas: path/to/transcript.fa
-
-
-
 # ------------ # 
 # 3plex config #
 # ------------ #
@@ -32,21 +20,23 @@ RNAplfold:
 # Advanced workflows config #
 # ------------------------- #
 
-# General ---
+# Mandatory for all workflows ---
 
 # path to ssRNA [FASTA]
-ssRNA: /path/to/ssRNA.fa
+ssRNA: path/to/ssRNA.fa
 # path to dsDNA [FASTA|BED]
-dsDNA: /path/to/dsDNA.bed|.fa
+dsDNA: path/to/dsDNA.bed|fa
+# path to genome assembly [FASTA]
+genome_fasta: path/to/primary_assembly.genome.fa
 
 
 
 # Promoter stability test specific ---
 
 # path to universe of genes [one column TXT]
-genes_all: genes_all.txt
+genes_all: path/to/universe_of_genes.txt
 # path to genes of interest [one column TXT]
-genes_of_interest: genes_of_interest.txt
+genes_of_interest: path/to/genes_of_interest.txt
 # path to promoters [mandatory:  chr | start | end | gene_id ]
 tss_ref_bed: path/to/promoters.bed
 # tpx scores to compare promoters
@@ -65,15 +55,18 @@ gsea:
 # Random region test specific ---
 
 # path to blacklist file to remove when shuffling genomic regions [BED]
-shuffle_blacklist: /path/to/shuffle_blacklist.bed
+shuffle_blacklist: path/to/shuffle_blacklist.bed
 # path to chrom.info file
-chrom_info: /path/to/chrom.info.no_alt
+chrom_info: path/to/chrom.info
 # Number of randomization to build the null model [INT]
 randomization_num: 1000
 
 
 
 # Promoter stability test [ssRNA list version] ---
+
+# path to transcript [FASTA]
+transcript_fastas: path/to/transcript.fa
 
 promoter_stability_test:
         tblist: "null"

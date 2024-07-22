@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
-suppressPackageStartupMessages(library(fgsea))
-suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(optparse))
+suppressMessages(suppressWarnings((library(fgsea))))
+suppressMessages(suppressWarnings((library(ggplot2))))
+suppressMessages(suppressWarnings((library(optparse))))
 
 # Functions ----
 read.gmt <- function (file) 
