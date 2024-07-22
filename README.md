@@ -42,10 +42,6 @@ An open beta web interface is available at https://3plex.unito.it/. Please be pa
 
 # Run 3plex with Docker
 
-3plex can be used to produce raw triplex predictions by downloading and running the 3plex Docker/Singularity image. 
-
-## Run 3plex with Docker
-
 Pull the latest image from the Docker hub:
 ```
 docker pull imolineris/3plex:v1.0
