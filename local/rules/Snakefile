@@ -312,8 +312,79 @@ rule run_promoter_tpx_stability_test:
 ###################################
 
 # Input:
+# 1) ssRNA [FASTA]
+# 2) Genomic target [BED|FASTA]
 
 # Output:
+# 1) Statistics and significance of DBDs
+
+#rule get_tfo_profile_flat:
+#	input:
+#		"{ssRNA}_ssmasked-{dsDNA}.tpx.stability.tfo_profile.pre"
+#	output:
+#		"{ssRNA}-{dsDNA}-profile_flat.json"
+#	shell: """
+#		tfo_profile.py -f -n -j < {input} > {output}
+#	"""
+
+#rule aggregated_random_tpx_uncompressed:
+#	input:
+#		expand("{{ssRNA}}_ssmasked-{{dsDNA}}_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+#	output:
+#		"{ssRNA}-{dsDNA}-profile_range.random.json"
+#	shell: """
+#		tfo_profile.py -m {input} -j -f > {output}
+#	"""
+
+#rule aggregated_random_tpx_single:
+#	input:
+#		"{ssRNA}_ssmasked-{dsDNA}_shuf_{run}.tpx.stability.tfo_profile.pre"
+#	output:
+#		"{ssRNA}-{dsDNA}-shuf_{run}-profile_range.random.json"
+#	shell: """
+#		tfo_profile.py -f -n -j < {input} > {output}
+#	"""
+
+#rule aggregated_random_tpx_uncompressed:
+#	input:
+#		expand("{{ssRNA}}-{{dsDNA}}-shuf_{run}-profile_range.random.json", run=range(1, config["randomization_num"]+1))
+#	output:
+#		"{ssRNA}-{dsDNA}-profile_range.random.json"
+
+
+#rule aggregated_random_stability_uncompressed:
+#	input:
+#		expand("{{ssRNA}}_ssmasked-{{dsDNA}}_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+#	output:
+#		"{ssRNA}-{dsDNA}-stability_profile.random.json"
+#	shell: """
+#		stability_profile.py {input} > {output}
+#	"""
+
+rule get_dbd:
+	input:
+		"{file}.tpx.stability.gz"
+	output:
+		"{file}.dbd"
+	shell:
+		"zcat {input} | cut -f1-3 "
+		"| bedtools sort | bedtools merge "
+		"| bawk '{{print $2\"-\"$3-1,$2,$3-1}}' > {output}"
+
+rule p_value_for_dbds:
+	input:
+		tpx_profile_pre = "{ssRNA}_ssmasked-{dsDNA}.tpx.stability.tfo_profile.pre",
+		dbd_file = "{ssRNA}_ssmasked-{dsDNA}.dbd",
+		tpx_profile_random = expand("{{ssRNA}}_ssmasked-{{dsDNA}}_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+	output: 
+		"results/{ssRNA}_ssmasked-{dsDNA}-dbds_pvalue.tsv"
+	shell: """
+		random_regions_pvalue.py {input.dbd_file} {input.tpx_profile_pre} {input.tpx_profile_random} > {output}
+	"""
+
+rule all_random_region_test:
+	input:
+		expand("results/{ssRNA}_ssmasked-{dsDNA}-dbds_pvalue.tsv", ssRNA=get_sequence_name(config["ssRNA"]), dsDNA=get_sequence_name(config["dsDNA"]))
 
 
 ########################################
