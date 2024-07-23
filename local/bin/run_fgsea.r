@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
-suppressMessages(suppressWarnings((library(fgsea))))
-suppressMessages(suppressWarnings((library(ggplot2))))
-suppressMessages(suppressWarnings((library(optparse))))
+suppressMessages(suppressWarnings(library(fgsea)))
+suppressMessages(suppressWarnings(library(ggplot2)))
+suppressMessages(suppressWarnings(library(optparse)))
 
 # Functions ----
 read.gmt <- function (file) 
@@ -67,6 +67,7 @@ if(!dir.exists(opt$leadingedge)) dir.create(opt$leadingedge, recursive = T, show
 
 # 1. Run fGSEA ----
 # Add condition: if(simple or multilevel)
+message("--- Running fgseaSimple")
 fgseaRes <- suppressWarnings(fgsea::fgseaSimple(
   pathways = gmt,
 	stats    = rnk_vector,
@@ -78,13 +79,13 @@ fgseaRes <- suppressWarnings(fgsea::fgseaSimple(
   ))
 # Check fGSEA output
 if(!is.null(fgseaRes)){
-  message(" -- fgseaSimple done")
+  message("--- fgseaSimple done")
 } else {
-  stop(" -- Error in fgseaSimple! Exit")
+  stop("--- Error in fgseaSimple! Exit")
 }
 # save fgseaRes
 outfile_tab <- paste0(opt$directory,"/fgseaRes.tsv")
-message(" -- saving to: ", outfile_tab)
+message("--- saving to: ", outfile_tab)
 write.table(subset(fgseaRes, select = -c(leadingEdge)), outfile_tab, col.names = T, quote = F, row.names = F, sep="\t")
 
 
@@ -103,10 +104,10 @@ fgseaPlot <- fgseaPlot +
 
 # save plot fgsea
 outfile <- paste0(opt$directory,"/enrichment_plot.pdf")
-message(" -- saving to: ", outfile)
+message("--- saving to: ", outfile)
 pdf(file = outfile, paper = "a4", w = 4, h = 4)
 print(fgseaPlot)
-dev.off()
+rm <- dev.off()
 
 # 3. Create LeadingEdge table ----
 gene_set <- as.data.frame(gmt$genes_of_interest)
@@ -121,6 +122,6 @@ colnames(leadingEdge_tab)[3]<-"ranking_score"
 leadingEdge_tab <- leadingEdge_tab[order(leadingEdge_tab$ranking_score),]
 # save LeadingEdge
 outfile <- paste0(opt$directory,"/leading_edge.tsv")
-message(" -- saving to: ", outfile)
+message("--- saving to: ", outfile)
 write.table(leadingEdge_tab, outfile, col.names = T, quote = F, row.names = F, sep="\t")
 
