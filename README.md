@@ -146,6 +146,8 @@ and a second tab-delimited file reporting a summary triplex score for each dsDNA
 
 `Score_best`: PATO best score (sum of the matches).
 
+---
+
 # Run 3plex with Singularity
 
 Find the Singularity image at [3plex/singularity_images/](https://github.com/molinerisLab/3plex/singularity_images/)
@@ -154,16 +156,15 @@ Find the Singularity image at [3plex/singularity_images/](https://github.com/mol
 
 # 3plex Snakemake workflows
 
-The following sections illustrate how to perform some 3plex downstream analyses to additionally evaluate the significance of the triplex-forming capability of an ssRNA.
+The following section illustrates how to perform 3plex downstream analyses to additionally evaluate the significance of the triplex-forming capability of an ssRNA.
 
-```
-TODO
-```
+The workflows are handled with [Snakemake](https://snakemake.github.io/) and structured with [dap](https://github.com/molinerisLab/dap).
 
 ## Dependencies
 
 ```
 pato
+dap
 gawk
 ```
 Find here the [installation guide for PATO](https://github.com/UDC-GAC/pato).
@@ -188,15 +189,20 @@ Create and activate the conda environment:
 conda env create --file=local/envs/3plex.yaml
 conda activate 3plex_Env
 ```
+Then move to the directory that contains the first version of your analysis:
+```
+cd v1
+```
+To run a different version of your analysis you can clone v1 into v2 by running `dap clone v1 v2`.
 
 ## Raw triplex prediction
 
-This workflow produces the raw  _tpx.stability.gz_ and _tpx.summary.add_zeros.gz_ files without Docker from an ssRNA FASTA file and a dsDNA multi-FASTA or BED file.
+This workflow produces the raw  _tpx.stability.gz_ and _tpx.summary.add_zeros.gz_ files previously described. An ssRNA FASTA file and a dsDNA multi-FASTA or BED file are required.
 
 Specify the `ssRNA` and `dsDNA` paths in the `config.yaml`. Then run:
 
 ```
-snakemake -j N_CORES run_raw_tpx_prediction
+snakemake -j CORES run_raw_tpx_prediction
 ```
 
 ## Promoter TPX stability test
@@ -205,7 +211,7 @@ This workflow allows the integration of gene expression data to characterize the
 
 Starting from a list of the "universe of genes" (e.g., all the expressed genes in the system) and a list of genes of interest (e.g., differentially expressed genes identified upon an ssRNA KD):
 
-1. retrieve the promoters associated with the universe of genes (we suggest to refer to [MANE](http://www.ensembl.org/info/genome/genebuild/mane.html));
+1. retrieve the promoters associated with the universe of genes (we suggest to refer to [MANE](http://www.ensembl.org/info/genome/genebuild/mane.html), but a custom selection of promoters is allowed);
 2. run 3plex to find the putative triplexes formed by the ssRNA and the set of promoters;
 3. compare the stability of the putative triplexes formed with promoters of genes of interest with all the remaining genes (Wilcoxon's test);
 4. perform a [gene set enrichment analysis](https://www.gsea-msigdb.org/gsea/index.jsp) ranking the universe of genes according to their triplex stability score thus computing the significance of the enrichment in promoters with a high or a low stability score. The [leading edge](https://www.gsea-msigdb.org/gsea/doc/GSEAUserGuideTEXT.htm#_Running_a_Leading_Edge%20Analysis) table provides a selection of candidate target genes.
@@ -213,7 +219,7 @@ Starting from a list of the "universe of genes" (e.g., all the expressed genes i
 Modify the `Promoter stability test` section in the `config.yaml` according to your needs following the comments. Then run:
 
 ```
-snakemake -j N_CORES run_promoter_tpx_stability_test
+snakemake -j CORES run_promoter_tpx_stability_test
 ```
 
 Find the results in the `results` directory. 
@@ -221,23 +227,28 @@ Find the results in the `results` directory.
 To produce an HTML report, run the following command after the workflow is completed:
 
 ```
-snakemake -j N_CORES run_promoter_tpx_stability_test --report report.html
+snakemake -j CORES run_promoter_tpx_stability_test --report report.html
 ```
 
 ## Random regions test
 
 This workflow tests the triplex-forming capability of each ssRNA portion, namely the DBDs. 
 
-This result is achieved by comparing the stability of the DBD's putative triplexs identified considering a set of target regions (e.g., ChIRP-seq data) with a null distribution built on the stability scores obtained testing randomized genomic regions N times.
+This result is achieved by comparing the stability of the DBDs' putative triplexs identified considering a set of target regions (e.g., ChIRP-seq data) with a null distribution built on the stability scores obtained testing randomized genomic regions N times.
 
-Operatively,
+Operatively:
+
+1. run 3plex on the set of target regions and define the DBDs as the union of the overlapping TFOs;
+2. generate N times the same number of regions with bedtools shuffle, excluding blacklist regions. 3plex is run each time to retrieve the TTS count and stability of the triplexes;
+3. Compute the empirical p-value for each DBD by counting the number of times the upper quartile of the DBD's putative triplexes' score is lower than the upper quartile obtained with random genomic regions.
+
+Modify the `Random region test` section in the `config.yaml` according to your needs following the comments. Then run:
 
 ```
-TODO
-snakemake -j N_CORES run_random_region_test
+snakemake -j CORES run_random_region_test
 ```
 
-
+Find the results in the `results` directory. 
 
 ---
 
