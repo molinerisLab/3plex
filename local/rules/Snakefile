@@ -42,7 +42,6 @@ rule shuffle_bed:
 		temp("{file}_shuf_{run,\d+}.bed")
 	shell:"""
 		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed $(date +%s%N) > {output}
-		#| bawk '{{$4="rand_"$4; $5="neg"; print}}' 
 	"""
 
 rule ln_dsDNA_predefined_fa:
@@ -118,20 +117,22 @@ rule RNAplfold_lunp_modif_zscore_packed:
 	"""
 
 rule prepare_tfo_profile:
-	input: "{file}.tpx.stability.gz"
-	output: temp("{file}.tpx.stability.tfo_profile.pre")
+	input: 
+		"{file}.tpx.stability.gz"
+	output:
+		temp(local("{file}.tpx.stability.tfo_profile.pre"))
 	shell:"""
 		zcat {input} | cut -f 2,3,14 | tail -n +2 | bsort -k3,3nr -k1,1n  -S2% > {output}
 	"""
 
 rule get_tfo_profile_range_packed:
-        input:
-                "{ssRNA}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre"
-        output:
-                "{ssRNA}.profile_range.msgpack"
-        shell: """	
-			tfo_profile.py < {input} > {output}
-        """
+	input:
+		"{ssRNA}_ssmasked-dsDNA.tpx.stability.tfo_profile.pre"
+	output:
+		"{ssRNA}.profile_range.msgpack"
+	shell: """
+		tfo_profile.py < {input} > {output}
+	"""
 
 rule aggregated_random_tpx:
 	input:
@@ -156,24 +157,34 @@ rule aggregated_random_tpx_fasta:
 	shell: """
 		tfo_profile.py -m {input} > {output}
 	"""
+
 ruleorder: aggregated_random_tpx > aggregated_random_tpx_fasta
 ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 
 
 
-##############################
-# From sequences - one ssRNA #
-##############################
+##################################
+# Raw tpx prediction - one ssRNA #
+##################################
 
-rule run_from_sequences:
+# Input:
+# 1) ssRNA [FASTA]
+# 2) dsDNA [BED|FASTA]
+
+# Output:
+# 1) Summary score for the tpx interaction between ssRNA and each dsDNA sequence [*tpx.summary.add_zeros.gz]
+# 2) Singular score for each TFO-TTS interaction as number of matches or thermal stability [*.tpx.stability.gz]
+
+# ALL ---
+rule run_raw_tpx_prediction:
 	input:
 		summary=expand("{ssRNA}_ssmasked-{dsDNA}.tpx.summary.add_zeros.gz",
-				ssRNA=get_sequence_name(config["from_sequences"]["ssRNA"]),
-				dsDNA=get_sequence_name(config["from_sequences"]["dsDNA"])
+				ssRNA=get_sequence_name(config["ssRNA"]),
+				dsDNA=get_sequence_name(config["dsDNA"])
 		),
 		stability=expand("{ssRNA}_ssmasked-{dsDNA}.tpx.stability.gz",
-				ssRNA=get_sequence_name(config["from_sequences"]["ssRNA"]),
-				dsDNA=get_sequence_name(config["from_sequences"]["dsDNA"])
+				ssRNA=get_sequence_name(config["ssRNA"]),
+				dsDNA=get_sequence_name(config["dsDNA"])
 		)
 
 
@@ -193,11 +204,22 @@ rule run_from_sequences:
 # 4) Enrichment plot
 # 5) Leading edge list
 
+# ALL ---
+rule run_promoter_tpx_stability_test:
+	input:
+		enrich=expand("results/{ssRNA}/{stability_score}/fgseaRes.tsv",
+				ssRNA=get_sequence_name(config["ssRNA"]),
+				stability_score=config["score"]),
+		mann_whitney=expand("results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
+				ssRNA=get_sequence_name(config["ssRNA"]),
+				stability_score=config["score"])
+
+
 # TODO: check if genes of interest are included in the universe of genes
 rule check_gene_inclusion:
 	input:
-		genes_all=config["promoter_tpx_stability_test"]["genes_all"],
-		genes_of_interest=config["promoter_tpx_stability_test"]["genes_of_interest"]
+		genes_all=config["genes_all"],
+		genes_of_interest=config["genes_of_interest"]
 	output:
 		"check_gene_inclusion_done"
 	shell:"""
@@ -207,7 +229,7 @@ rule check_gene_inclusion:
 rule tss_from_gene:
 	input:
 		tss_ref=config["tss_ref_bed"],
-		gene_list=config["promoter_tpx_stability_test"]["genes_all"]
+		gene_list=config["genes_all"]
 	output:
 		"genes_all.tss.bed"
 	shell: """
@@ -216,16 +238,14 @@ rule tss_from_gene:
 
 rule create_tblist:
 	input:
-		genes_all=config["promoter_tpx_stability_test"]["genes_all"],
-		genes_of_interest=config["promoter_tpx_stability_test"]["genes_of_interest"]
+		genes_all=config["genes_all"],
+		genes_of_interest=config["genes_of_interest"],
+		tss_ref=config["tss_ref_bed"]
 	output:
 		"tblist.tsv"
-	shell:"""
-		cat \
-			<(bawk '{{print $1,"putative_target"}}' {input.genes_of_interest}) \
-			<(filter_1col -v 1 {input.genes_of_interest} < {input.genes_all} | bawk '{{print $1,"background"}}') \
-		> {output}
-	"""
+	shell:
+		"cat <(bawk '{{print $1,\"putative_target\"}}' {input.genes_of_interest}) <(filter_1col -v 1 {input.genes_of_interest} < {input.genes_all} | bawk '{{print $1,\"background\"}}') "
+		"| filter_1col 1 <(cut -f4 {input.tss_ref}) > {output}"
 
 rule run_stability_comp:
 	input:
@@ -234,14 +254,14 @@ rule run_stability_comp:
 	output:
 		tab="results/{ssRNA}/{stability_score}/stability_comp.tsv",
 		boxplot=report(
-            "results/{ssRNA}/{stability_score}/stability_comp_boxplot." + config.get("promoter_tpx_stability_test", {}).get("plot_format", ""),
-            caption="../../local/report/promoter_tpx_stability_test-stability_comp_boxplot.rst",
-            category="promoter_tpx_stability_test",
-            subcategory="stability_comp",
-            labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
-        )
+			"results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
+			caption="../../local/report/promoter_tpx_stability_test-stability_comp_boxplot.rst",
+			category="promoter_tpx_stability_test",
+			subcategory="stability_comp",
+			labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
+			)
 	shell:"""
-		stability_comp.r \
+		../../local/bin/promoter_tpx_stability_test-stability_comp_boxplot.R \
 			-t {input.tpx} \
 			-l {input.tblist} \
 			-d `dirname {output.boxplot}` \
@@ -253,58 +273,48 @@ rule create_rnk:
 	input:
 		"{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.gz"
 	output:
-		"{ssRNA}_{stability_score}_rnk.gz"
-	shell:"""
-		bawk 'NR>1{{split($1,a,"::"); print a[1],${wildcards.stability_score}}}' {input} \
-		| sort -k2,2n \
-		| find_best 1 2 \
-		| gzip > {output}
-	"""
+		"{ssRNA}-{stability_score}-rnk.gz"
+	shell:
+		"bawk 'NR>1{{split($1,a,\"::\"); print a[1],${wildcards.stability_score}}}' {input} "
+		"| sort -k2,2n "
+		"| find_best 1 2 "
+		"| gzip > {output}"
+
 
 rule create_gmt:
 	input:
-		config["promoter_tpx_stability_test"]["genes_of_interest"]
+		"tblist.tsv"
 	output:
 		"genes_of_interest.gmt"
-	shell:"""
-		tr "\\n" "\\t" < {input} \
-		| bawk '{{print "genes_of_interest",".",$0}}' > {output}
-	"""
+	shell:
+		"bawk '$2==\"putative_target\"{{print $1}}' {input} "
+		"| tr \"\\n\" \"\\t\" "
+		"| bawk '{{print \"genes_of_interest\",\".\",$0}}' > {output}"
 
 rule run_fgsea:
 	input:
-		rnk="{ssRNA}_{stability_score}_rnk.gz",
+		rnk="{ssRNA}-{stability_score}-rnk.gz",
 		gmt="genes_of_interest.gmt"
 	output:
 		leading_edge="results/{ssRNA}/{stability_score}/leading_edge.tsv",
 		enrich_plot=report(
-            "results/{ssRNA}/{stability_score}/enrichment_plot." + config.get("promoter_tpx_stability_test", {}).get("plot_format", ""),
-            caption="../../local/report/promoter_tpx_stability_test-enrich_plot.rst",
-            category="promoter_tpx_stability_test",
-            subcategory="enrichment_test",
-            labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
-        ),
+			"results/{ssRNA}/{stability_score}/enrichment_plot.pdf",
+			caption="../../local/report/promoter_tpx_stability_test-enrich_plot.rst",
+			category="promoter_tpx_stability_test",
+			subcategory="enrichment_test",
+			labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
+			),
 		fgsea="results/{ssRNA}/{stability_score}/fgseaRes.tsv"
 	shell:"""
 		run_fgsea.r \
 			-g {input.gmt} \
 			-r {input.rnk} \
-			-n {config[promoter_tpx_stability_test][gsea][nperm]} \
-			-b {config[promoter_tpx_stability_test][gsea][max_genes_in_set]} \
-			-s {config[promoter_tpx_stability_test][gsea][min_genes_in_set]} \
+			-n {config[gsea][nperm]} \
+			-b {config[gsea][max_genes_in_set]} \
+			-s {config[gsea][min_genes_in_set]} \
 			-d `dirname {output.fgsea}` \
-			-o {config[promoter_tpx_stability_test][plot_format]} \
-			--gseaParam {config[promoter_tpx_stability_test][gsea][gsea_weight]}
+			--gseaParam {config[gsea][gsea_weight]}
 	"""
-
-rule run_promoter_tpx_stability_test:
-	input:
-		enrich=expand("results/{ssRNA}/{stability_score}/fgseaRes.tsv",
-				ssRNA=get_sequence_name(config["promoter_tpx_stability_test"]["ssRNA"]),
-				stability_score=config["promoter_tpx_stability_test"]["score"]),
-		mann_whitney=expand("results/{ssRNA}/{stability_score}/stability_comp_boxplot." + config.get("promoter_tpx_stability_test", {}).get("plot_format", ""),
-				ssRNA=get_sequence_name(config["promoter_tpx_stability_test"]["ssRNA"]),
-				stability_score=config["promoter_tpx_stability_test"]["score"])
 
 
 
@@ -313,8 +323,43 @@ rule run_promoter_tpx_stability_test:
 ###################################
 
 # Input:
+# 1) ssRNA [FASTA]
+# 2) Genomic target [BED|FASTA]
 
 # Output:
+# 1) Statistics and significance of DBDs
+
+# ALL ---
+rule run_random_region_test:
+	input:
+		expand("results/{ssRNA}_ssmasked-{dsDNA}-dbds_pvalue.tsv", 
+				ssRNA=get_sequence_name(config["ssRNA"]), 
+				dsDNA=get_sequence_name(config["dsDNA"]))
+	shell:"""
+		rm *shuf*
+	"""
+
+rule get_dbd:
+	input:
+		"{file}.tpx.stability.gz"
+	output:
+		"{file}.dbd"
+	shell:
+		"zcat {input} | cut -f1-3 "
+		"| bedtools sort | bedtools merge "
+		"| bawk '{{print $2\"-\"$3-1,$2,$3-1}}' > {output}"
+
+rule p_value_for_dbds:
+	input:
+		tpx_profile_pre = "{ssRNA}_ssmasked-{dsDNA}.tpx.stability.tfo_profile.pre",
+		dbd_file = "{ssRNA}_ssmasked-{dsDNA}.dbd",
+		tpx_profile_random = expand("{{ssRNA}}_ssmasked-{{dsDNA}}_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+	output: 
+		"results/{ssRNA}_ssmasked-{dsDNA}-dbds_pvalue.tsv"
+	shell: """
+		random_regions_pvalue.py {input.dbd_file} {input.tpx_profile_pre} {input.tpx_profile_random} > {output}
+	"""
+
 
 
 ########################################

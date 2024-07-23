@@ -1,9 +1,9 @@
 #!/usr/bin/env Rscript
 
-suppressPackageStartupMessages(suppressWarnings(library(fgsea)))
-suppressPackageStartupMessages(suppressWarnings(library(optparse)))
-suppressPackageStartupMessages(library(ggpubr))
-suppressPackageStartupMessages(library(rstatix))
+suppressMessages(suppressWarnings(library(fgsea)))
+suppressMessages(suppressWarnings(library(ggplot2)))
+suppressMessages(suppressWarnings(library(optparse)))
+
 # Functions ----
 read.gmt <- function (file) 
 {
@@ -61,11 +61,13 @@ gmt <- read.gmt(opt$gmtfile)
 rnk <- read.table(opt$rnkfile, header = F, col.names = c("GeneID", "value"))
 rnk_vector <- unlist(rnk$value)
 names(rnk_vector) <- rnk$GeneID
+rnk_vector <- sort(rnk_vector, decreasing = TRUE)
 # Create fGSEA an Leading_Edge directory
 if(!dir.exists(opt$directory)) dir.create(opt$directory, recursive = T, showWarnings = FALSE)
 if(!dir.exists(opt$leadingedge)) dir.create(opt$leadingedge, recursive = T, showWarnings = FALSE)
 # 1. Run fGSEA ----
 # Add condition: if(simple or multilevel)
+message("--- Running fgseaSimple")
 fgseaRes <- suppressWarnings(fgsea::fgseaSimple(
   pathways = gmt,
 	stats    = rnk_vector,
@@ -77,35 +79,35 @@ fgseaRes <- suppressWarnings(fgsea::fgseaSimple(
   ))
 # Check fGSEA output
 if(!is.null(fgseaRes)){
-  message(" -- fgseaSimple done")
+  message("--- fgseaSimple done")
 } else {
-  stop(" -- Error in fgseaSimple! Exit")
+  stop("--- Error in fgseaSimple! Exit")
 }
 # save fgseaRes
 outfile_tab <- paste0(opt$directory,"/fgseaRes.tsv")
-message(" -- saving to: ", outfile_tab)
+message("--- saving to: ", outfile_tab)
 write.table(subset(fgseaRes, select = -c(leadingEdge)), outfile_tab, col.names = T, quote = F, row.names = F, sep="\t")
 
 
 # 2. Plot fgsea ----
 # fGSEA enrich plot
+# # https://www.genekitr.fun/plot-gsea-1
 fgseaPlot <- fgsea::plotEnrichment(
   pathway = gmt$genes_of_interest,
   stats = rnk_vector,
   gseaParam = opt$gseaParam
   )
+fgseaPlot <- fgseaPlot + 
+  xlab(paste0("Genes in descending order of ", basename(opt$directory))) +
+  labs(title = "GeneSet Enrichment Analysis",
+       subtitle = paste0("NES: ", fgseaRes[which(fgseaRes$pathway=="genes_of_interest"),"NES"], "\nFDR: ", fgseaRes[which(fgseaRes$pathway=="genes_of_interest"),"padj"]))
+
 # save plot fgsea
-if(opt$format=="pdf"){
-  outfile <- paste0(opt$directory,"/enrichment_plot.pdf")
-  message(" -- saving to: ", outfile)
-  pdf(file = outfile, paper = "a4", w = 4, h = 4)
-  print(fgseaPlot)
-  invisible(dev.off())
-} else {
-  outfile <- paste0(opt$directory, "/enrichment_plot.png")
-  message(" -- saving to: ", outfile)
-  ggsave(outfile, fgseaPlot, dpi = 300)  
-}
+outfile <- paste0(opt$directory,"/enrichment_plot.pdf")
+message("--- saving to: ", outfile)
+pdf(file = outfile, paper = "a4", w = 4, h = 4)
+print(fgseaPlot)
+rm <- dev.off()
 
 # 3. Create LeadingEdge table ----
 if(nrow(fgseaRes)==0){
@@ -124,5 +126,6 @@ if(nrow(fgseaRes)==0){
 }
 # save LeadingEdge
 outfile <- paste0(opt$directory,"/leading_edge.tsv")
-message(" -- saving to: ", outfile)
+message("--- saving to: ", outfile)
 write.table(leadingEdge_tab, outfile, col.names = T, quote = F, row.names = F, sep="\t")
+
