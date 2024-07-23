@@ -238,15 +238,13 @@ rule tss_from_gene:
 rule create_tblist:
 	input:
 		genes_all=config["genes_all"],
-		genes_of_interest=config["genes_of_interest"]
+		genes_of_interest=config["genes_of_interest"],
+		tss_ref=config["tss_ref_bed"]
 	output:
 		"tblist.tsv"
-	shell:"""
-		cat \
-			<(bawk '{{print $1,"putative_target"}}' {input.genes_of_interest}) \
-			<(filter_1col -v 1 {input.genes_of_interest} < {input.genes_all} | bawk '{{print $1,"background"}}') \
-		> {output}
-	"""
+	shell:
+		"cat <(bawk '{{print $1,\"putative_target\"}}' {input.genes_of_interest}) <(filter_1col -v 1 {input.genes_of_interest} < {input.genes_all} | bawk '{{print $1,\"background\"}}') "
+		"| filter_1col 1 <(cut -f4 {input.tss_ref}) > {output}"
 
 rule run_stability_comp:
 	input:
@@ -274,22 +272,22 @@ rule create_rnk:
 		"{ssRNA}_ssmasked-genes_all.tss.tpx.summary.add_zeros.gz"
 	output:
 		"{ssRNA}-{stability_score}-rnk.gz"
-	shell:"""
-		bawk 'NR>1{{split($1,a,"::"); print a[1],${wildcards.stability_score}}}' {input} \
-		| sort -k2,2n \
-		| find_best 1 2 \
-		| gzip > {output}
-	"""
+	shell:
+		"bawk 'NR>1{{split($1,a,\"::\"); print a[1],${wildcards.stability_score}}}' {input} "
+		"| sort -k2,2n "
+		"| find_best 1 2 "
+		"| gzip > {output}"
+
 
 rule create_gmt:
 	input:
-		config["genes_of_interest"]
+		"tblist.tsv"
 	output:
 		"genes_of_interest.gmt"
-	shell:"""
-		tr "\\n" "\\t" < {input} \
-		| bawk '{{print "genes_of_interest",".",$0}}' > {output}
-	"""
+	shell:
+		"bawk '$2==\"putative_target\"{{print $1}}' {input} "
+		"| tr \"\\n\" \"\\t\" "
+		"| bawk '{{print \"genes_of_interest\",\".\",$0}}' > {output}"
 
 rule run_fgsea:
 	input:
