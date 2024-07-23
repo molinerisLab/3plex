@@ -44,7 +44,9 @@ option_list <- list(
   make_option("--gseaParam", type="integer", default=0,
               help="GSEA parameter value, all gene-level stats are raised to the power of gseaParam before calculation of ES."),
   make_option(c("-j","--cores"), type="integer", default=1,
-              help="Parallelization.")
+              help="Parallelization."),
+  make_option(c("-o","--format"), action="store", default="pdf",
+              help="Plots format: pdf or png.")
 )
 opt <- parse_args(OptionParser(option_list = option_list))
 
@@ -63,8 +65,6 @@ rnk_vector <- sort(rnk_vector, decreasing = TRUE)
 # Create fGSEA an Leading_Edge directory
 if(!dir.exists(opt$directory)) dir.create(opt$directory, recursive = T, showWarnings = FALSE)
 if(!dir.exists(opt$leadingedge)) dir.create(opt$leadingedge, recursive = T, showWarnings = FALSE)
-
-
 # 1. Run fGSEA ----
 # Add condition: if(simple or multilevel)
 message("--- Running fgseaSimple")
@@ -110,16 +110,20 @@ print(fgseaPlot)
 rm <- dev.off()
 
 # 3. Create LeadingEdge table ----
-gene_set <- as.data.frame(gmt$genes_of_interest)
-colnames(gene_set) <- "GeneID"
-leadingEdge_tab <- as.data.frame(fgseaRes$leadingEdge[[1]])
-colnames(leadingEdge_tab) <- "GeneID"
-leadingEdge_tab$hit <- "Yes"
-leadingEdge_tab <- merge(gene_set, leadingEdge_tab, all.x=T, by="GeneID")
-leadingEdge_tab[is.na(leadingEdge_tab)] <- "No"
-leadingEdge_tab <- merge(leadingEdge_tab, rnk, by="GeneID")
-colnames(leadingEdge_tab)[3]<-"ranking_score"
-leadingEdge_tab <- leadingEdge_tab[order(leadingEdge_tab$ranking_score),]
+if(nrow(fgseaRes)==0){
+  leadingEdge_tab <- data.frame()
+}else{
+  gene_set <- as.data.frame(gmt$genes_of_interest)
+  colnames(gene_set) <- "GeneID"
+  leadingEdge_tab <- as.data.frame(fgseaRes$leadingEdge[[1]])
+  colnames(leadingEdge_tab) <- "GeneID"
+  leadingEdge_tab$hit <- "Yes"
+  leadingEdge_tab <- merge(gene_set, leadingEdge_tab, all.x=T, by="GeneID")
+  leadingEdge_tab[is.na(leadingEdge_tab)] <- "No"
+  leadingEdge_tab <- merge(leadingEdge_tab, rnk, by="GeneID")
+  colnames(leadingEdge_tab)[3]<-"ranking_score"
+  leadingEdge_tab <- leadingEdge_tab[order(leadingEdge_tab$ranking_score),]
+}
 # save LeadingEdge
 outfile <- paste0(opt$directory,"/leading_edge.tsv")
 message("--- saving to: ", outfile)

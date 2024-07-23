@@ -29,7 +29,9 @@ option_list <- list(
   make_option(c("-s", "--score"), action="store", default="Stability_best",
               help="TPX score used to rank target/background regions. Available: Stability_best, Stability_tot, Score_best, Stability_norm. [ Default: Stability_norm ]."),
   make_option(c("-d", "--directory"), action ="store", default=".",
-              help="Output directory [ Default: . ].")
+              help="Output directory [ Default: . ]."),
+  make_option(c("-f","--format"), action="store", default="pdf",
+              help="Plots format: pdf or png.")
 )
 opt <- parse_args(OptionParser(option_list = option_list))
 

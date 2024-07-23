@@ -29,7 +29,8 @@ rule dsdna_fasta_from_bed:
 	output:
 		"{dsDNA}.fa"
 	shell: """
-		bedtools getfasta -name+ -fi {config[genome_fasta]} -bed {input} -fo {wildcards.dsDNA}.fa
+		bedtools getfasta -name+ -fi {config[genome_fasta]} -bed {input} -fo {wildcards.dsDNA}.tmp.fa
+		seqkit rmdup -s {wildcards.dsDNA}.tmp.fa > {wildcards.dsDNA}.fa
 	"""
 	
 rule shuffle_bed:
@@ -264,6 +265,7 @@ rule run_stability_comp:
 			-t {input.tpx} \
 			-l {input.tblist} \
 			-d `dirname {output.boxplot}` \
+			-f {config[promoter_tpx_stability_test][plot_format]} \
 			--score {wildcards.stability_score}
 	"""
 

@@ -3,7 +3,7 @@ gencode_dir_prefix: /home/reference_data/bioinfotree/task/gencode/dataset
 species: hsapiens
 
 seed: 42
-
+dsDNA_predefined: "null"
 randomization_num: 100
 
 pato:
