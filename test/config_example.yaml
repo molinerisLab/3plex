@@ -1,0 +1,87 @@
+# -------------- #
+# General config #
+# -------------- #
+
+# path to genome assembly [FASTA]
+genome_fasta: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/GRCh38.primary_assembly.genome.fa
+
+# path to transcript [FASTA]
+transcript_fastas: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/transcripts.longest.fa.gz
+
+
+
+# ------------ # 
+# 3plex config #
+# ------------ #
+
+pato:
+        min_length: 10
+        max_length: -1
+        error_rate: 20
+        guanine_rate: 40
+        filter_repeat: off
+        consecutive_errors: 1
+        other_parameters: ""
+
+RNAplfold:
+        single_strandedness_cutoff: 0
+
+
+
+# ------------------------- #
+# Advanced workflows config #
+# ------------------------- #
+
+# General ---
+
+# path to ssRNA [FASTA]
+ssRNA: ../../test/SRA1.fa
+
+# path to dsDNA [FASTA|BED]
+dsDNA: ../../test/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.bed
+
+
+
+# Promoter stability test specific ---
+
+# path to universe of genes [one column TXT]
+genes_all: ../../test/universe_of_genes.txt
+# path to genes of interest [one column TXT]
+genes_of_interest: ../../test/genes_of_interest.txt
+# path to promoters [mandatory:  chr | start | end | gene_id ]
+tss_ref_bed: ../../test/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.bed
+# tpx scores to compare promoters
+score:
+        - Stability_best
+        - Stability_norm
+# params to run gene set enrichment
+gsea:
+        max_genes_in_set: 10000
+        min_genes_in_set: 5
+        nperm: 1000
+        gsea_weight: 0
+
+
+
+# Random region test specific ---
+
+# path to blacklist file to remove when shuffling genomic regions [BED]
+shuffle_blacklist: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/hg38.shuffle_blacklist.bed
+# path to chrom.info file
+chrom_info: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/chrom.info.no_alt
+# Number of randomization to build the null model [INT]
+randomization_num: 10
+
+
+
+# Promoter stability test [ssRNA list version] ---
+
+promoter_stability_test:
+        tblist: "null"
+        score: "null"
+
+
+
+# Other ---
+
+dsDNA_predefined: null
