@@ -1,10 +1,26 @@
 #!/usr/bin/env Rscript
 
-suppressPackageStartupMessages(library(optparse))
-suppressPackageStartupMessages(library(ggpubr))
-suppressPackageStartupMessages(library(rstatix))
-suppressPackageStartupMessages(library(dplyr))
+suppressMessages(suppressWarnings(library(optparse)))
+suppressMessages(suppressWarnings(library(ggpubr)))
+suppressMessages(suppressWarnings(library(rstatix)))
+suppressMessages(suppressWarnings(library(dplyr)))
 
+
+# check infile ----
+check_infile <- function(file_path) {
+  if (!file.exists(file_path)) {
+    stop(paste(file_path, "does not exist."))
+  }
+  file_info <- file.info(file_path)
+  if (file_info$size == 0) {
+    stop(paste(file_path, "is empty."))
+  } else {
+    message(paste("--- Reading:", file_path))
+  }
+}
+
+
+# options ---
 option_list <- list( 
   make_option(c("-t", "--tpxlist"), action="store", default=NULL,
               help="Matrix of ssRNA tpx calculated with 3plex on target and background regions."),
@@ -17,15 +33,17 @@ option_list <- list(
 )
 opt <- parse_args(OptionParser(option_list = option_list))
 
+
+
 # create output directory
 if(!dir.exists(opt$directory)) dir.create(opt$directory, recursive = T, showWarnings = FALSE)
 
 # read 3plex output 
-message(paste0("--- Reading: ",opt$tpxlist))
+check_infile(opt$tpxlist)
 tpx <- read.delim(opt$tpxlist, header=T)
 
 # read target and background list
-message(paste0("--- Reading: ", opt$tblist))
+check_infile(opt$tblist)
 tblist <- read.delim(opt$tblist, header=F, col.names=c("GeneID","class"))
 
 # retrieve ssRNA name and extract duplex_id name
@@ -85,4 +103,4 @@ outfile <- paste0(opt$directory, "/stability_comp_boxplot.pdf")
 message(paste0("--- Saving to: ",outfile))
 pdf(file = outfile, paper="a4", width = 3, height = 3.5)
 bxp
-dev.off()
+rm <- dev.off()
