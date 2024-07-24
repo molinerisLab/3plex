@@ -63,17 +63,6 @@ randomization_num: 1000
 
 
 
-# Promoter stability test [ssRNA list version] ---
-
-# path to transcript [FASTA]
-transcript_fastas: path/to/transcript.fa
-
-promoter_stability_test:
-        tblist: "null"
-        score: "null"
-
-
-
 # Other ---
 
 dsDNA_predefined: null

@@ -164,7 +164,7 @@ ruleorder: dsdna_fasta_from_bed > shuffle_fasta
 
 
 ##################################
-# Raw tpx prediction - one ssRNA #
+# Raw TPX prediction - one ssRNA #
 ##################################
 
 # Input:
@@ -213,18 +213,6 @@ rule run_promoter_tpx_stability_test:
 		mann_whitney=expand("results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
 				ssRNA=get_sequence_name(config["ssRNA"]),
 				stability_score=config["score"])
-
-
-# TODO: check if genes of interest are included in the universe of genes
-rule check_gene_inclusion:
-	input:
-		genes_all=config["genes_all"],
-		genes_of_interest=config["genes_of_interest"]
-	output:
-		"check_gene_inclusion_done"
-	shell:"""
-
-	"""
 
 rule tss_from_gene:
 	input:
@@ -279,7 +267,6 @@ rule create_rnk:
 		"| sort -k2,2n "
 		"| find_best 1 2 "
 		"| gzip > {output}"
-
 
 rule create_gmt:
 	input:
@@ -361,117 +348,6 @@ rule p_value_for_dbds:
 	"""
 
 
-
-########################################
-# Promoter Stability Test - ssRNA List #
-########################################
-
-# Input: 
-# 1) list of ssRNA with associated targets and background genes (e.g., expressed genes)
-# .META:
-#	1) ssRNA
-#	2) gene_name
-#	3) class (target | background)
-
-# Output:
-# 1) matrix reduced tpx table
-# 2) boxplot for each ssRNA
-# 3) table of mw pval
-
-# retrieve ssRNA names from each list
-def all_selected_ssRNA_id():
-	if (config["promoter_stability_test"]["tblist"] == "null"):
-		return set()
-	selected_ssRNA = set([line.rstrip().split("\t")[0] for line in open(config["promoter_stability_test"]["tblist"]).readlines()])
-	for ssRNA in selected_ssRNA:
-		yield ssRNA.replace("-","_")
-
-# split target and background lists for each ssRNA
-rule prepare_promoter_stability_ssRNA:
-	input:
-		tblist=config["promoter_stability_test"]["tblist"],
-		trasncript_fastas=config["transcript_fastas"]
-	output:
-		"promoter_stability_test/{ssRNA}/{ssRNA}.fasta"
-	shell: """
-		ssRNA=$(echo "{wildcards.ssRNA}" | tr "_" "-");\
-		mkdir -p $(dirname {output});\
-		zcat {input.trasncript_fastas} | fasta2oneline | bawk -v env_var="$ssRNA" '$2==env_var{{print ">"$2"\\n"$3}}' > {output}
-	"""
-
-rule prepare_promoter_stability_ssRNA_tblist:
-	input:
-		config["promoter_stability_test"]["tblist"]
-	output:
-		"{ssRNA}_tblist.tsv"
-	shell: """
-		ssRNA=$(echo "{wildcards.ssRNA}" | tr "_" "-");\
-		bawk -v env_var="$ssRNA" '$1==env_var{{print $2}}' {input} > {output}
-	"""	
-
-# create a bed formatted file from the promoters list
-rule tss_from_gene_list:
-	input:
-		tss_ref=config['tss_ref_bed'],
-		gene_list="{ssRNA}_tblist.tsv"
-	output:
-		"{ssRNA}_tblist.tss.bed"
-	shell: """
-		filter_1col 4 {input.gene_list} < {input.tss_ref} > {output} 
-	"""
-
-# run 3plex 
-rule all_target_tpx:
-	input:
-		expand("promoter_stability_test/{ssRNA}/{ssRNA}_ss{single_strandedness_cutoff}-{ssRNA}_tblist.tss.tpx.summary.add_zeros.gz",#mw_boxplot.pdf
-			ssRNA = all_selected_ssRNA_id(),
-			single_strandedness_cutoff = config["RNAplfold"]["single_strandedness_cutoff"]
-			)
-	output:
-		"target_genes.tss.tpx.summary.add_zeros.gz"
-	shell:"""
-		matrix_reduce -t 'promoter_stability_test/*/*_ss*-*_tblist.tss.tpx.summary.add_zeros.gz'	\
-		| tr ";" "\\t" | cut -f5- | bawk 'NR==1 || $1!="Duplex_ID"' \
-		| gzip > {output}
-	"""
-
-# to fix: check lists merge 
-rule mw_boxplot:
-	input:
-		tpx="{path}.tpx.summary.add_zeros.gz",
-		#tpx="{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.gz",
-		tblist=config["promoter_stability_test"]["tblist"]
-	output:
-		"{path}.tpx.summary.add_zeros.mw_boxplot.pdf"
-		#"{ssRNA}_ss{single_strandedness_cutoff}-{dsDNA}.tpx.summary.add_zeros.mw_boxplot.pdf"
-	shell:"""
-		mw_boxplot.r -t {input.tpx} -l {input.tblist} --score {config[promoter_stability_test][score]} > {output}
-	"""
-
-# run mw test on scores
-rule run_promoter_stability_test:
-	input:
-		tpx="target_genes.tss.tpx.summary.add_zeros.gz",
-		tblist=config["promoter_stability_test"]["tblist"]
-	output:
-		"mwtest_3plex.tsv"
-	shell:"""
-		mwtest.r -t {input.tpx} -l {input.tblist} --score {config[promoter_stability_test][score]} > {output}
-	"""
-
-#rule regulatory_regions_test_html:
-#	input:
-#		target=config["target_genes_tpx"],
-#		background=config["background_genes_tpx"], # e.g. expressed genes
-#		rmd="regulatory_region_test.Rmd"
-#	output:
-#	   target_backgound_stability="target_backgound_stability.tsv",
-#	   html="regulatory_region_test.html"
-#	shell:"""
-#		bawk 'BEGIN{{print "Stability_best","Class"}} NR>1{{print $12,"target"}}' {input.target} > {output.target_backgound_stability}; \
-#		bawk 'NR>1{{print $12, "background"}}' {input.background} >> {output.target_backgound_stability}; \
-#		Rscript -e 'library(rmarkdown); rmarkdown::render("{input.rmd}", output_file="{output.html}", quiet=TRUE)'
-#	"""
 
 
 

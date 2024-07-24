@@ -42,8 +42,3 @@ gsea:
         min_genes_in_set: "null"
         nperm: "null"
         gsea_weight: "null"
-
-
-promoter_stability_test:
-        tblist: "null"
-        score: "null"
