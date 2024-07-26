@@ -286,12 +286,11 @@ def main():
         min_stability = sorted(map(lambda x: float(x), stability_values))[0]
         to_export = stats[str(min_stability)]
 
-    if not args.tfo_file:
-        if args.json:
-            sys.stdout.write(json.dumps(to_export))
-        else:
-            packed_matrix = msgpack.packb(to_export, use_bin_type=True)
-            sys.stdout.buffer.write(packed_matrix)        
+    if args.json:
+        sys.stdout.write(json.dumps(to_export))
+    else:
+        packed_matrix = msgpack.packb(to_export, use_bin_type=True)
+        sys.stdout.buffer.write(packed_matrix)        
 
 if __name__=="__main__":
     main()
