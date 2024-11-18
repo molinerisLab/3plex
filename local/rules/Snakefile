@@ -216,24 +216,24 @@ rule run_promoter_tpx_stability_test:
 
 rule tss_from_gene:
 	input:
-		tss_ref=config["tss_ref_bed"],
+		promoters_ref=config["promoters_ref_bed"],
 		gene_list=config["genes_all"]
 	output:
 		"genes_all.tss.bed"
 	shell: """
-		filter_1col 4 {input.gene_list} < {input.tss_ref} > {output} 
+		filter_1col 4 {input.gene_list} < {input.promoters_ref} > {output} 
 	"""
 
 rule create_tblist:
 	input:
 		genes_all=config["genes_all"],
 		genes_of_interest=config["genes_of_interest"],
-		tss_ref=config["tss_ref_bed"]
+		promoters_ref=config["promoters_ref_bed"]
 	output:
 		"tblist.tsv"
 	shell:
 		"cat <(bawk '{{print $1,\"putative_target\"}}' {input.genes_of_interest}) <(filter_1col -v 1 {input.genes_of_interest} < {input.genes_all} | bawk '{{print $1,\"background\"}}') "
-		"| filter_1col 1 <(cut -f4 {input.tss_ref}) > {output}"
+		"| filter_1col 1 <(cut -f4 {input.promoters_ref}) > {output}"
 
 rule run_stability_comp:
 	input:
@@ -253,7 +253,6 @@ rule run_stability_comp:
 			-t {input.tpx} \
 			-l {input.tblist} \
 			-d `dirname {output.boxplot}` \
-			-f {config[promoter_tpx_stability_test][plot_format]} \
 			--score {wildcards.stability_score}
 	"""
 

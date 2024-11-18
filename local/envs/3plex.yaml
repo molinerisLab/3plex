@@ -2,7 +2,6 @@ name: 3plex_Env
 channels:
   - bioconda
   - conda-forge
-  - defaults
   - molinerislab
 dependencies:
   - snakemake=7.29.0
@@ -13,21 +12,20 @@ dependencies:
   - ca-certificates
   - certifi
   - openssl
-  - fasta2oneline
-  - find_best
-  - filter_1col
+  - molinerislab::fasta2oneline
+  - molinerislab::find_best=1.0
+  - molinerislab::filter_1col
   - r-rmarkdown
   - r-reshape2
   - r-ggpubr
-  - get_fasta
+  - molinerislab::get_fasta
   - translate
-  - matrix_reduce=1.2
+  - molinerislab::matrix_reduce=1.2
   - r-optparse
-  - bsort
-  - transpose
+  - molinerislab::bsort
+  - molinerislab::transpose
   - snakefmt
   - bioconductor-fgsea
   - sqlite
   - meme
-  - seqkit
-  - meme
+  - bioconda::seqkit

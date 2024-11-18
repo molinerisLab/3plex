@@ -38,7 +38,7 @@ genes_all: path/to/universe_of_genes.txt
 # path to genes of interest [one column TXT]
 genes_of_interest: path/to/genes_of_interest.txt
 # path to promoters [mandatory:  chr | start | end | gene_id ]
-tss_ref_bed: path/to/promoters.bed
+promoters_ref_bed: path/to/promoters.bed
 # tpx scores to compare promoters
 score:
         - Stability_best
