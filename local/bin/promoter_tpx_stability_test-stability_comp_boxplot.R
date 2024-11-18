@@ -31,7 +31,7 @@ option_list <- list(
   make_option(c("-d", "--directory"), action ="store", default=".",
               help="Output directory [ Default: . ]."),
   make_option(c("-f","--format"), action="store", default="pdf",
-              help="Plots format: pdf or png.")
+              help="Plots format: pdf or png. [Default: pdf]")
 )
 opt <- parse_args(OptionParser(option_list = option_list))
 
