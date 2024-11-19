@@ -321,9 +321,18 @@ rule run_random_region_test:
 		expand("results/{ssRNA}_ssmasked-{dsDNA}-dbds_pvalue.tsv", 
 				ssRNA=get_sequence_name(config["ssRNA"]), 
 				dsDNA=get_sequence_name(config["dsDNA"]))
-	shell:"""
-		rm *shuf*
-	"""
+
+ruleorder: tpx_stability_tempfile > tpx_stability
+rule tpx_stability_tempfile:
+    input:
+        "{path}_shuf_{run}.tpx"
+    output:
+        tpx=temp("{path}_shuf_{run}.tpx.stability.gz"),
+        tmp=temp("{path}_shuf_{run}.tpx.stability.gz.tmp")
+    shell: """
+        tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output.tmp}
+        cat {output.tmp} | tpx_thermal_stability.py | gzip > {output.tpx}
+    """
 
 rule get_dbd:
 	input:
@@ -335,17 +344,50 @@ rule get_dbd:
 		"| bedtools sort | bedtools merge "
 		"| bawk '{{print $2\"-\"$3-1,$2,$3-1}}' > {output}"
 
+rule compress_stability_tfo_pre:
+	input:
+		dbd_file = "{ssRNA}_ssmasked-{dsDNA}.dbd",
+		tpx_profile_random = "{ssRNA}_ssmasked-{dsDNA}_shuf_{run}.tpx.stability.tfo_profile.pre"
+	output:
+		temp("{ssRNA}_ssmasked-{dsDNA}_shuf_{run}.tpx.stability.tfo_profile.pre.compressed.msgpack")
+	shell: """
+		get_upper_quartile.py {input.dbd_file} {input.tpx_profile_random} > {output}
+	"""
+ruleorder: pato_no_log > pato
+rule pato_no_log:
+	input:
+		ssRNA_file="{ssRNA}_ssmasked.fa",
+		dsDNA_file="{dsDNA}_shuf_{run}.fa"
+	output:
+		tpx = temp("{ssRNA}_ssmasked-{dsDNA}_shuf_{run}.tpx"),
+		summary = temp("{ssRNA}_ssmasked-{dsDNA}_shuf_{run}.tpx.summary")
+	threads: 64
+	shell: """
+		OMP_NUM_THREADS={threads}\
+		/opt/bin/pato \
+				-l  {config[pato][min_length]} \
+				-L  {config[pato][max_length]} \
+				-e  {config[pato][error_rate]} \
+				-g  {config[pato][guanine_rate]} \
+				-fr {config[pato][filter_repeat]} \
+				-c  {config[pato][consecutive_errors]} \
+				{config[pato][other_parameters]} \
+				-of 1 \
+				--chunk-size {config[pato][sim_sequences]} \
+				-ss {input.ssRNA_file} -ds {input.dsDNA_file} -o {output.tpx} 
+		mv {output.tpx}.out {output.tpx}
+	"""
 rule p_value_for_dbds:
 	input:
 		tpx_profile_pre = "{ssRNA}_ssmasked-{dsDNA}.tpx.stability.tfo_profile.pre",
 		dbd_file = "{ssRNA}_ssmasked-{dsDNA}.dbd",
-		tpx_profile_random = expand("{{ssRNA}}_ssmasked-{{dsDNA}}_shuf_{run}.tpx.stability.tfo_profile.pre", run=range(1, config["randomization_num"]+1))
+		tpx_profile_random = expand("{{ssRNA}}_ssmasked-{{dsDNA}}_shuf_{run}.tpx.stability.tfo_profile.pre.compressed.msgpack", 
+									run=range(1, config["randomization_num"]+1))
 	output: 
 		"results/{ssRNA}_ssmasked-{dsDNA}-dbds_pvalue.tsv"
 	shell: """
 		random_regions_pvalue.py {input.dbd_file} {input.tpx_profile_pre} {input.tpx_profile_random} > {output}
 	"""
-
 
 
 
