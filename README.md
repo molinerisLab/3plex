@@ -93,7 +93,7 @@ See the example of [ssRNA.fa](https://github.com/molinerisLab/3plex/blob/main/te
 
 ### Output
 
-3plex returns one tab-delimited file listing all the TFO:TTS matches: *_tpx.stability.gz_ (see the example of [tpx.stability](https://github.com/molinerisLab/3plex/blob/main/test/results_3plex/SRA1_ssmasked-MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.tpx.stability.gz)).
+3plex returns one tab-delimited file listing all the TFO:TTS matches: *_tpx.stability.gz_ (see the example of [tpx.stability](https://github.com/molinerisLab/3plex/blob/main/test/results_3plex/SRA1_ssmasked-MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.tpx.stability.txt)).
 
 ```
 1   	Sequence_ID
@@ -116,7 +116,7 @@ See the example of [ssRNA.fa](https://github.com/molinerisLab/3plex/blob/main/te
 18  	aln4
 ```
 
-and a second tab-delimited file reporting a summary triplex score for each dsDNA sequence: *_tpx.summary.add_zeros.gz_ (see the example of [tpx.summary](https://github.com/molinerisLab/3plex/blob/main/test/results_3plex/SRA1_ssmasked-MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.tpx.summary.add_zeros.gz)): 
+and a second tab-delimited file reporting a summary triplex score for each dsDNA sequence: *_tpx.summary.add_zeros.gz_ (see the example of [tpx.summary](https://github.com/molinerisLab/3plex/blob/main/test/results_3plex/SRA1_ssmasked-MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.tpx.summary.add_zeros.txt)): 
 
 ```
 1   	Duplex_ID
@@ -234,7 +234,7 @@ snakemake -j CORES run_promoter_tpx_stability_test --report report.html
 
 This workflow tests the triplex-forming capability of each ssRNA portion, namely the DBDs. 
 
-This result is achieved by comparing the stability of the DBDs' putative triplexs identified considering a set of target regions (e.g., ChIRP-seq data) with a null distribution built on the stability scores obtained testing randomized genomic regions N times.
+This result is achieved by comparing the stability of the DBDs' putative triplexes identified considering a set of target regions (e.g., ChIRP-seq data) with a null distribution built on the stability scores obtained testing randomized genomic regions N times.
 
 Operatively:
 
