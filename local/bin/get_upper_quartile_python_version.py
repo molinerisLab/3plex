@@ -6,6 +6,14 @@ import msgpack
 import sys
 import csv
 import time
+
+
+"""
+    This is NOT the get_upper_quartile script used in the Snakefile rules.
+    The right script is the one written in C. This one I leave as a "backup" but it's 4x slower
+"""
+
+
 def find_dbds(b, e, DBDS):
     to_return = []
     L, H = 0, len(DBDS)

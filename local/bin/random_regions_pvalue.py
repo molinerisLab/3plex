@@ -11,41 +11,13 @@ import os
 import numpy as np
 import csv
 
-def get_upper_quartiles(tpx_file, dbds):
-    profile = defaultdict(lambda: 0)
-    profile_stab = defaultdict(lambda: [])
-    for line in tpx_file:
-        b, e, stability = line.rstrip().split("\t")
-        b=int(b)
-        e=int(e)
-        stability=float(stability)
-        for i in range(b,e):
-            profile[i] = profile[i]+1
-            profile_stab[i] = profile_stab[i] + [stability]
-    quartiles = []
-    quartiles_stability = []
-    for dbd in dbds:
-        values = []
-        values_stability = []
-        for i in range(dbd[0], dbd[1]):
-            values.append(profile[i])
-            values_stability += profile_stab[i]
-        
-        upper_quartile = np.percentile(values, 0.75)
-        quartiles.append(upper_quartile)
-        
-        if len(values_stability) > 0:
-            upper_quartile_stability = np.percentile(values_stability, 0.75)
-        else:
-            upper_quartile_stability = 0
-        quartiles_stability.append(upper_quartile_stability)
-    tpx_file.seek(0)
-    return quartiles, quartiles_stability
 
 def get_p_value_for_tfo_regions(tpx_files):
     dbd_file = open(tpx_files[0],"r")
-    stability_file = open(tpx_files[1],"r")
-    #random_files = [open(f,"r") for f in tpx_files[2:]]
+    #Read upper quartiles from stability file
+    with open(tpx_files[1], "rb") as r:
+        N, N_stab = msgpack.unpackb(r.read())
+    #Read upper quartiles from all shuffled sequences
     all_dbds_formatted = []
     for random_file in tpx_files[2:]:
         with open(random_file, "rb") as r:
@@ -56,8 +28,6 @@ def get_p_value_for_tfo_regions(tpx_files):
     csvreader = csv.reader(dbd_file, delimiter='\t')
     for row in csvreader:
         dbds.append( (int(row[1]), int(row[2])) )
-    #2: For each DBD, upper quartile in stability_file
-    N, N_stab = get_upper_quartiles(stability_file, dbds)
     #2: parsifichi i file con le randomizzazioni individualmente:
     #   =>Per ogni DBD, upper quartile di ogni randomizzazione
     #Contare in quale percentuale l'upper quartile è maggiore di N
@@ -74,7 +44,6 @@ def get_p_value_for_tfo_regions(tpx_files):
 
         dbds_pvalue.append(f"{dbd[0]}\t{dbd[1]} \t{count_N}\t{count_N_stab}")
     dbd_file.close()
-    stability_file.close()
     return dbds_pvalue
 
 def main():
