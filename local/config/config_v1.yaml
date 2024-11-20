@@ -62,7 +62,7 @@ shuffle_blacklist: path/to/shuffle_blacklist.bed
 # wget -O >(zcat | bawk '{print $1,1,$2}' | bedtools sort | cut -f 1,3 > chrom.info) "http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/chromInfo.txt.gz"
 chrom_info: path/to/chrom.info
 # Number of randomization to build the null model [INT]
-randomization_num: 10
+randomization_num: 1000
 
 
 
