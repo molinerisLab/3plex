@@ -11,17 +11,23 @@ import os
 import numpy as np
 import csv
 
+def parse_csv(filename):
+    quartiles = []; stability = []
+    with open(filename, 'r') as f:
+        reader = csv.reader(f, delimiter=';')
+        for row in reader:
+            quartiles.append(int(row[0]))
+            stability.append(float(row[1]))
+    return (quartiles, stability)
 
 def get_p_value_for_tfo_regions(tpx_files):
     dbd_file = open(tpx_files[0],"r")
     #Read upper quartiles from stability file
-    with open(tpx_files[1], "rb") as r:
-        N, N_stab = msgpack.unpackb(r.read())
+    N, N_stab = parse_csv(tpx_files[1])
     #Read upper quartiles from all shuffled sequences
     all_dbds_formatted = []
     for random_file in tpx_files[2:]:
-        with open(random_file, "rb") as r:
-            all_dbds_formatted.append(msgpack.unpackb(r.read()))
+        all_dbds_formatted.append(parse_csv(random_file))
 
     #1: Parse DBD regions => array con [Start, End]
     dbds = []
@@ -36,10 +42,10 @@ def get_p_value_for_tfo_regions(tpx_files):
     for dbd_num, dbd in enumerate(dbds):
         dbd_formatted = [[list_[0][dbd_num],list_[1][dbd_num]] for list_ in all_dbds_formatted]
         #dbd_formatted = [get_upper_quartiles(random_tpx, [dbd]) for random_tpx in random_files]
-        v = [dbd_f[0] for dbd_f in dbd_formatted]
+        v = np.array([dbd_f[0] for dbd_f in dbd_formatted])
         count_N = sum(v>N[dbd_num]) / len(tpx_files[2:]) + (1/len(tpx_files[2:]))
         
-        v = [dbd_f[1] for dbd_f in dbd_formatted]
+        v = np.array([dbd_f[1] for dbd_f in dbd_formatted])
         count_N_stab = sum(v>N_stab[dbd_num]) / len(tpx_files[2:]) + (1/len(tpx_files[2:]))
 
         dbds_pvalue.append(f"{dbd[0]}\t{dbd[1]} \t{count_N}\t{count_N_stab}")
