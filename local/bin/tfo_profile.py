@@ -280,11 +280,10 @@ def main():
         
         if not args.noncompressed:
             to_export = compress_profile_random(stats)
-
-
-        stability_values = list(stats.keys())
-        min_stability = sorted(map(lambda x: float(x), stability_values))[0]
-        to_export = stats[str(min_stability)]
+        elif args.flat:
+            stability_values = list(stats.keys())
+            min_stability = sorted(map(lambda x: float(x), stability_values))[0]
+            to_export = stats[str(min_stability)]
 
     if args.json:
         sys.stdout.write(json.dumps(to_export))

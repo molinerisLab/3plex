@@ -48,16 +48,19 @@ else:
 
 
 # Advanced workflows config
+if config['species']:
+    config['tss_ref_bed']="{gencode_dir_prefix}/{species}/{gencode_version}/{tss_ref_name}.bed".format(
+        gencode_dir_prefix=config['gencode_dir_prefix'],
+        species=config['species'],
+        gencode_version=config['species_gencode_version_map'][config['species']],
+        tss_ref_name=config['tss_ref_name']
+    )
 
-config['tss_ref_bed']="{gencode_dir_prefix}/{species}/{gencode_version}/{tss_ref_name}.bed".format(
-    gencode_dir_prefix=config['gencode_dir_prefix'],
-    species=config['species'],
-    gencode_version=config['species_gencode_version_map'][config['species']],
-    tss_ref_name=config['tss_ref_name']
-)
-
-config['transcript_fastas']="{gencode_dir_prefix}/{species}/{gencode_version}/transcripts.longest.fa.gz".format(
-    gencode_dir_prefix=config['gencode_dir_prefix'],
-    species=config['species'],
-    gencode_version=config['species_gencode_version_map'][config['species']]
-)
+    config['transcript_fastas']="{gencode_dir_prefix}/{species}/{gencode_version}/transcripts.longest.fa.gz".format(
+        gencode_dir_prefix=config['gencode_dir_prefix'],
+        species=config['species'],
+        gencode_version=config['species_gencode_version_map'][config['species']]
+    )
+else:
+    config['tss_ref_bed']=""
+    config['transcript_fastas']=""
