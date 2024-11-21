@@ -21,7 +21,14 @@ def parse_csv(filename):
     return (quartiles, stability)
 
 def get_p_value_for_tfo_regions(tpx_files):
+    #1: Parse DBD regions => array con [Start, End]
     dbd_file = open(tpx_files[0],"r")
+    dbds = []
+    csvreader = csv.reader(dbd_file, delimiter='\t')
+    for row in csvreader:
+        dbds.append( (int(row[1]), int(row[2])) )
+    dbd_file.close()
+    
     #Read upper quartiles from stability file
     N, N_stab = parse_csv(tpx_files[1])
     #Read upper quartiles from all shuffled sequences
@@ -29,11 +36,7 @@ def get_p_value_for_tfo_regions(tpx_files):
     for random_file in tpx_files[2:]:
         all_dbds_formatted.append(parse_csv(random_file))
 
-    #1: Parse DBD regions => array con [Start, End]
-    dbds = []
-    csvreader = csv.reader(dbd_file, delimiter='\t')
-    for row in csvreader:
-        dbds.append( (int(row[1]), int(row[2])) )
+    
     #2: parsifichi i file con le randomizzazioni individualmente:
     #   =>Per ogni DBD, upper quartile di ogni randomizzazione
     #Contare in quale percentuale l'upper quartile è maggiore di N
@@ -49,7 +52,6 @@ def get_p_value_for_tfo_regions(tpx_files):
         count_N_stab = sum(v>N_stab[dbd_num]) / len(tpx_files[2:]) + (1/len(tpx_files[2:]))
 
         dbds_pvalue.append(f"{dbd[0]}\t{dbd[1]} \t{count_N}\t{count_N_stab}")
-    dbd_file.close()
     return dbds_pvalue
 
 def main():

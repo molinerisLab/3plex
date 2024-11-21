@@ -93,7 +93,7 @@ def get_upper_quartiles(tpx_file, dbds):
                 quartiles_stability.append(s[0])
                 break
     TIME_ITERATING_2 = time.time() - TIME
-    sys.stderr.write(f"Finding: {TIME_FINDING}\nIterating: {TIME_ITERATING} - It2 {TIME_ITERATING_2}\n")
+    #sys.stderr.write(f"Finding: {TIME_FINDING}\nIterating: {TIME_ITERATING} - It2 {TIME_ITERATING_2}\n")
     return quartiles, quartiles_stability
 
 if __name__=="__main__":
@@ -109,4 +109,6 @@ if __name__=="__main__":
     dbd_file.close()
     with open(args.tpx_files[1], "r") as tpx_file:
         result = get_upper_quartiles(tpx_file, dbds)
-    sys.stdout.buffer.write(msgpack.packb(result))
+    for i in range(len(result[0])):
+        print(f"{result[0][i]};{result[1][i]}")
+    #sys.stdout.buffer.write(msgpack.packb(result))
