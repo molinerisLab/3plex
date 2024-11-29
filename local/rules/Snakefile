@@ -346,8 +346,8 @@ rule get_dbd:
 
 rule dbd_upper_quartiles_from_profile_pre:
 	input:
-		dbd_file = "{ssRNA}_ssmasked-{dsDNA}.dbd",
-		tpx_profile = "{ssRNA}_ssmasked-{dsDNA}.tpx.stability.tfo_profile.pre"
+		dbd_file = "{ssRNA}_ssmasked-{dsDNA, ^(?!.*_shuf_).*$}.dbd",
+		tpx_profile = "{ssRNA}_ssmasked-{dsDNA, ^(?!.*_shuf_).*$}.tpx.stability.tfo_profile.pre"
 	output:
 		temp("{ssRNA}_ssmasked-{dsDNA}.tpx.stability.tfo_profile.pre.dbd_quartiles.csv")
 	shell: """
