@@ -129,6 +129,9 @@ DBD * parse_dbd(char *dbd_file, int *num_dbd){
     while (fgets(line, sizeof(line), file)) {
         size++;
     }
+    if (size == 0){
+        return NULL;
+    }
     DBD *dbd = (DBD*)malloc(size*sizeof(DBD));
     rewind(file);
     while (fgets(line, sizeof(line), file)) {
@@ -154,6 +157,9 @@ TPX * parse_tpx(char *tpx_file, int *num_tpx){
     char line[256];
     while (fgets(line, sizeof(line), file)) {
         size++;
+    }
+    if (size == 0){
+        return NULL;
     }
     TPX *tpx = (TPX*)malloc(size*sizeof(TPX));
     rewind(file);
@@ -181,6 +187,9 @@ int main(int argc, char *argv[]){
     int num_dbd, num_tpx;
     DBD *dbd = parse_dbd(dbd_file, &num_dbd);
     TPX *tpx = parse_tpx(tpx_file, &num_tpx);
+    if (dbd == NULL || tpx == NULL){
+        return 0;
+    }
     get_upper_quartile(tpx, num_tpx, dbd, num_dbd);
     return 0;
 }
