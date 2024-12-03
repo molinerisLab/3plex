@@ -30,7 +30,7 @@ int compare_ints(const void *a, const void *b) {
 int compare_stability(const void *x, const void *y){
     Stability *a = (Stability*)x;
     Stability *b = (Stability*)y;
-    return a->stability - b->stability;
+    return (a->stability - b->stability > 0) ? -1 : ((a->stability - b->stability < 0) ? 1 : 0);
 }
 
 DBD binary_search(int b, int e, DBD_PROCESSED *dbd_processed, int num_dbd){
@@ -110,9 +110,10 @@ void get_upper_quartile(TPX* tpx, int num_tpx, DBD* dbd, int num_dbd){
                 count+=dbd_processed[i].stability[j].count;
             }
             int threshold = count/4;
+            count = 0;
             for (int j=0; j<dbd_processed[i].stab_array_len; j++){
-                count -= dbd_processed[i].stability[j].count;
-                if (count<=threshold){
+                count += dbd_processed[i].stability[j].count;
+                if (count>=threshold){
                     stability_quartile = dbd_processed[i].stability[j].stability;
                     break;
                 }
