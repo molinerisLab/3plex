@@ -98,20 +98,24 @@ void get_upper_quartile(TPX* tpx, int num_tpx, DBD* dbd, int num_dbd){
     for (int i=0; i<num_dbd; i++){
         int quartile=0; float stability_quartile=0;
         //Get quartile for pos
-        qsort(dbd_processed[i].pos, dbd_processed[i].len, sizeof(int), compare_ints);
-        quartile = dbd_processed[i].pos[dbd_processed[i].len/4*3];
-        //Get quartile for stability - more complicated, must sort both stability and stability_count
-        qsort(dbd_processed[i].stability, dbd_processed[i].stab_array_len, sizeof(Stability), compare_stability);
-        int count = 0;
-        for (int j=0; j<dbd_processed[i].stab_array_len; j++){
-            count+=dbd_processed[i].stability[j].count;
+        if (dbd_processed[i].len>0){
+            qsort(dbd_processed[i].pos, dbd_processed[i].len, sizeof(int), compare_ints);
+            quartile = dbd_processed[i].pos[dbd_processed[i].len/4*3];
         }
-        int threshold = count/4;
-        for (int j=0; j<dbd_processed[i].stab_array_len; j++){
-            count -= dbd_processed[i].stability[j].count;
-            if (count<=threshold){
-                stability_quartile = dbd_processed[i].stability[j].stability;
-                break;
+        if ( dbd_processed[i].stab_array_len>0){
+            //Get quartile for stability - more complicated, must sort both stability and stability_count
+            qsort(dbd_processed[i].stability, dbd_processed[i].stab_array_len, sizeof(Stability), compare_stability);
+            int count = 0;
+            for (int j=0; j<dbd_processed[i].stab_array_len; j++){
+                count+=dbd_processed[i].stability[j].count;
+            }
+            int threshold = count/4;
+            for (int j=0; j<dbd_processed[i].stab_array_len; j++){
+                count -= dbd_processed[i].stability[j].count;
+                if (count<=threshold){
+                    stability_quartile = dbd_processed[i].stability[j].stability;
+                    break;
+                }
             }
         }
         printf("%d;%f\n", quartile, stability_quartile);
