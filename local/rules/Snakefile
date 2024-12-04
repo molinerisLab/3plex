@@ -209,34 +209,15 @@ rule run_promoter_tpx_stability_test:
 	input:
 		enrich=expand("results/{ssRNA}/{stability_score}/fgseaRes.tsv",
 				ssRNA=get_sequence_name(config["ssRNA"]),
-				stability_score=config["promoter_tpx_stability_test"]["score"]),
+				stability_score=config["score"]),
 		mann_whitney=expand("results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
 				ssRNA=get_sequence_name(config["ssRNA"]),
-				stability_score=config["promoter_tpx_stability_test"]["score"])
+				stability_score=config["score"])
 
-<<<<<<< HEAD
 rule tss_from_gene:
 	input:
 		promoters_ref=config["promoters_ref_bed"],
 		gene_list=config["genes_all"]
-=======
-
-# TODO: check if genes of interest are included in the universe of genes
-rule check_gene_inclusion:
-	input:
-		genes_all=config["promoter_tpx_stability_test"]["genes_all"],
-		genes_of_interest=config["promoter_tpx_stability_test"]["genes_of_interest"]
-	output:
-		"check_gene_inclusion_done"
-	shell:"""
-
-	"""
-
-rule tss_from_gene:
-	input:
-		tss_ref=config["tss_ref_bed"],
-		gene_list=config["promoter_tpx_stability_test"]["genes_all"]
->>>>>>> web_server
 	output:
 		"genes_all.tss.bed"
 	shell: """
@@ -245,15 +226,9 @@ rule tss_from_gene:
 
 rule create_tblist:
 	input:
-<<<<<<< HEAD
 		genes_all=config["genes_all"],
 		genes_of_interest=config["genes_of_interest"],
 		promoters_ref=config["promoters_ref_bed"]
-=======
-		genes_all=config["promoter_tpx_stability_test"]["genes_all"],
-		genes_of_interest=config["promoter_tpx_stability_test"]["genes_of_interest"],
-		tss_ref=config["tss_ref_bed"]
->>>>>>> web_server
 	output:
 		"tblist.tsv"
 	shell:
@@ -348,16 +323,6 @@ rule run_random_region_test:
 				dsDNA=get_sequence_name(config["dsDNA"]))
 
 ruleorder: tpx_stability_tempfile > tpx_stability
-rule tpx_stability_tempfile:
-    input:
-        "{path}_shuf_{run}.tpx"
-    output:
-        tpx=temp("{path}_shuf_{run}.tpx.stability.gz"),
-        tmp=temp("{path}_shuf_{run}.tpx.stability.gz.tmp")
-    shell: """
-        tail -n +2 {input} | perl -pe '$_=">$_" if ($.-1)%6==0' | perl -ne 'chomp; print "$_\\t"' | tr ">" "\\n" | tail -n +2 > {output.tmp}
-        cat {output.tmp} | tpx_thermal_stability.py | gzip > {output.tpx}
-    """
 
 rule get_dbd:
 	input:
