@@ -41,7 +41,9 @@ Extensive description of the tool can be found in our paper:
 
 # Web interface
 
-A web interface is available at https://3plex.unito.it/.
+The 3plex web platform allows to access the 3plex tool remotely, submitting jobs to our server using a web interface. Results can be downloaded or visualized interactively.
+
+The web interface is available at https://3plex.unito.it/.
 
 ---
 
