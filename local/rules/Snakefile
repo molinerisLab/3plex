@@ -19,6 +19,17 @@ def get_sequence_name(path):
 	return(re.sub(".fa|.bed", "", sequence))
 
 
+
+
+rule set_up:
+	input:
+		PRJ_ROOT+"/local/bin/get_upper_quartile.c"
+	output:
+		PRJ_ROOT+"/local/bin/get_upper_quartile" 
+	shell: """
+		gcc -o {output} {input}
+	"""
+
 ##################
 # dsDNA Specific #
 ##################
@@ -220,34 +231,15 @@ rule run_promoter_tpx_stability_test:
 	input:
 		enrich=expand("results/{ssRNA}/{stability_score}/fgseaRes.tsv",
 				ssRNA=get_sequence_name(config["ssRNA"]),
-				stability_score=config["promoter_tpx_stability_test"]["score"]),
+				stability_score=config["score"]),
 		mann_whitney=expand("results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
 				ssRNA=get_sequence_name(config["ssRNA"]),
-				stability_score=config["promoter_tpx_stability_test"]["score"])
+				stability_score=config["score"])
 
-<<<<<<< HEAD
 rule tss_from_gene:
 	input:
 		promoters_ref=config["promoters_ref_bed"],
 		gene_list=config["genes_all"]
-=======
-
-# TODO: check if genes of interest are included in the universe of genes
-rule check_gene_inclusion:
-	input:
-		genes_all=config["promoter_tpx_stability_test"]["genes_all"],
-		genes_of_interest=config["promoter_tpx_stability_test"]["genes_of_interest"]
-	output:
-		"check_gene_inclusion_done"
-	shell:"""
-
-	"""
-
-rule tss_from_gene:
-	input:
-		tss_ref=config["tss_ref_bed"],
-		gene_list=config["promoter_tpx_stability_test"]["genes_all"]
->>>>>>> web_server
 	output:
 		"genes_all.tss.bed"
 	shell: """
@@ -256,15 +248,9 @@ rule tss_from_gene:
 
 rule create_tblist:
 	input:
-<<<<<<< HEAD
 		genes_all=config["genes_all"],
 		genes_of_interest=config["genes_of_interest"],
 		promoters_ref=config["promoters_ref_bed"]
-=======
-		genes_all=config["promoter_tpx_stability_test"]["genes_all"],
-		genes_of_interest=config["promoter_tpx_stability_test"]["genes_of_interest"],
-		tss_ref=config["tss_ref_bed"]
->>>>>>> web_server
 	output:
 		"tblist.tsv"
 	shell:
@@ -331,11 +317,11 @@ rule run_fgsea:
 		run_fgsea.r \
 			-g {input.gmt} \
 			-r {input.rnk} \
-			-n {config[promoter_tpx_stability_test][gsea][nperm]} \
-			-b {config[promoter_tpx_stability_test][gsea][max_genes_in_set]} \
-			-s {config[promoter_tpx_stability_test][gsea][min_genes_in_set]} \
+			-n {config[gsea][nperm]} \
+			-b {config[gsea][max_genes_in_set]} \
+			-s {config[gsea][min_genes_in_set]} \
 			-d `dirname {output.fgsea}` \
-			--gseaParam {config[promoter_tpx_stability_test][gsea][gsea_weight]}
+			--gseaParam {config[gsea][gsea_weight]}
 	"""
 
 
@@ -372,7 +358,8 @@ rule get_dbd:
 rule dbd_upper_quartiles_from_profile_pre:
 	input:
 		dbd_file = "{ssRNA}_ssmasked-{dsDNA, ^(?!.*_shuf_).*$}.dbd",
-		tpx_profile = "{ssRNA}_ssmasked-{dsDNA, ^(?!.*_shuf_).*$}.tpx.stability.tfo_profile.pre"
+		tpx_profile = "{ssRNA}_ssmasked-{dsDNA, ^(?!.*_shuf_).*$}.tpx.stability.tfo_profile.pre",
+		upper_quartile_Exec = PRJ_ROOT+"/local/bin/get_upper_quartile"
 	output:
 		temp("{ssRNA}_ssmasked-{dsDNA}.tpx.stability.tfo_profile.pre.dbd_quartiles.csv")
 	shell: """
@@ -383,7 +370,8 @@ ruleorder: dbd_upper_quartiles_from_profile_pre_shuf > dbd_upper_quartiles_from_
 rule dbd_upper_quartiles_from_profile_pre_shuf:
 	input:
 		dbd_file = "{ssRNA}_ssmasked-{dsDNA}.dbd",
-		tpx_profile = "{ssRNA}_ssmasked-{dsDNA}_shuf_{run}.tpx.stability.tfo_profile.pre"
+		tpx_profile = "{ssRNA}_ssmasked-{dsDNA}_shuf_{run}.tpx.stability.tfo_profile.pre",
+		upper_quartile_Exec = PRJ_ROOT+"/local/bin/get_upper_quartile"
 	output:
 		temp("{ssRNA}_ssmasked-{dsDNA}_shuf_{run}.tpx.stability.tfo_profile.pre.dbd_quartiles.csv")
 	shell: """
