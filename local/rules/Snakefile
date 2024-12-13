@@ -52,7 +52,7 @@ rule shuffle_bed:
 	output:
 		temp("{file}_shuf_{run,\d+}.bed")
 	shell:"""
-		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed $(date +%s%N) > {output}
+		bedtools shuffle -excl {input.exclude} -i {input.bed} -g {input.chrom_info} -seed {wildcards.run} > {output}
 	"""
 
 rule ln_dsDNA_predefined_fa:
