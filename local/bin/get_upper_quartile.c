@@ -7,6 +7,15 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
+/*
+#upper quartile computed on n. tpx for each position of the dbd
+    # Only way is keeping count for each position of dbd.
+    #upper quartile stability computed on all stability values of all tpx of the dbd
+    # No need to track every position of the dbd, stability values can be kept in a single array,
+    # but, they must be repeated for the number of positions, or the information must be tracked in some way
+    #Es: (Value, Count). Sort by value, iterate once to get Sum(Count),iterate second time to get quartile :)
+*/
+
 typedef struct {
     int b; int e; float stability;
 } TPX;
