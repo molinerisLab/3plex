@@ -28,7 +28,7 @@ ssRNA: SRA1.fa
 dsDNA: MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.bed
 # path to genome assembly [FASTA]
 # wget -O primary_assembly.genome.fa.gz -c "http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/GRCh38.primary_assembly.genome.fa.gz"; zcat GRCh38.primary_assembly.genome.fa.gz > GRCh38.primary_assembly.genome.fa
-genome_fasta: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/GRCh38.primary_assembly.genome.fa
+genome_fasta: path/to/primary_assembly.genome.fa
 
 
 
