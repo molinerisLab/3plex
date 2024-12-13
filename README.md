@@ -1,5 +1,8 @@
 <img src="https://github.com/molinerisLab/3plex/blob/main/.images/3plex_logo.png" alt="logo" width="600"/>
 
+[![Snakemake](https://img.shields.io/badge/snakemake-≥7.32.0-brightgreen.svg)](https://snakemake.bitbucket.io)
+
+
 # Introduction
 
 3plex is a framework for predicting ssRNA:dsDNA interaction through triple helix (triplex) formation.
@@ -32,11 +35,13 @@ Extensive description of the tool can be found in our paper:
 
 `DBD`: DNA Binding Domain (the ssRNA region identified from the overlap of multiple TFOs)
 
+<img src="https://github.com/molinerisLab/3plex/blob/main/.images/3plex_presentation.svg" alt="pipeline" width="650"/>
+
 ---
 
 # Web interface
 
-An open beta web interface is available at https://3plex.unito.it/. Please be patient about bugs and report them on issues.
+A web interface is available at https://3plex.unito.it/.
 
 ---
 
@@ -93,48 +98,23 @@ See the example of [ssRNA.fa](https://github.com/molinerisLab/3plex/blob/main/te
 
 ### Output
 
-3plex returns one tab-delimited file listing all the TFO:TTS matches: *_tpx.stability.gz_ (see the example of [tpx.stability](https://github.com/molinerisLab/3plex/blob/main/test/results_3plex/SRA1_ssmasked-MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.tpx.stability.txt)).
+3plex returns one tab-delimited file listing all the TFO:TTS matches: *_tpx.stability.gz_
 
-```
-1   	Sequence_ID
-2   	TFO_start
-3   	TFO_end
-4   	Duplex_ID
-5   	TTS_start
-6   	TTS_end
-7   	Score
-8   	Error_rate
-9   	Errors
-10  	Motif
-11  	Strand
-12  	Orientation
-13  	Guanine_rate
-14  	Stability
-15  	aln1
-16  	aln2
-17  	aln3
-18  	aln4
-```
+| Sequence_ID | TFO_start | TFO_end | Duplex_ID                         | TTS_start | TTS_end | Score | Error_rate | Errors | Motif | Strand | Orientation | Guanine_rate | Stability | aln1                | aln2                     | aln3                     | aln4                     |
+|-------------|-----------|---------|------------------------------------|-----------|---------|-------|------------|--------|-------|--------|-------------|---------------|-----------|--------------------|--------------------------|-------------------------|--------------------------|
+| SRA1        | 149       | 159     | CCDC27::chr1:3750949-3752950      | 177       | 187     | 8     | 0.2        | b1o3   | Y     | -      | P           | 0.4           | 32.8      | 5'- CGTTTCCCTT -3' | TTS: 3'- GcAAAGGGAA -5'  | \|\*\|\*\|\|\|\|\|\|     | TFO: 3'- CgTgTCCCTT -5'  |
+| SRA1        | 150       | 160     | MEGF6::chr1:3611007-3613008       | 673       | 683     | 8     | 0.2        | b2b4   | Y     | -      | P           | 0.5           | 36.4      | 5'- CCGTATCCCT -3' | TTS: 3'- GGcAtAGGGA -5'  | \|\|\*\|\*\|\|\|\|\|     | TFO: 3'- CCgTgTCCCT -5'  |
+| SRA1        | 149       | 160     | TTC34::chr1:2801192-2803193       | 1020      | 1031    | 9     | 0.18       | b2o4   | Y     | -      | P           | 0.45          | 40.1      | 5'- CCATTTCCCTT -3'| TTS: 3'- GGtAAAGGGAA -5' | \|\|\*\|\*\|\|\|\|\|\|   | TFO: 3'- CCgTgTCCCTT -5' |
 
-and a second tab-delimited file reporting a summary triplex score for each dsDNA sequence: *_tpx.summary.add_zeros.gz_ (see the example of [tpx.summary](https://github.com/molinerisLab/3plex/blob/main/test/results_3plex/SRA1_ssmasked-MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.tpx.summary.add_zeros.txt)): 
 
-```
-1   	Duplex_ID
-2   	Sequence_ID
-3   	Total(abs)
-4   	Total(rel)
-5   	GA(abs)
-6   	GA(rel)
-7   	TC(abs)
-8   	TC(rel)
-9   	GT(abs)
-10  	GT(rel)
-11  	Duplex_length
-12  	Stability_best
-13  	Stability_tot
-14  	Score_best
-15  	Stability_norm
-```
+and a second tab-delimited file reporting a summary triplex score for each dsDNA sequence: *_tpx.summary.add_zeros.gz_ 
+
+| Duplex_ID                 | Sequence_ID | Total(abs) | Total(rel)  | GA(abs) | GA(rel)   | TC(abs) | TC(rel)   | GT(abs) | GT(rel)   | Duplex_length | Stability_best | Stability_tot | Score_best | Stability_norm         |
+|---------------------------|-------------|------------|-------------|---------|-----------|---------|-----------|---------|-----------|----------------|----------------|---------------|------------|-----------------------|
+| OR4F5::chr1:63918-65919   | SRA1        | 158        | 2.77e-08    | 43      | 7.55e-09  | 43      | 7.55e-09  | 72      | 1.26e-08  | 2001           | 53.8           | 481.3         | 12         | 0.240                 |
+| OR4F29::chr1:451177-453178| SRA1        | 132        | 2.32e-08    | 25      | 4.39e-09  | 24      | 4.21e-09  | 83      | 1.46e-08  | 2001           | 42.5           | 652.9         | 12         | 0.326                 |
+| OR4F16::chr1:686153-688154| SRA1        | 125        | 2.2e-08     | 24      | 4.21e-09  | 24      | 4.21e-09  | 77      | 1.35e-08  | 2001           | 42.5           | 623.9         | 12         | 0.311                 |
+
 
 **Available triplex scores**
 
@@ -146,17 +126,12 @@ and a second tab-delimited file reporting a summary triplex score for each dsDNA
 
 `Score_best`: PATO best score (sum of the matches).
 
----
-
-# Run 3plex with Singularity
-
-Find the Singularity image at [3plex/singularity_images/](https://github.com/molinerisLab/3plex/singularity_images/)
 
 ---
 
 # 3plex Snakemake workflows
 
-The following section illustrates how to perform 3plex downstream analyses to additionally evaluate the significance of the triplex-forming capability of an ssRNA.
+The following section illustrates how to perform 3plex downstream analyses to evaluate the significance of the triplex-forming capability of an ssRNA.
 
 The workflows are handled with [Snakemake](https://snakemake.github.io/) and structured with [dap](https://github.com/molinerisLab/dap).
 
@@ -167,7 +142,7 @@ pato
 dap
 gawk
 ```
-Find here the [installation guide for PATO](https://github.com/UDC-GAC/pato).
+Find the [installation guide for PATO](https://github.com/UDC-GAC/pato) here.
 
 ## Setup
 
