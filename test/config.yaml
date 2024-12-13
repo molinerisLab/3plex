@@ -1,15 +1,3 @@
-# -------------- #
-# General config #
-# -------------- #
-
-# path to genome assembly [FASTA]
-genome_fasta: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/GRCh38.primary_assembly.genome.fa
-
-# path to transcript [FASTA]
-transcript_fastas: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/transcripts.longest.fa.gz
-
-
-
 # ------------ # 
 # 3plex config #
 # ------------ #
@@ -32,24 +20,26 @@ RNAplfold:
 # Advanced workflows config #
 # ------------------------- #
 
-# General ---
+# Mandatory for all workflows ---
 
 # path to ssRNA [FASTA]
-ssRNA: ../../test/SRA1.fa
-
+ssRNA: SRA1.fa
 # path to dsDNA [FASTA|BED]
-dsDNA: ../../test/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.bed
+dsDNA: MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.bed
+# path to genome assembly [FASTA]
+# wget -O primary_assembly.genome.fa.gz -c "http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/GRCh38.primary_assembly.genome.fa.gz"; zcat GRCh38.primary_assembly.genome.fa.gz > GRCh38.primary_assembly.genome.fa
+genome_fasta: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/GRCh38.primary_assembly.genome.fa
 
 
 
 # Promoter stability test specific ---
 
 # path to universe of genes [one column TXT]
-genes_all: ../../test/universe_of_genes.txt
+genes_all: universe_of_genes.txt
 # path to genes of interest [one column TXT]
-genes_of_interest: ../../test/genes_of_interest.txt
+genes_of_interest: genes_of_interest.txt
 # path to promoters [mandatory:  chr | start | end | gene_id ]
-tss_ref_bed: ../../test/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.bed
+promoters_ref_bed: path/to/promoters.bed
 # tpx scores to compare promoters
 score:
         - Stability_best
@@ -66,19 +56,13 @@ gsea:
 # Random region test specific ---
 
 # path to blacklist file to remove when shuffling genomic regions [BED]
-shuffle_blacklist: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/hg38.shuffle_blacklist.bed
+# curl -OJ "https://raw.githubusercontent.com/Boyle-Lab/Blacklist/master/lists/mm10-blacklist.v2.bed.gz"
+shuffle_blacklist: path/to/shuffle_blacklist.bed
 # path to chrom.info file
-chrom_info: /home/reference_data/bioinfotree/task/gencode/dataset/hsapiens/32/chrom.info.no_alt
+# wget -O >(zcat | bawk '{print $1,1,$2}' | bedtools sort | cut -f 1,3 > chrom.info) "http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/chromInfo.txt.gz"
+chrom_info: path/to/chrom.info
 # Number of randomization to build the null model [INT]
-randomization_num: 10
-
-
-
-# Promoter stability test [ssRNA list version] ---
-
-promoter_stability_test:
-        tblist: "null"
-        score: "null"
+randomization_num: 100
 
 
 
