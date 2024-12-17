@@ -16,7 +16,7 @@ dependencies:
   - molinerislab::fasta2oneline
   - molinerislab::find_best=1.0
   - molinerislab::filter_1col
-  - molinerislab::dap=0.6
+  - molinerislab::dap=0.8
   - r-rmarkdown
   - r-reshape2
   - r-ggpubr

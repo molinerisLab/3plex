@@ -43,10 +43,12 @@ Extensive description of the tool can be found in our paper:
 
 A web interface is available at https://3plex.unito.it/. 
 
-Using the 3plex web platform the user can:
-* Submit jobs to 3plex for remote execution in our server, using a web interface. User is notified by mail upon job completion.
+Using the 3plex web platform, the user can:
+* Submit jobs to 3plex for remote execution on our server, using a web interface. The user is notified by mail upon job completion.
+* Submit jobs with user-provided inputs or with pre-computed transcripts and sets of promoters.
 * Download raw 3plex outputs.
-* Interactively visualize, filter and navigate results.
+* Interactively visualize, filter, and navigate results.
+<img src=".images/profile_plot.png">
 
 ## Main functionalities
 ### 3plex prediction
@@ -162,7 +164,8 @@ This section provides instructions to build the Singularity container to run 3pl
 * Ensure you have [Singularity](https://docs.sylabs.io/guides/3.0/user-guide/installation.html) installed on your machine.
 * Clone this repository `git clone https://github.com/molinerisLab/3plex`
 * Enter the repository directory and run `sudo ./build_singularity_container.sh`
-    * By default the script creates the container image as a *.sif* file in the current directory. Different paths can be specified as an additional argument `./build_singularity_container.sh poth/to/image.sif`.
+    * By default the script creates the container image as a *.sif* file in the current directory. Different paths can be specified as an additional argument `./build_singularity_container.sh path/to/image.sif`.
+
 
 #### Open a shell inside the container
 
@@ -170,7 +173,7 @@ Once the Singularity image has been built, 3plex can be used by opening a shell 
 ```
 ./run_singularity_container.sh --MOUNT_DIRECTORY path/to/directory
 ```
-* The 3plex directory is automatically mounted inside the container and the shell opened inside it. Any data generated in dataset/ is accessible from outside the container.
+* The **3plex directory is automatically mounted inside the container** and the shell opened inside it. Any data generated in dataset/ is accessible from outside the container.
 * `--MOUNT_DIRECTORY path/to/directory` allows to mount an additional directory inside the container. This is needed, for example, to provide a *genome fasta file* for the workflows. 
 * Optional, `--TARGET_PATH path/to/image.sif` allows to open a singularity image from a custom path.
 
@@ -188,13 +191,10 @@ This section provides instructions to set up 3plex manually without Singularity.
 ```
 Find the [installation guide for PATO](https://github.com/UDC-GAC/pato) here.
 
-We suggest to install [direnv](https://direnv.net/) for automatic environment variables management. Alternatively, one can manually set the environment variables:
-```
-export PRJ_ROOT={3plex_root_directory}
-export PATH=$PATH:$PRJ_ROOT/local/bin
-```
-#### Set up 3plex
-To run the workflows clone the repository, move inside `3plex` directory and, if installed, allow direnv:
+We suggest to install [direnv](https://direnv.net/) for automatic environment variables management. If not installed, some environment variables will have to be defined manually.
+
+#### Clone and setup 3plex
+Clone the repository, move inside `3plex` directory and, if installed, allow direnv:
 ```
 git clone git@github.com:molinerisLab/3plex.git
 cd 3plex
@@ -206,21 +206,41 @@ Create and activate the conda environment:
 conda env create --file=local/envs/3plex.yaml
 conda activate 3plex_Env
 ```
-Then move to the directory that contains the first version of your analysis:
+
+If direnv is not installed, manually define the environment variables
+```
+export PRJ_ROOT={3plex_root_directory}
+export PATH=$PATH:$PRJ_ROOT/local/bin
+```
+
+### Manage data analysis versions
+
+The adopted convention is dividing the work into *versions*, each characterized by its input data and configurations. Versions are located in `$PRJ_ROOT/dataset`. 
 ```
 cd v1
 ```
-To run a different version of your analysis you can clone v1 into v2 by running `dap clone v1 v2`.
+#### Create new versions
+New versions can be created by cloning existing ones using our project management tool, included in the 3plex_Env conda environment: `dap clone v1 v2`.
+
+The cloning version results in a new directory in the dataset/ directory containing:
+* Symbolic links to the Snakefile and the global configuration.
+* A symbolic link to a version-specific configuration `config.yaml --(links to)--> local/config/config_v{version}.yaml`, which is initially copied from the previous version.
+* Any symbolic link linking to files contained in the `PRJ_ROOT/local/*` directory that were present in the previous version.
 
 ## Raw triplex prediction
 
 This workflow produces the raw  _tpx.stability.gz_ and _tpx.summary.add_zeros.gz_ files previously described. An ssRNA FASTA file and a dsDNA multi-FASTA or BED file are required.
 
-Specify the `ssRNA` and `dsDNA` paths in the `config.yaml`. Then run:
+* Specify the `ssRNA` and `dsDNA` paths in the `config.yaml`. 
+* Specify the path in `genome_fasta` to allow for *.bed* inputs.
+    * (Note) if running inside the singularity container, the user can specify the option `--MOUNT_DIRECTORY` to mount an additional directory during launch.
+
+Then run:
 
 ```
 snakemake -j CORES run_raw_tpx_prediction
 ```
+
 
 ## Promoter TPX stability test
 
