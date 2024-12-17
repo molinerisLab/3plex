@@ -50,20 +50,6 @@ Using the 3plex web platform, the user can:
 * Interactively visualize, filter, and navigate results.
 <img src=".images/profile_plot.png">
 
-## Main functionalities
-### 3plex prediction
-Run 3plex on user-provided sequences or pre-computed transcripts and promoters.
-### Randomized track
-If the box Randomized dsDNA is checked, the system will compare the predictions on the target dsDNA to predictions on a randomized version of it. This functionality computes a p-value for the number of TTS found. The allowed number of repetitions is 10, 100, 500 and 1000.
-### Data visualization
-An interactive data visualization platform shows a TTS count plot, with the possibility of filtering TPX by a minimum stability threshold; if the randomized track is available, a p-value track is shown as well. If the dsDNA is specified in bed format, the same plot can be opened on the Genome Browser.
-Additionally, secondary structure, conservation and repeats tracks are provided.
-
-The user can manually specify DBDs and access individual TPX in the ranges. 
-
-### Promoter TPX stability test
-The web interface allows to remotely perform the promoter TPX stability test as described in the [corresponding section](#promoter-tpx-stability-test-1)
-
 # Run 3plex with Docker
 
 Pull the latest image from the Docker hub:
