@@ -1,0 +1,64 @@
+Bootstrap: library
+From: ubuntu
+
+%runscript
+    export PATH=/opt/mamba/bin:$PATH && \
+    export mamba_prefix=/opt/mamba
+    __conda_setup="$('/opt/mamba/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+    if [ $? -eq 0 ]; then
+        eval "$__conda_setup"
+    else
+        if [ -f "/opt/mamba/etc/profile.d/conda.sh" ]; then
+            . "/opt/mamba/etc/profile.d/conda.sh"
+        else
+            export PATH="/opt/mamba/bin:$PATH"
+        fi
+    fi
+    conda activate 3plex_Env
+    export PATH=/root/.local/bin/:$PATH
+
+%files
+    .singularity/post.bash /opt/post.bash
+    local/envs/3plex.yaml /root/3plex.yaml
+
+%environment
+	export PROMPT_COMMAND='source /opt/mamba/init.bash; unset PROMPT_COMMAND;
+    export PRJ_ROOT="/3plex"; export PATH=/3plex/local/bin:/pato/build/tools/PATO:$PATH';
+    source /opt/mamba/init.bash
+    conda activate 3plex_Env
+
+%post
+    export TZ=America/Los_Angeles
+    apt update 
+    apt install -y python3 pip wget
+    export DEBIAN_FRONTEND=noninteractive
+    export TZ=Etc/UTC
+    apt -y install tzdata
+    apt -y install python3-setuptools
+    apt install -y libcurl4-gnutls-dev libxml2-dev libssl-dev
+    apt install -y bison flex gcc gawk cmake git
+    git clone https://github.com/UDC-GAC/pato && cd pato && cmake -B build . && cmake --build build
+    mkdir /opt/bin/ && ln -s /pato/build/tools/PATO/PATO /opt/bin/pato
+
+    # Install Mamba through Mambaforge
+	readonly mamba_installer="Mambaforge-$(uname)-$(uname -m).sh"
+	readonly mamba_version="4.10.3-4"
+	readonly mamba_prefix="/opt/mamba"
+	wget "https://github.com/conda-forge/miniforge/releases/download/${mamba_version}/${mamba_installer}"
+	bash "${mamba_installer}" -b -p "${mamba_prefix}"
+	rm "${mamba_installer}"
+    {
+		echo 'eval "$(' "'${mamba_prefix}/bin/conda' 'shell.bash' 'hook' 2> /dev/null" ')"'
+		echo 'if [ $? -eq 0 ]; then'
+		echo '  eval "$__conda_setup"'
+		echo 'else'
+		echo '  if [ -f ' "'${mamba_prefix}/etc/profile.d/conda.sh'" ']; then'
+		echo '    .' "'${mamba_prefix}/opt/mamba/etc/profile.d/conda.sh'"
+		echo '  else'
+		echo '    export PATH="/opt/mamba/bin:$PATH"'
+		echo '  fi'
+		echo 'fi'
+		echo 'unset __conda_setup'
+	} >> ${mamba_prefix}/init.bash
+    echo 'source' "'${mamba_prefix}/init.bash'" | cat - /opt/post.bash | bash
+    echo conda activate 3plex_Env >> ${mamba_prefix}/init.bash

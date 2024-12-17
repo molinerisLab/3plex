@@ -3,3 +3,14 @@ dataset/*
 local/envs/3plex/
 .Rproj.user
 local/rules/.snakemake/
+test/
+!test/config.yaml
+!test/config_general.yaml 
+!test/config.smk 
+!test/genes_of_interest.txt
+!test/MANE.GRCh38.v1.1.refseq_genomic.Symbol.tss.1500_500.subset.bed
+!test/Snakefile
+!test/SRA1.fa
+!test/universe_of_genes.txt
+3plex.sif
+local/bin/get_upper_quartile

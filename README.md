@@ -44,11 +44,23 @@ Extensive description of the tool can be found in our paper:
 A web interface is available at https://3plex.unito.it/. 
 
 Using the 3plex web platform the user can:
-* Submit jobs to 3plex for remote execution in our server, using a web interface.
+* Submit jobs to 3plex for remote execution in our server, using a web interface. User is notified by mail upon job completion.
 * Download raw 3plex outputs.
 * Interactively visualize, filter and navigate results.
 
----
+## Main functionalities
+### 3plex prediction
+Run 3plex on user-provided sequences or pre-computed transcripts and promoters.
+### Randomized track
+If the box Randomized dsDNA is checked, the system will compare the predictions on the target dsDNA to predictions on a randomized version of it. This functionality computes a p-value for the number of TTS found. The allowed number of repetitions is 10, 100, 500 and 1000.
+### Data visualization
+An interactive data visualization platform shows a TTS count plot, with the possibility of filtering TPX by a minimum stability threshold; if the randomized track is available, a p-value track is shown as well. If the dsDNA is specified in bed format, the same plot can be opened on the Genome Browser.
+Additionally, secondary structure, conservation and repeats tracks are provided.
+
+The user can manually specify DBDs and access individual TPX in the ranges. 
+
+### Promoter TPX stability test
+The web interface allows to remotely perform the promoter TPX stability test as described in the [corresponding section](#promoter-tpx-stability-test-1)
 
 # Run 3plex with Docker
 
@@ -140,23 +152,48 @@ The following section illustrates how to perform 3plex downstream analyses to ev
 
 The workflows are handled with [Snakemake](https://snakemake.github.io/) and structured with [dap](https://github.com/molinerisLab/dap).
 
-## Dependencies
+## Setup
 
+3plex can be used through a Singularity container or set up manually.
+
+### Setup with Singularity
+This section provides instructions to build the Singularity container to run 3plex.
+
+* Ensure you have [Singularity](https://docs.sylabs.io/guides/3.0/user-guide/installation.html) installed on your machine.
+* Clone this repository `git clone https://github.com/molinerisLab/3plex`
+* Enter the repository directory and run `sudo ./build_singularity_container.sh`
+    * By default the script creates the container image as a *.sif* file in the current directory. Different paths can be specified as an additional argument `./build_singularity_container.sh poth/to/image.sif`.
+
+#### Open a shell inside the container
+
+Once the Singularity image has been built, 3plex can be used by opening a shell inside the container. The shell will open with the environment already setup.
 ```
-pato
-dap
-gawk
+./run_singularity_container.sh --MOUNT_DIRECTORY path/to/directory
+```
+* The 3plex directory is automatically mounted inside the container and the shell opened inside it. Any data generated in dataset/ is accessible from outside the container.
+* `--MOUNT_DIRECTORY path/to/directory` allows to mount an additional directory inside the container. This is needed, for example, to provide a *genome fasta file* for the workflows. 
+* Optional, `--TARGET_PATH path/to/image.sif` allows to open a singularity image from a custom path.
+
+### Manual setup
+
+This section provides instructions to set up 3plex manually without Singularity.
+
+#### Install the requirements
+```
+* PATO
+* gawk
+* conda
+* (optional) direnv
+* (optional) DAP
 ```
 Find the [installation guide for PATO](https://github.com/UDC-GAC/pato) here.
 
-## Setup
-
-We suggest to install [direnv](https://direnv.net/). Alternatively, one can manually set the environment variables:
+We suggest to install [direnv](https://direnv.net/) for automatic environment variables management. Alternatively, one can manually set the environment variables:
 ```
 export PRJ_ROOT={3plex_root_directory}
 export PATH=$PATH:$PRJ_ROOT/local/bin
 ```
-
+#### Set up 3plex
 To run the workflows clone the repository, move inside `3plex` directory and, if installed, allow direnv:
 ```
 git clone git@github.com:molinerisLab/3plex.git
