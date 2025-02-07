@@ -50,6 +50,8 @@ Using the 3plex web platform, the user can:
 * Interactively visualize, filter, and navigate results.
 <img src=".images/profile_plot.png">
 
+The source code for 3plex web platform is open source and available at the following repositoried: [Web Client](https://github.com/Marco-Masera/3plex_client), [Frontend Server](https://github.com/Marco-Masera/3plex_frontend_server), [Backend server](https://github.com/Marco-Masera/3plex_backend_server).
+
 # Run 3plex with Docker
 
 Pull the latest image from the Docker hub:
