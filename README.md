@@ -161,7 +161,7 @@ Once the Singularity image has been built, 3plex can be used by opening a shell 
 ```
 ./run_singularity_container.sh --MOUNT_DIRECTORY path/to/directory
 ```
-* The **3plex directory is automatically mounted inside the container** and the shell opened inside it. Any data generated in dataset/ is accessible from outside the container.
+* The **3plex directory is automatically mounted inside the container** and the shell opened inside it. Any data generated in workspaces/ is accessible from outside the container.
 * `--MOUNT_DIRECTORY path/to/directory` allows to mount an additional directory inside the container. This is needed, for example, to provide a *genome fasta file* for the workflows. 
 * Optional, `--TARGET_PATH path/to/image.sif` allows to open a singularity image from a custom path.
 
@@ -191,29 +191,29 @@ direnv allow
 
 Create and activate the conda environment:
 ```
-conda env create --file=local/envs/3plex.yaml
+conda env create --file=workflow/envs/3plex.yaml
 conda activate 3plex_Env
 ```
 
 If direnv is not installed, manually define the environment variables
 ```
 export PRJ_ROOT={3plex_root_directory}
-export PATH=$PATH:$PRJ_ROOT/local/bin
+export PATH=$PATH:$PRJ_ROOT/workflow/scripts
 ```
 
 ### Manage data analysis versions
 
-The adopted convention is dividing the work into *versions*, each characterized by its input data and configurations. Versions are located in `$PRJ_ROOT/dataset`. 
+The adopted convention is dividing the work into *versions*, each characterized by its input data and configurations. Versions are located in `$PRJ_ROOT/workspaces`. 
 ```
 cd v1
 ```
 #### Create new versions
 New versions can be created by cloning existing ones using our project management tool, included in the 3plex_Env conda environment: `dap clone v1 v2`.
 
-The cloning version results in a new directory in the dataset/ directory containing:
+The cloning version results in a new directory in the workspaces/ directory containing:
 * Symbolic links to the Snakefile and the global configuration.
-* A symbolic link to a version-specific configuration `config.yaml --(links to)--> local/config/config_v{version}.yaml`, which is initially copied from the previous version.
-* Any symbolic link linking to files contained in the `PRJ_ROOT/local/*` directory that were present in the previous version.
+* A symbolic link to a version-specific configuration `config.yaml --(links to)--> workflow/config/config_v{version}.yaml`, which is initially copied from the previous version.
+* Any symbolic link linking to files contained in the `PRJ_ROOT/workflow/*` directory that were present in the previous version.
 
 ## Raw triplex prediction
 
