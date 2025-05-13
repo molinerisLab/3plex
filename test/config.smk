@@ -1,1 +1,1 @@
-../local/config/config.smk
+../workflow/config/config.smk

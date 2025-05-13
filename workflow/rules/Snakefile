@@ -8,7 +8,7 @@ configfile: "config.yaml"
 PRJ_ROOT=os.environ.get("PRJ_ROOT")
 include: "config.smk"
 include: PRJ_ROOT + "/docker_context/Snakefile"
-report: PRJ_ROOT + "/local/report/workflow.rst"
+report: PRJ_ROOT + "/workflow/report/workflow.rst"
 
 
 
@@ -23,9 +23,9 @@ def get_sequence_name(path):
 
 rule set_up:
 	input:
-		PRJ_ROOT+"/local/bin/get_upper_quartile.c"
+		PRJ_ROOT+"/workflow/scripts/get_upper_quartile.c"
 	output:
-		PRJ_ROOT+"/local/bin/get_upper_quartile" 
+		PRJ_ROOT+"/workflow/scripts/get_upper_quartile" 
 	shell: """
 		gcc -o {output} {input}
 	"""
@@ -265,7 +265,7 @@ rule run_stability_comp:
 		tab="results/{ssRNA}/{stability_score}/stability_comp.tsv",
 		boxplot=report(
 			"results/{ssRNA}/{stability_score}/stability_comp_boxplot.pdf",
-			caption="../../local/report/promoter_tpx_stability_test-stability_comp_boxplot.rst",
+			caption="../../workflow/report/promoter_tpx_stability_test-stability_comp_boxplot.rst",
 			category="promoter_tpx_stability_test",
 			subcategory="stability_comp",
 			labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
@@ -307,7 +307,7 @@ rule run_fgsea:
 		leading_edge="results/{ssRNA}/{stability_score}/leading_edge.tsv",
 		enrich_plot=report(
 			"results/{ssRNA}/{stability_score}/enrichment_plot.pdf",
-			caption="../../local/report/promoter_tpx_stability_test-enrich_plot.rst",
+			caption="../../workflow/report/promoter_tpx_stability_test-enrich_plot.rst",
 			category="promoter_tpx_stability_test",
 			subcategory="enrichment_test",
 			labels={"ssRNA": "{ssRNA}", "stability_score": "{stability_score}"},
@@ -359,7 +359,7 @@ rule dbd_upper_quartiles_from_profile_pre:
 	input:
 		dbd_file = "{ssRNA}_ssmasked-{dsDNA, ^(?!.*_shuf_).*$}.dbd",
 		tpx_profile = "{ssRNA}_ssmasked-{dsDNA, ^(?!.*_shuf_).*$}.tpx.stability.tfo_profile.pre",
-		upper_quartile_Exec = PRJ_ROOT+"/local/bin/get_upper_quartile"
+		upper_quartile_Exec = PRJ_ROOT+"/workflow/scripts/get_upper_quartile"
 	output:
 		temp("{ssRNA}_ssmasked-{dsDNA}.tpx.stability.tfo_profile.pre.dbd_quartiles.csv")
 	shell: """
@@ -371,7 +371,7 @@ rule dbd_upper_quartiles_from_profile_pre_shuf:
 	input:
 		dbd_file = "{ssRNA}_ssmasked-{dsDNA}.dbd",
 		tpx_profile = "{ssRNA}_ssmasked-{dsDNA}_shuf_{run}.tpx.stability.tfo_profile.pre",
-		upper_quartile_Exec = PRJ_ROOT+"/local/bin/get_upper_quartile"
+		upper_quartile_Exec = PRJ_ROOT+"/workflow/scripts/get_upper_quartile"
 	output:
 		temp("{ssRNA}_ssmasked-{dsDNA}_shuf_{run}.tpx.stability.tfo_profile.pre.dbd_quartiles.csv")
 	shell: """
