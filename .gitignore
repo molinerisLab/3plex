@@ -1,8 +1,4 @@
-dataset/jobs
-dataset/*
-local/envs/3plex/
 .Rproj.user
-local/rules/.snakemake/
 test/
 !test/config.yaml
 !test/config_general.yaml 
@@ -14,3 +10,5 @@ test/
 !test/universe_of_genes.txt
 3plex.sif
 local/bin/get_upper_quartile
+workflow/env/env
+workspaces/*
