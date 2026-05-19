@@ -9,6 +9,6 @@ test/
 !test/SRA1.fa
 !test/universe_of_genes.txt
 3plex.sif
-local/bin/get_upper_quartile
 workflow/env/env
-workspaces/*
+results/*
+!results/v1
